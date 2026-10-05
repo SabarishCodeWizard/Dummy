@@ -81,11 +81,10 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <InstallButton className="hidden sm:inline-flex" />
               <Button
-                variant="outline"
+                variant="danger"
                 size="sm"
                 icon={LogOut}
                 onClick={onLogout}
-                className="border-white/20! bg-white/5! text-white! hover:bg-white/10!"
               >
                 <span className="hidden sm:inline">Logout</span>
               </Button>

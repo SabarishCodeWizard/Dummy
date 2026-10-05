@@ -65,15 +65,15 @@ function HeroPanel() {
       </div>
 
       <div className="relative flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-brand-300">
-        <span className="inline-flex items-center gap-2">
+        <a href={`tel:${COMPANY.cell.replace(/[^\d+]/g, '')}`} className="inline-flex items-center gap-2 hover:text-gold-300 transition">
           <Phone className="size-4 text-gold-400" /> {COMPANY.cell}
-        </span>
-        <span className="inline-flex items-center gap-2">
+        </a>
+        <a href={`mailto:${COMPANY.email}`} className="inline-flex items-center gap-2 hover:text-gold-300 transition">
           <Mail className="size-4 text-gold-400" /> {COMPANY.email}
-        </span>
-        <span className="inline-flex items-center gap-2">
+        </a>
+        <a href={`https://${COMPANY.website.replace(/^https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-gold-300 transition">
           <Globe className="size-4 text-gold-400" /> {COMPANY.website}
-        </span>
+        </a>
       </div>
     </section>
   );
