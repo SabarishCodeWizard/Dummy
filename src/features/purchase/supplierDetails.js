@@ -1,0 +1,107 @@
+/** Supplier Details page — port of js/supplier-details.js (aggregation, stats, search, phone masking, CSV export). */
+import { digitsOnly, toNum } from '@/core/format';
+function cleanInvoiceNo(invoiceNo) {
+  let inv = invoiceNo.toString();
+  if (inv.startsWith('P-')) inv = inv.substring(2);
+  const num = parseInt(inv, 10);
+  return Number.isNaN(num) ? inv : String(num).padStart(3, '0');
+}
+/**
+ * processSupplierData: purchase bills grouped by trimmed supplier name (the suppliers collection is not used).
+ * Phone/address come from the first bill seen — the newest, as getAllPurchaseBills sorts by timestamp desc.
+ *
+ * PARITY NOTE: paid / balance read `payment?.x || top-level x`, so a nested balanceDue of 0 falls back to the top-level
+ * field — unlike billing.purchaseBalanceDue (`!== undefined`). Bills written by this app keep both in sync, so the
+ * results only differ for stale legacy documents. `discount` is read without the `discountAmount` fallback history uses.
+ */
+export function aggregateSuppliers(bills) {
+  if (!bills || !Array.isArray(bills)) return [];
+  const bySupplier = new Map();
+  bills.forEach((bill) => {
+    if (!bill || !bill.supplierName) return;
+    const key = bill.supplierName.trim();
+    let s = bySupplier.get(key);
+    if (!s) {
+      s = {
+        name: key,
+        phone: bill.supplierPhone || '',
+        address: bill.supplierAddress || '',
+        totalBills: 0,
+        totalAmount: 0,
+        totalPaid: 0,
+        totalDiscount: 0,
+        balanceDue: 0,
+        invoiceNos: [],
+      };
+      bySupplier.set(key, s);
+    }
+    s.totalBills++;
+    s.totalAmount += toNum(bill.grandTotal);
+    s.totalPaid += toNum(bill.payment?.totalPaid || bill.amountPaid);
+    s.totalDiscount += toNum(bill.discount);
+    s.balanceDue += toNum(bill.payment?.balanceDue || bill.balanceDue);
+    if (bill.invoiceNo) s.invoiceNos.push(cleanInvoiceNo(bill.invoiceNo));
+  });
+  bySupplier.forEach((s) => s.invoiceNos.sort((a, b) => parseInt(b) - parseInt(a)));
+  return Array.from(bySupplier.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+export function supplierStats(suppliers) {
+  const sum = (pick) => suppliers.reduce((total, s) => total + pick(s), 0);
+  return {
+    totalSuppliers: suppliers.length,
+    totalBills: sum((s) => s.totalBills),
+    totalAmount: sum((s) => s.totalAmount),
+    totalPaid: sum((s) => s.totalPaid),
+    totalDiscount: sum((s) => s.totalDiscount),
+    totalBalance: sum((s) => s.balanceDue),
+  };
+}
+/** doSearch: case-insensitive substring match on name, phone or address. */
+export function filterSuppliers(suppliers, query) {
+  const q = query.toLowerCase().trim();
+  if (!q) return suppliers;
+  return suppliers.filter(
+    (s) =>
+      s.name.toLowerCase().includes(q) ||
+      s.phone.toLowerCase().includes(q) ||
+      s.address.toLowerCase().includes(q),
+  );
+}
+/** formatPhoneNumber: digits only, everything but the last 3 masked. */
+export function maskPhone(phone) {
+  if (!phone) return 'N/A';
+  const clean = digitsOnly(phone);
+  if (clean.length <= 3) return clean;
+  return '*'.repeat(clean.length - 3) + clean.slice(-3);
+}
+/** What a tap on the masked number reveals (togglePhoneNumber). */
+export const revealedPhone = (phone) => digitsOnly(phone);
+const CSV_HEADERS = [
+  'Supplier Name',
+  'Phone',
+  'Address',
+  'Total Bills',
+  'Total Amount',
+  'Amount Paid',
+  'Discount',
+  'Balance Due',
+  'Invoice Numbers',
+];
+/** exportCSV */
+export function buildSuppliersCsv(suppliers) {
+  const rows = suppliers.map((s) => [
+    s.name,
+    s.phone,
+    s.address,
+    s.totalBills,
+    s.totalAmount.toFixed(2),
+    s.totalPaid.toFixed(2),
+    s.totalDiscount.toFixed(2),
+    s.balanceDue.toFixed(2),
+    s.invoiceNos.join('; '),
+  ]);
+  return [CSV_HEADERS, ...rows]
+    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+}
+export const suppliersCsvFileName = (dateISO) => `supplier-details-${dateISO}.csv`;
