@@ -100,7 +100,7 @@ export function usePurchaseEditForm(invoiceNo) {
       toast(invalid.title, invalid.message, 'error');
       return;
     }
-    const outcome = await shareAcknowledgement(buildAcknowledgementMessage(form));
+    const outcome = await shareAcknowledgement(await buildAcknowledgementMessage(form));
     if (outcome === 'shared') toast('Shared', 'Acknowledgement shared successfully!', 'success');
     else if (outcome === 'copied')
       toast('Copied', 'Message copied to clipboard! You can paste it to share.', 'success');

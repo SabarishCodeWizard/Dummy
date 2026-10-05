@@ -140,7 +140,7 @@ export async function savePurchaseBillWithPayments(form) {
   return bill;
 }
 /** "Share Acknowledgement" text from purchase.js. */
-export function buildAcknowledgementMessage(form) {
+export async function buildAcknowledgementMessage(form) {
   const lines = buildProductLines(form.rows, { requirePositiveQty: true });
   const { grandTotal } = purchaseFormTotals(form);
   let message = '';
@@ -149,7 +149,33 @@ export function buildAcknowledgementMessage(form) {
   lines.forEach((p, i) => {
     message += `${i + 1}. ${p.description} - Qty: ${p.qty} - Amount: ₹${p.amount.toFixed(2)}\n`;
   });
-  message += `\nTotal Amount: ₹${grandTotal.toFixed(2)}\n\n`;
-  message += `${COMPANY.displayName} has received the products mentioned above. Thank you.\n\n${CREDIT_LINE}`;
+  message += `\nTotal Amount: ₹${grandTotal.toFixed(2)}\n`;
+
+  const invoiceNo = form.invoiceNo.trim();
+  if (invoiceNo) {
+    try {
+      const payments = await db.getPurchasePaymentsByInvoice(invoiceNo);
+      if (payments.length > 0) {
+        message += '\nPayment History:\n';
+        payments.forEach(p => {
+          const date = new Date(p.paymentDate).toLocaleDateString('en-IN');
+          message += `- ${date}: ₹${p.amount.toFixed(2)} (${p.paymentMethod.toUpperCase()})\n`;
+        });
+      }
+
+      const returns = await db.getPurchaseReturnsByInvoice(invoiceNo);
+      if (returns.length > 0) {
+        message += '\nReturn History:\n';
+        returns.forEach(r => {
+          const date = new Date(r.returnDate).toLocaleDateString('en-IN');
+          message += `- ${date}: ${r.description} (Qty: ${r.qty}) - ₹${r.returnAmount.toFixed(2)}\n`;
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching history for acknowledgement:', error);
+    }
+  }
+
+  message += `\n${COMPANY.displayName} has received the products mentioned above. Thank you.\n\n${CREDIT_LINE}`;
   return message;
 }
