@@ -3,35 +3,35 @@
  * Printed invoices, statements and WhatsApp messages read from here; empty contact fields are simply left out.
  */
 export const COMPANY = {
-  name: 'BRIGHTLIGHT SOLUTIONS',
-  displayName: 'Brightlight Solutions',
-  tagline: 'Technology That Moves Business Forward',
+  name: 'SANTHAMANI TEXTILES',
+  displayName: 'Santhamani Textiles',
+  tagline: '',
   /** short monogram printed in the invoice watermark */
-  monogram: 'BL',
-  address: 'Kamatchi Amman Kovil Street, Kumarananthapuram, Tiruppur, Tamil Nadu 641602, India',
-  cell: '+91 78450 81278',
-  email: 'contact@brightlightsolutions.in',
-  website: 'www.brightlightsolutions.in',
-  hours: '24 Hours',
+  monogram: 'SS',
+  address: 'No.16/1, 25A, Thirumalai Nagar South, 1st Street, TIRUPUR - 641 602.',
+  cell: '90872 93268, 9092779599',
+  email: '',
+  website: '',
+  hours: '',
   /** payment number printed under the amount in words (omitted when empty) */
-  gpay: '',
+  gpay: '90872 93268, 909277959',
   /** shown in the WhatsApp statement footer (omitted when empty) */
-  whatsappLocation: 'Tiruppur, Tamil Nadu',
-  whatsappPhones: '+91 78450 81278',
+  whatsappLocation: 'Tirupur',
+  whatsappPhones: '90872 93268, 9092779599',
   /** software credit appended to invoices and WhatsApp messages */
-  creditName: 'Brightlight Solutions',
-  creditPhone: '+91 78450 81278',
+  creditName: 'Santhamani Textiles',
+  creditPhone: '90872 93268',
 };
 
 /** Product name shown in the app chrome, PWA manifest and page titles. */
 export const PRODUCT = {
-  name: 'Brightlight Billing',
+  name: 'Santhamani Textiles Billing',
   suite: 'Billing & Invoice Management',
 };
 
 /** What the company builds — used on the login / dashboard hero. */
 export const SERVICES = ['Billing & Finance', 'ERP', 'CRM', 'Mobile Applications', 'Web Software'];
 
-export const CREDIT_LINE = `Powered by ${COMPANY.creditName} — ${COMPANY.tagline}`;
+export const CREDIT_LINE = `Software created by Sabarish R. | For custom billing solutions, contact: 7845081278`;
 /** Country calling code prepended to 10-digit Indian numbers for wa.me links. */
 export const COUNTRY_CODE = '91';

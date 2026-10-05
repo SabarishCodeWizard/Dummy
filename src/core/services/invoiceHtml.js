@@ -233,9 +233,9 @@ export function invoiceBody(input) {
 
     <div class="developer-credit-print">
       <p style="margin: 3px 0;">
-        Powered by <strong style="color: #1b2030;">${esc(COMPANY.creditName)}</strong>
+        Software created by <strong style="color: #1b2030;">Sabarish R.</strong>
         <span style="color: #ccc; margin: 0 5px;">|</span>
-        <span style="color: #b9830f;">${esc(COMPANY.tagline)}</span>
+        <span style="color: #b9830f;">For custom billing solutions, contact: 7845081278</span>
       </p>
     </div>
   </div>`;

@@ -65,14 +65,14 @@ function HeroPanel() {
       </div>
 
       <div className="relative flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-brand-300">
-        <a href={`tel:${COMPANY.cell.replace(/[^\d+]/g, '')}`} className="inline-flex items-center gap-2 hover:text-gold-300 transition">
-          <Phone className="size-4 text-gold-400" /> {COMPANY.cell}
+        <a href="tel:+917845081278" className="inline-flex items-center gap-2 hover:text-gold-300 transition">
+          <Phone className="size-4 text-gold-400" /> +91 7845081278
         </a>
-        <a href={`mailto:${COMPANY.email}`} className="inline-flex items-center gap-2 hover:text-gold-300 transition">
-          <Mail className="size-4 text-gold-400" /> {COMPANY.email}
+        <a href="mailto:contact@brightlightsolutions.in" className="inline-flex items-center gap-2 hover:text-gold-300 transition">
+          <Mail className="size-4 text-gold-400" /> contact@brightlightsolutions.in
         </a>
-        <a href={`https://${COMPANY.website.replace(/^https?:\/\//, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-gold-300 transition">
-          <Globe className="size-4 text-gold-400" /> {COMPANY.website}
+        <a href="https://www.brightlightsolutions.in" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-gold-300 transition">
+          <Globe className="size-4 text-gold-400" /> www.brightlightsolutions.in
         </a>
       </div>
     </section>

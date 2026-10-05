@@ -12,15 +12,15 @@ import {
  * Firestore rules). Can be overridden with VITE_FIREBASE_* variables in a `.env.local` file.
  */
 const env = import.meta.env ?? {};
-const FIREBASE_PROJECT_ID = 'billing-56b7b';
+const FIREBASE_PROJECT_ID = 'ssjeeva-f5679';
 export const firebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY ?? 'AIzaSyDNtPr3I8GUk9_oSwi_N4K1Yqxuffpf0K8',
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN ?? 'billing-56b7b.firebaseapp.com',
+  apiKey: env.VITE_FIREBASE_API_KEY ?? 'AIzaSyAHrsyRqHvPROtRCfMpb_TRH8XhXGR83DE',
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN ?? 'ssjeeva-f5679.firebaseapp.com',
   projectId: FIREBASE_PROJECT_ID,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET ?? 'billing-56b7b.firebasestorage.app',
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '478502228096',
-  appId: env.VITE_FIREBASE_APP_ID ?? '1:478502228096:web:a79de765991d3522321665',
-  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID ?? 'G-711NDDPSHM',
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET ?? 'ssjeeva-f5679.firebasestorage.app',
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '1001926126226',
+  appId: env.VITE_FIREBASE_APP_ID ?? '1:1001926126226:web:9fa81b949c20544eccd44b',
+  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID ?? 'G-5C6FPVGHQ5',
 };
 
 if (env.VITE_FIREBASE_PROJECT_ID && env.VITE_FIREBASE_PROJECT_ID !== FIREBASE_PROJECT_ID) {

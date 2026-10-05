@@ -181,14 +181,14 @@ export default function DashboardPage() {
         <GoldWaves className="opacity-60" />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-[0.03]">
           <span className="font-display text-[12vw] font-black uppercase tracking-tighter text-white whitespace-nowrap">
-            {COMPANY.name}
+            BRIGHTLIGHT SOLUTIONS
           </span>
         </div>
         <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="relative grid gap-8 md:grid-cols-[1.1fr_1fr]">
             <div>
-              <h2 className="font-display text-xl font-extrabold">{COMPANY.displayName}</h2>
-              <p className="mt-1 text-sm text-gold-300">{COMPANY.tagline}</p>
+              <h2 className="font-display text-xl font-extrabold">Brightlight Solutions</h2>
+              <p className="mt-1 text-sm text-gold-300">Technology That Moves Business Forward</p>
               <ul className="mt-5 flex flex-wrap gap-2">
                 {SERVICES.map((s) => (
                   <li
@@ -202,15 +202,15 @@ export default function DashboardPage() {
             </div>
             <ul className="space-y-3 text-sm text-brand-100">
               {[
-                [Phone, COMPANY.cell, `tel:${COMPANY.cell.replace(/[^\d+]/g, '')}`],
-                [Mail, COMPANY.email, `mailto:${COMPANY.email}`],
-                [Globe, COMPANY.website, `https://${COMPANY.website.replace(/^https?:\/\//, '')}`],
+                [Phone, '+91 78450 81278', 'tel:+917845081278'],
+                [Mail, 'contact@brightlightsolutions.in', 'mailto:contact@brightlightsolutions.in'],
+                [Globe, 'www.brightlightsolutions.in', 'https://www.brightlightsolutions.in'],
                 [
                   MapPin,
-                  COMPANY.address,
-                  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(COMPANY.address)}`,
+                  'Kamatchi Amman Kovil Street, Kumarananthapuram, Tiruppur, Tamil Nadu 641602, India',
+                  'https://www.google.com/maps/search/?api=1&query=Kamatchi+Amman+Kovil+Street,+Kumarananthapuram,+Tiruppur,+Tamil+Nadu+641602,+India',
                 ],
-                [Clock, `Business hours: ${COMPANY.hours}`, null],
+                [Clock, 'Business hours: 24 Hours', null],
               ].map(([Icon, text, href]) => (
                 <li key={text}>
                   {href ? (

@@ -8,8 +8,8 @@
 export const SESSION_HOURS = 24;
 
 // btoa(username) / btoa(password) — intentionally matches the requested application login.
-export const USER_B64 = 'SlNQ';
-export const PASS_B64 = 'MTIzNDU2';
+export const USER_B64 = 'U1NKU05Z';
+export const PASS_B64 = 'MjcxODE1';
 
 export const SESSION_KEYS = { auth: 'isAuthenticated', username: 'username', loginTime: 'loginTime' };
 

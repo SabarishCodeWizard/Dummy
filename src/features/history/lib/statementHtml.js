@@ -138,7 +138,7 @@ function footer(now, includeCredit) {
       <div>This is a computer-generated statement. No signature is required.</div>
       ${COMPANY.whatsappPhones ? `<div>For any queries, please contact: ${esc(COMPANY.whatsappPhones)}</div>` : ''}
       <div>Generated on: ${esc(formatDateTimeIN(now))}</div>
-      ${includeCredit ? `<div>Powered by ${esc(COMPANY.creditName)}</div>` : ''}
+      ${includeCredit ? `<div>Software created by Sabarish R. | For custom billing solutions, contact: 7845081278</div>` : ''}
     </div>`;
 }
 const rs = (amount) => `Rs. ${formatCurrency(amount)}`;
