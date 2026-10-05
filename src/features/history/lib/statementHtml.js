@@ -184,7 +184,7 @@ export function buildInvoiceStatementHtml(input) {
     ${paymentsTable(payments, invoice.grandTotal, totalReturns, todayOf(now), labels)}
 
     ${footer(now, true)}`;
-  return wrap(`Statement ${invoice.invoiceNo}`, logoSrc, body);
+  return wrap(`SS ${invoice.invoiceNo}`, logoSrc, body);
 }
 /** generateCombinedPDFStatement(): every invoice of the party (newest first) with its returns and payment history. */
 export function buildCombinedStatementHtml({ statement, labels, logoSrc, now }) {
@@ -215,7 +215,7 @@ export function buildCombinedStatementHtml({ statement, labels, logoSrc, now }) 
     <div style="height: 10px"></div>
     ${blocks}
     ${footer(now, true)}`;
-  return wrap(`Statement ${statement.partyName}`, logoSrc, body);
+  return wrap(`SS Statement ${statement.partyName}`, logoSrc, body);
 }
 /** generateCombinedPDFStatementEasy(): one ledger line per invoice (oldest first) and four totals. Null when empty. */
 export function buildEasyStatementHtml({ partyName, invoices, labels, logoSrc, now }) {
@@ -255,14 +255,14 @@ export function buildEasyStatementHtml({ partyName, invoices, labels, logoSrc, n
       <div class="row final"><span>Balance Due:</span><span>${esc(rs(easy.balanceDue))}</span></div>
     </div>
     ${footer(now, false)}`;
-  return wrap(`Statement ${partyName}`, logoSrc, body);
+  return wrap(`SS Statement ${partyName}`, logoSrc, body);
 }
 // ------------------------------------------------------------------ file names
 const sanitize = (text) => text.replace(/[^a-zA-Z0-9]/g, '_');
 export const combinedStatementFileName = (partyName, now) =>
-  `Statement_${sanitize(partyName)}_${toISODate(now)}.pdf`;
+  `SS_${sanitize(partyName)}_${toISODate(now)}.pdf`;
 export const easyStatementFileName = (partyName, now) =>
-  `Statement_Easy_${sanitize(partyName)}_${toISODate(now)}.pdf`;
+  `SS_Easy_${sanitize(partyName)}_${toISODate(now)}.pdf`;
 /** The web kept the party name verbatim; characters a file system rejects are replaced. */
 export const invoiceStatementFileName = (invoiceNo, partyName, now) =>
-  `Statement_${invoiceNo}_${partyName}_${toISODate(now)}.pdf`.replace(/[\\/:*?"<>|]/g, '_');
+  `SS_${invoiceNo}_${partyName}_${toISODate(now)}.pdf`.replace(/[\\/:*?"<>|]/g, '_');

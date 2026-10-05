@@ -58,7 +58,7 @@ export async function printInvoice(invoice) {
 export async function shareInvoicePdf(invoice) {
   const html = buildCombinedInvoiceHtml(await buildContext(invoice));
   if (
-    (await sharePdfHtml(html, `Invoice-${invoice.invoiceNo}.pdf`, `Invoice #${invoice.invoiceNo}`)) ===
+    (await sharePdfHtml(html, `SS ${invoice.invoiceNo}.pdf`, `SS ${invoice.invoiceNo}`)) ===
     'shared'
   )
     return 'shared';
