@@ -305,7 +305,7 @@ export function InvoiceActionButtons({ invoice, actions, compact = false }) {
         aria-label="Share Statement"
         onClick={() => actions.shareStatement(no)}
       >
-        {compact ? 'Share' : 'Share Statement'}
+        Share Statement
       </Button>
       <Button
         variant="secondary"
@@ -314,7 +314,7 @@ export function InvoiceActionButtons({ invoice, actions, compact = false }) {
         aria-label="Download Statement"
         onClick={() => actions.downloadStatement(no)}
       >
-        {compact ? 'Statement' : 'Download Statement'}
+        Download Statement
       </Button>
       {!compact ? extras : null}
     </div>

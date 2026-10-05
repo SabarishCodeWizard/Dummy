@@ -84,8 +84,7 @@ export function usePurchaseEditForm(invoiceNo) {
         'Please wait while we save your changes...',
       );
       toast('Bill Updated', 'Purchase bill updated successfully!', 'success');
-      if (nav.canGoBack()) nav.back();
-      else nav.replace('/purchase/history');
+      nav.replace('/purchase/history');
     } catch (e) {
       console.error('Error updating purchase bill:', e);
       toast('Error', 'Error updating purchase bill.', 'error');

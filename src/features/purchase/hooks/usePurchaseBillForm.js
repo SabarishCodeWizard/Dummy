@@ -1,3 +1,4 @@
+import { useAppNavigate } from '@/hooks/useRouteParams';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFeedback } from '@/ui';
 import { useFocusLoad } from '@/hooks/useFocusLoad';
@@ -15,6 +16,7 @@ import { checkPurchaseBeforeSave, lookupSupplier, previousBalanceFor } from '../
 /** State + actions of the Purchase Bill (create) screen — purchase.js. */
 export function usePurchaseBillForm() {
   const { toast, confirm, loading } = useFeedback();
+  const nav = useAppNavigate();
   const shortcuts = useShortcuts();
   const [form, setForm] = useState(emptyPurchaseForm);
   const [suppliers, setSuppliers] = useState([]);
@@ -120,6 +122,7 @@ export function usePurchaseBillForm() {
       );
       toast('Bill Saved', 'Purchase Bill saved successfully!', 'success');
       setSuggestion(await loadPurchaseSuggestion());
+      nav.replace('/purchase/history');
     } catch (e) {
       console.error('Error saving purchase bill:', e);
       toast('Error', 'Error saving purchase bill.', 'error');
