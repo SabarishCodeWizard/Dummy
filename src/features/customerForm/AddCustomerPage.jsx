@@ -104,11 +104,6 @@ export default function AddCustomerPage() {
             icon={Users}
             title="No customers found."
             message="Add your first customer to start billing."
-            action={
-              <Button icon={UserPlus} onClick={() => manager.openAdd()} className="mt-2">
-                Add New Customer
-              </Button>
-            }
           />
         </div>
       ) : visible.length === 0 ? (

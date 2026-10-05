@@ -63,6 +63,7 @@ export function useCustomerManager() {
         setFormOpen(false);
         if (isExpanded) setTarget(freshAddTarget());
         setCustomers(await db.getAllCustomers());
+        setQuery('');
         toast(
           'Success',
           adding ? 'Customer added successfully!' : 'Customer updated successfully!',

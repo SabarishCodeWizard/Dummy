@@ -43,11 +43,14 @@ export function useSupplierDirectory() {
         return;
       }
       setNewSupplier(EMPTY_SUPPLIER);
+      setQuery('');
       await reload();
       toast('Supplier Added', 'Supplier added successfully!', 'success');
+      return true;
     } catch (e) {
       console.error('Error adding supplier:', e);
       toast('Error', 'Failed to add supplier.', 'error');
+      return false;
     } finally {
       setAdding(false);
     }
