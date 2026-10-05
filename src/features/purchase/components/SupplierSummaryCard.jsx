@@ -24,6 +24,7 @@ export function SupplierSummaryCard({ supplier }) {
       </div>
       <div className="mt-3 px-0.5">
         <KeyValue label="Total Bills" value={String(supplier.totalBills)} />
+        <KeyValue label="Opening Balance" value={formatRupees(supplier.firstBillPreviousBalance + supplier.totalManualAdjustments)} />
         <KeyValue label="Total Amount" value={formatRupees(supplier.totalAmount)} />
         <KeyValue label="Amount Paid" value={formatRupees(supplier.totalPaid)} />
         <KeyValue label="Discount" value={formatRupees(supplier.totalDiscount)} />

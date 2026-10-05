@@ -22,6 +22,7 @@ export const CustomerCard = memo(function CustomerCard({ customer, onRemind }) {
       </div>
       <div className="mt-3 px-0.5">
         <KeyValue label="Total Invoices" value={row.invoices} />
+        <KeyValue label="Opening Balance" value={row.openingBalance} valueClassName={TONE_CLASS[row.tones.openingBalance]} />
         <KeyValue label="Total Amount" value={row.amount} valueClassName={TONE_CLASS[row.tones.amount]} />
         <KeyValue label="Amount Paid" value={row.paid} valueClassName={TONE_CLASS[row.tones.paid]} />
         <KeyValue label="Discount" value={row.discount} valueClassName={TONE_CLASS[row.tones.discount]} />

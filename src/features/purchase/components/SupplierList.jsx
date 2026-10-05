@@ -22,6 +22,7 @@ export const SUPPLIER_COLUMNS = [
   },
   { key: 'phone', header: 'Phone', render: (s) => <RevealablePhone phone={s.phone} /> },
   { key: 'address', header: 'Address', className: 'max-w-xs text-slate-600', value: (s) => s.address || '—' },
+  num('openingBalance', 'Opening Balance', (s) => formatRupees(s.firstBillPreviousBalance + s.totalManualAdjustments)),
   num('bills', 'Bills', (s) => s.totalBills),
   num('amount', 'Total Amount', (s) => formatRupees(s.totalAmount)),
   num('paid', 'Amount Paid', (s) => formatRupees(s.totalPaid)),

@@ -30,6 +30,9 @@ export function buildCustomerSummaries(invoices, returns) {
         amountPaid: 0,
         totalDiscountAmount: 0,
         totalReturns: 0,
+        totalManualAdjustments: 0,
+        firstInvoicePreviousBalance: 0,
+        firstInvoiceNo: undefined,
         allInvoiceNumbers: [],
       };
       byName.set(invoice.customerName, customer);
@@ -37,12 +40,21 @@ export function buildCustomerSummaries(invoices, returns) {
     customer.totalInvoices += 1;
     customer.totalCurrentBillAmount += toNum(invoice.subtotal);
     customer.amountPaid += toNum(invoice.amountPaid);
-    // PARITY NOTE: only `discountAmount` is read; the legacy `discount` field some old documents carry is ignored.
-    customer.totalDiscountAmount += toNum(invoice.discountAmount);
-    if (invoice.invoiceNo) customer.allInvoiceNumbers.push(invoice.invoiceNo);
+    // PARITY NOTE: read both `discountAmount` and legacy `discount`
+    customer.totalDiscountAmount += toNum(invoice.discountAmount || invoice.discount);
+    customer.totalManualAdjustments += toNum(invoice.manualPreviousBalance);
+    
+    if (invoice.invoiceNo) {
+      customer.allInvoiceNumbers.push(invoice.invoiceNo);
+      const numVal = invoiceNumberValue(invoice.invoiceNo);
+      if (customer.firstInvoiceNo === undefined || numVal < customer.firstInvoiceNo) {
+        customer.firstInvoiceNo = numVal;
+        customer.firstInvoicePreviousBalance = toNum(invoice.previousBalance);
+      }
+    }
     if (invoice.invoiceDate) {
-      // strict `>`: on a date tie the first invoice encountered stays the "last" one
-      if (!customer.lastInvoiceDate || dateValue(invoice.invoiceDate) > dateValue(customer.lastInvoiceDate)) {
+      const dVal = dateValue(invoice.invoiceDate);
+      if (!customer.lastInvoiceDate || dVal > dateValue(customer.lastInvoiceDate)) {
         customer.lastInvoiceDate = invoice.invoiceDate;
         customer.lastInvoiceNo = invoice.invoiceNo;
       }
@@ -71,6 +83,8 @@ export function buildCustomerSummaries(invoices, returns) {
  */
 export function customerBalance(customer) {
   return (
+    customer.firstInvoicePreviousBalance +
+    customer.totalManualAdjustments +
     customer.totalCurrentBillAmount -
     customer.amountPaid -
     customer.totalReturns -

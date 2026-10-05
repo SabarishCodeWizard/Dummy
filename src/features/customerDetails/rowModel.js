@@ -8,6 +8,7 @@ export function buildRowModel(customer) {
   const balance = customerBalance(customer);
   return {
     invoices: String(customer.totalInvoices),
+    openingBalance: formatRupees(customer.firstInvoicePreviousBalance + customer.totalManualAdjustments),
     amount: formatRupees(customer.totalCurrentBillAmount),
     paid: formatRupees(customer.amountPaid),
     discount: formatRupees(customer.totalDiscountAmount),
@@ -16,6 +17,7 @@ export function buildRowModel(customer) {
     hasReturns,
     canRemind: canSendReminder(customer),
     tones: {
+      openingBalance: 'neutral',
       amount: 'positive',
       paid: 'positive',
       discount: 'negative',

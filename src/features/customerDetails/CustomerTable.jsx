@@ -6,6 +6,7 @@ import { AddressText, CustomerName, PhoneReveal, ReminderAction, TONE_CLASS } fr
 import { buildRowModel } from './rowModel';
 
 const AMOUNT_COLUMNS = [
+  ['openingBalance', 'Opening Balance'],
   ['amount', 'Total Amount'],
   ['paid', 'Amount Paid'],
   ['discount', 'Discount'],

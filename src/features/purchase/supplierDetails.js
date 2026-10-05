@@ -30,17 +30,31 @@ export function aggregateSuppliers(bills) {
         totalAmount: 0,
         totalPaid: 0,
         totalDiscount: 0,
-        balanceDue: 0,
+        totalManualAdjustments: 0,
+        firstBillPreviousBalance: 0,
+        firstBillNo: undefined,
+        balanceDue: toNum(bill.payment?.balanceDue || bill.balanceDue),
         invoiceNos: [],
       };
       bySupplier.set(key, s);
     }
     s.totalBills++;
-    s.totalAmount += toNum(bill.grandTotal);
+    const billSubtotal = bill.subtotal !== undefined 
+      ? toNum(bill.subtotal) 
+      : toNum(bill.grandTotal) - toNum(bill.previousBalance) - toNum(bill.manualPreviousBalance) + toNum(bill.discountAmount || bill.discount);
+    s.totalAmount += billSubtotal;
     s.totalPaid += toNum(bill.payment?.totalPaid || bill.amountPaid);
-    s.totalDiscount += toNum(bill.discount);
-    s.balanceDue += toNum(bill.payment?.balanceDue || bill.balanceDue);
-    if (bill.invoiceNo) s.invoiceNos.push(cleanInvoiceNo(bill.invoiceNo));
+    s.totalDiscount += toNum(bill.discountAmount || bill.discount);
+    s.totalManualAdjustments += toNum(bill.manualPreviousBalance);
+    
+    if (bill.invoiceNo) {
+      s.invoiceNos.push(cleanInvoiceNo(bill.invoiceNo));
+      const numVal = parseInt(cleanInvoiceNo(bill.invoiceNo), 10);
+      if (s.firstBillNo === undefined || numVal < s.firstBillNo) {
+        s.firstBillNo = numVal;
+        s.firstBillPreviousBalance = toNum(bill.previousBalance);
+      }
+    }
   });
   bySupplier.forEach((s) => s.invoiceNos.sort((a, b) => parseInt(b) - parseInt(a)));
   return Array.from(bySupplier.values()).sort((a, b) => a.name.localeCompare(b.name));
@@ -80,6 +94,7 @@ const CSV_HEADERS = [
   'Supplier Name',
   'Phone',
   'Address',
+  'Opening Balance',
   'Total Bills',
   'Total Amount',
   'Amount Paid',
@@ -93,6 +108,7 @@ export function buildSuppliersCsv(suppliers) {
     s.name,
     s.phone,
     s.address,
+    (s.firstBillPreviousBalance + s.totalManualAdjustments).toFixed(2),
     s.totalBills,
     s.totalAmount.toFixed(2),
     s.totalPaid.toFixed(2),
