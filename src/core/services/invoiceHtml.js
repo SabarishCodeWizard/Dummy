@@ -56,7 +56,7 @@ const CSS = `
   .amount-positive { color: #27ae60; font-weight: bold; }
   .return-box { margin-top: 16px; padding: 8px 12px; background: #fff4e6; border-left: 4px solid #f39c12; font-size: 12px; border-radius: 5px; }
   .signature-section { display: flex; justify-content: space-between; margin-top: 40px; font-size: 11px; gap: 8px; }
-  .signature-line { border-top: 1px solid #333; margin: 22px 0 5px; width: 140px; }
+  .signature-line { border-top: 1px solid #333; margin: 35px auto 8px; width: 140px; }
   .declaration { flex: 1; }
   .customer-signature, .company-signature { text-align: center; flex: 1; }
   .developer-credit-print { text-align: center; margin-top: 18px; font-size: 10px; color: #555; border-top: 2px dashed #eee; padding-top: 10px; page-break-inside: avoid; }
@@ -231,11 +231,11 @@ export function invoiceBody(input) {
       </div>
     </div>
 
-    <div class="developer-credit-print">
+    <div class="developer-credit-print" style="margin-top: 10px; font-size: 13px; font-weight: bold; color: #1b2030;">
       <p style="margin: 3px 0;">
-        Software created by <strong style="color: #1b2030;">Sabarish R.</strong>
-        <span style="color: #ccc; margin: 0 5px;">|</span>
-        <span style="color: #b9830f;">For custom billing solutions, contact: 7845081278</span>
+        Software created by Sabarish R.
+        <span style="color: #666; margin: 0 5px; font-weight: normal;">|</span>
+        For custom billing solutions, contact: 7845081278
       </p>
     </div>
   </div>`;

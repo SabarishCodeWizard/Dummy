@@ -138,7 +138,7 @@ function footer(now, includeCredit) {
       <div>This is a computer-generated statement. No signature is required.</div>
       ${COMPANY.whatsappPhones ? `<div>For any queries, please contact: ${esc(COMPANY.whatsappPhones)}</div>` : ''}
       <div>Generated on: ${esc(formatDateTimeIN(now))}</div>
-      ${includeCredit ? `<div>Software created by Sabarish R. | For custom billing solutions, contact: 7845081278</div>` : ''}
+      ${includeCredit ? `<div style="margin-top: 10px; font-size: 13px; color: #1b2030; font-weight: bold;">Software created by Sabarish R. <span style="color: #666; font-weight: normal; margin: 0 5px;">|</span> For custom billing solutions, contact: 7845081278</div>` : ''}
     </div>`;
 }
 const rs = (amount) => `Rs. ${formatCurrency(amount)}`;
