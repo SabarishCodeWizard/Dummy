@@ -3,7 +3,7 @@
  * Per-supplier totals built from the purchase bills: stats grid, search, table (desktop) / cards (phones, tablets),
  * revealable phone numbers and CSV export. `?phone=` opens the page already searching for that supplier.
  */
-import { Download, FileText, Truck } from 'lucide-react';
+import { Download, FileText, Search, Truck, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { db } from '@/core/db';
 import { useFocusLoad } from '@/hooks/useFocusLoad';
@@ -75,32 +75,46 @@ export default function SupplierDetailsPage() {
     );
   }
 
+  const actions = (
+    <>
+      <Button variant="secondary" icon={Download} loading={exporting} onClick={onExport}>
+        Export
+      </Button>
+      <RefreshButton loading={refreshing} onClick={refresh} />
+    </>
+  );
+
   return (
-    <Page title="Supplier Details" icon={Truck} max="7xl">
+    <Page title="Supplier Details" icon={Truck} max="7xl" actions={actions}>
       <div className="space-y-5">
-        <div className="rounded-2xl border border-line bg-white p-2.5 shadow-card">
+        <form
+          role="search"
+          className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-white p-2.5 shadow-card"
+          onSubmit={(e) => { e.preventDefault(); }}
+        >
           <SearchBar
             value={query}
             onChange={setQuery}
             placeholder="Search by supplier name, phone, or address..."
             aria-label="Search suppliers"
+            className="min-w-0 basis-full sm:flex-1 sm:basis-64"
           />
-        </div>
+          <Button type="submit" icon={Search} className="flex-1 sm:flex-none">
+            Search
+          </Button>
+          <Button variant="outline" icon={X} onClick={() => setQuery('')} className="flex-1 sm:flex-none">
+            Clear
+          </Button>
+        </form>
         <SupplierStatsGrid stats={stats} />
         <SectionHeader
           title="Supplier List"
           icon={FileText}
           className="mb-0"
           right={
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="brand" className="mr-1 tabular-nums">
-                {visible.length}
-              </Badge>
-              <Button variant="secondary" icon={Download} loading={exporting} onClick={onExport}>
-                Export
-              </Button>
-              <RefreshButton loading={refreshing} onClick={refresh} />
-            </div>
+            <Badge tone="brand" className="tabular-nums">
+              {visible.length}
+            </Badge>
           }
         />
         <div ref={pager.anchorRef} className="scroll-mt-32" />
