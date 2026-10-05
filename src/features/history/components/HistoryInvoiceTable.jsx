@@ -91,7 +91,7 @@ export function buildInvoiceColumns(labels, actions) {
       align: 'right',
       render: (i) =>
         i.totalReturns > 0 ? (
-          <span className="text-amber-600">-{money(i.totalReturns)}</span>
+          <span className="text-red-600">-{money(i.totalReturns)}</span>
         ) : (
           <span className="text-slate-300">-</span>
         ),

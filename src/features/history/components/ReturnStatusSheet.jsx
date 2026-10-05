@@ -39,11 +39,6 @@ export function ReturnStatusSheet({
               Add Return
             </Button>
           ) : null}
-          {returns.length > 0 ? (
-            <Button variant="danger" icon={Undo2} onClick={onUndoAll} className="flex-1 sm:flex-none">
-              Undo All Returns
-            </Button>
-          ) : null}
         </>
       }
     >
@@ -67,7 +62,7 @@ export function ReturnStatusSheet({
               className="rounded-2xl border border-l-[3px] border-line border-l-amber-400 bg-white p-3.5 text-sm text-slate-700 shadow-sm"
             >
               <div className="mb-2 flex items-center justify-between gap-2 border-b border-dashed border-slate-200 pb-2">
-                <span className="font-display font-bold text-brand-800">Return #{index + 1}</span>
+                <span className="font-display font-bold text-red-600">Return #{index + 1}</span>
                 <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
                   {formatDateIN(item.returnDate)}
                 </span>
@@ -85,7 +80,7 @@ export function ReturnStatusSheet({
               </p>
               <p>
                 <span className="font-semibold text-slate-500">Amount: </span>
-                <span className="font-display font-extrabold text-amber-700 tabular-nums">
+                <span className="font-display font-extrabold text-red-600 tabular-nums">
                   ₹{formatCurrency(item.returnAmount)}
                 </span>
               </p>
@@ -94,7 +89,7 @@ export function ReturnStatusSheet({
                 {item.reason || 'N/A'}
               </p>
               <div className="mt-2 flex justify-end">
-                <Button variant="outline" size="sm" icon={Undo2} onClick={() => onUndo(item.id)}>
+                <Button variant="danger" size="sm" icon={Undo2} onClick={() => onUndo(item.id)}>
                   Undo This Return
                 </Button>
               </div>
@@ -104,7 +99,7 @@ export function ReturnStatusSheet({
       )}
 
       {returns.length > 0 ? (
-        <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-right font-display text-lg font-extrabold text-amber-700 tabular-nums">
+        <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-right font-display text-lg font-extrabold text-red-600 tabular-nums">
           Total Return Amount: ₹{formatCurrency(sumReturnAmounts(returns))}
         </p>
       ) : null}

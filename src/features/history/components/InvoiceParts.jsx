@@ -155,7 +155,7 @@ export function InvoiceSummaryBox({ invoice }) {
           <Line
             label="Return Amount:"
             value={`-${rs(invoice.totalReturns)}`}
-            valueClassName="text-emerald-600"
+            valueClassName="text-red-600"
           />
         ) : null}
       </div>
@@ -239,8 +239,8 @@ export function InvoiceHistoryLinks({ invoice, onViewPayments, onViewReturns }) 
       {invoice.totalReturns > 0 ? (
         <HistoryLink
           label={`Return History (${rs(invoice.totalReturns)})`}
-          tone="text-amber-700"
-          tile="bg-amber-50 text-amber-600 ring-amber-200"
+          tone="text-red-700"
+          tile="bg-red-50 text-red-600 ring-red-200"
           icon={RotateCcw}
           onClick={onViewReturns}
         />
