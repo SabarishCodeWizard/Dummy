@@ -20,13 +20,17 @@ const CSS = `
   @page { margin: 14mm 12mm; }
   * { box-sizing: border-box; }
   body { font-family: Helvetica, Arial, sans-serif; color: #000; margin: 0; font-size: 11px; line-height: 1.35; }
-  .watermark { position: fixed; top: 50%; left: 50%; width: 360px; height: 360px; margin: -180px 0 0 -180px; opacity: 0.1; z-index: 0; }
-  .watermark img { width: 100%; height: 100%; object-fit: contain; }
+  .watermark-text { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-35deg); font-size: 90px; font-weight: 900; color: rgba(0, 0, 0, 0.05); z-index: 0; white-space: nowrap; user-select: none; text-align: center; }
   .doc { position: relative; z-index: 1; }
-  .logo { text-align: center; margin-bottom: 4px; }
-  .logo img { height: 70px; width: auto; }
-  .company { font-size: 16px; font-weight: bold; text-align: center; margin: 4px 0 2px; }
-  .company-sub { font-size: 10px; color: #646464; text-align: center; margin: 1px 0; }
+  .header-container { display: flex; position: relative; margin-bottom: 24px; min-height: 70px; }
+  .header-left { flex: 1; text-align: left; z-index: 10; padding-right: 10px; }
+  .header-center { width: 150px; text-align: center; z-index: 10; margin: 0 10px; }
+  .header-center img { width: 100%; height: 110px; object-fit: contain; }
+  .header-right { flex: 1; text-align: right; z-index: 10; padding-left: 10px; }
+  .header-right .section { margin-top: 0; margin-bottom: 4px; font-size: 11px; font-weight: bold; }
+  .header-right .info { font-size: 9px; color: #444; line-height: 1.4; margin: 0; }
+  .company { font-size: 16px; font-weight: bold; margin: 0 0 4px 0; color: #000; }
+  .company-sub { font-size: 10px; color: #444; line-height: 1.4; }
   .title { font-size: 14px; font-weight: bold; text-align: center; margin: 20px auto 14px; padding-bottom: 3px; width: 270px; }
   .title.green { border-bottom: 1.5px solid #006400; }
   .title.black { border-bottom: 1.5px solid #000; }
@@ -56,7 +60,7 @@ const CSS = `
   .footer { text-align: center; font-size: 8px; color: #646464; margin-top: 36px; }
   .footer div { margin: 2px 0; }
 `;
-function wrap(title, logoSrc, body) {
+function wrap(title, watermarkText, logoSrc, partyInfoHtml, body) {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -66,13 +70,20 @@ function wrap(title, logoSrc, body) {
   <style>${CSS}</style>
 </head>
 <body>
-  ${logoSrc ? `<div class="watermark"><img src="${logoSrc}" alt="" /></div>` : ''}
+  ${watermarkText ? `<div class="watermark-text">${esc(watermarkText)}</div>` : ''}
   <div class="doc">
-    ${logoSrc ? `<div class="logo"><img src="${logoSrc}" alt="${esc(COMPANY.displayName)}" /></div>` : ''}
-    <div class="company">${esc(COMPANY.name)}</div>
-    <div class="company-sub">${esc(COMPANY.tagline)}</div>
-    ${COMPANY.address ? `<div class="company-sub">${esc(COMPANY.address)}</div>` : ''}
-    ${COMPANY.cell ? `<div class="company-sub">Cell: ${esc(COMPANY.cell)}</div>` : ''}
+    <div class="header-container">
+      <div class="header-left">
+        <div class="company">${esc(COMPANY.name)}</div>
+        ${COMPANY.tagline ? `<div class="company-sub">${esc(COMPANY.tagline)}</div>` : ''}
+        ${COMPANY.address ? `<div class="company-sub">${esc(COMPANY.address)}</div>` : ''}
+        ${COMPANY.cell ? `<div class="company-sub">Cell: ${esc(COMPANY.cell)}</div>` : ''}
+      </div>
+      ${logoSrc ? `<div class="header-center"><img src="${logoSrc}" alt="${esc(COMPANY.displayName)}" /></div>` : ''}
+      <div class="header-right">
+        ${partyInfoHtml || ''}
+      </div>
+    </div>
     ${body}
   </div>
 </body>
@@ -160,15 +171,17 @@ export function buildInvoiceStatementHtml(input) {
   } else {
     summary.push(`<div class="bold">Balance Due: ${rs(adjustedBalanceDue)}</div>`);
   }
-  const body = `
-    <div class="title green">ACCOUNT STATEMENT</div>
-
+  const partyInfoHtml = `
     <div class="section">${esc(party.toUpperCase())} INFORMATION</div>
     <div class="info">Name: ${esc(invoice.partyName)}</div>
     <div class="info">Invoice No: ${esc(displayInvoiceNo(labels, invoice.invoiceNo))}</div>
     <div class="info">Address: ${esc(invoice.partyAddress || NOT_SPECIFIED)}</div>
     <div class="info">Phone: ${esc(invoice.partyPhone || NOT_SPECIFIED)}</div>
     <div class="info">Invoice Date: ${esc(formatDateIN(invoice.invoiceDate))}</div>
+  `;
+  const body = `
+    <div class="title green">ACCOUNT STATEMENT</div>
+
 
     <div class="section underlined">INVOICE DETAILS</div>
     ${productsTable(invoice)}
@@ -184,7 +197,7 @@ export function buildInvoiceStatementHtml(input) {
     ${paymentsTable(payments, invoice.grandTotal, totalReturns, todayOf(now), labels)}
 
     ${footer(now, true)}`;
-  return wrap(`SS ${invoice.invoiceNo}`, logoSrc, body);
+  return wrap(`SS ${invoice.invoiceNo}`, `SS ${displayInvoiceNo(labels, invoice.invoiceNo)}`, logoSrc, partyInfoHtml, body);
 }
 /** generateCombinedPDFStatement(): every invoice of the party (newest first) with its returns and payment history. */
 export function buildCombinedStatementHtml({ statement, labels, logoSrc, now }) {
@@ -206,16 +219,18 @@ export function buildCombinedStatementHtml({ statement, labels, logoSrc, now }) 
       </div>`;
     })
     .join('');
-  const body = `
-    <div class="title green">COMBINED ACCOUNT STATEMENT</div>
+  const partyInfoHtml = `
     <div class="section">${esc(labels.party.toUpperCase())} INFORMATION</div>
     <div class="info">Name: ${esc(statement.partyName)}</div>
     <div class="info">Phone: ${esc(statement.partyPhone || NOT_SPECIFIED)}</div>
     <div class="info">Address: ${esc(statement.partyAddress || NOT_SPECIFIED)}</div>
+  `;
+  const body = `
+    <div class="title green">COMBINED ACCOUNT STATEMENT</div>
     <div style="height: 10px"></div>
     ${blocks}
     ${footer(now, true)}`;
-  return wrap(`SS Statement ${statement.partyName}`, logoSrc, body);
+  return wrap(`SS Statement ${statement.partyName}`, 'SS STATEMENT', logoSrc, partyInfoHtml, body);
 }
 /** generateCombinedPDFStatementEasy(): one ledger line per invoice (oldest first) and four totals. Null when empty. */
 export function buildEasyStatementHtml({ partyName, invoices, labels, logoSrc, now }) {
@@ -230,12 +245,14 @@ export function buildEasyStatementHtml({ partyName, invoices, labels, logoSrc, n
     formatCurrency(row.amount),
     formatCurrency(row.received),
   ]);
+  const partyInfoHtml = `
+    <div class="section">${esc(labels.party.toUpperCase())} INFORMATION</div>
+    <div class="info">Name: ${esc(partyName)}</div>
+    <div class="info">Phone: ${esc(easy.partyPhone || NOT_SPECIFIED)}</div>
+    <div class="info">Address: ${esc(easy.partyAddress || NOT_SPECIFIED)}</div>
+  `;
   const body = `
     <div class="title black">COMBINED ACCOUNT STATEMENT</div>
-    <div class="section">${esc(labels.party.toUpperCase())} INFORMATION</div>
-    <div class="info easy">Name: ${esc(partyName)}</div>
-    <div class="info easy">Phone: ${esc(easy.partyPhone || NOT_SPECIFIED)}</div>
-    <div class="info easy">Address: ${esc(easy.partyAddress || NOT_SPECIFIED)}</div>
     <div style="height: 10px"></div>
     ${table(
       [
@@ -255,7 +272,7 @@ export function buildEasyStatementHtml({ partyName, invoices, labels, logoSrc, n
       <div class="row final"><span>Balance Due:</span><span>${esc(rs(easy.balanceDue))}</span></div>
     </div>
     ${footer(now, false)}`;
-  return wrap(`SS Statement ${partyName}`, logoSrc, body);
+  return wrap(`SS Statement ${partyName}`, 'SS STATEMENT', logoSrc, partyInfoHtml, body);
 }
 // ------------------------------------------------------------------ file names
 const sanitize = (text) => text.replace(/[^a-zA-Z0-9]/g, '_');
