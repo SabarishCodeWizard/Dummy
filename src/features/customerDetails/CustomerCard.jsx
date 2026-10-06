@@ -1,6 +1,6 @@
 import { memo } from 'react';
 
-import { Card, KeyValue } from '@/ui';
+import { Card, KeyValue, TotalInvoicesClickable } from '@/ui';
 import { AddressText, CustomerName, PhoneReveal, ReminderAction, TONE_CLASS } from './CustomerCells';
 import { buildRowModel } from './rowModel';
 
@@ -21,7 +21,17 @@ export const CustomerCard = memo(function CustomerCard({ customer, onRemind }) {
         <AddressText address={customer.address} showIcon />
       </div>
       <div className="mt-3 px-0.5">
-        <KeyValue label="Total Invoices" value={row.invoices} />
+        <KeyValue 
+          label="Total Invoices" 
+          value={
+            <TotalInvoicesClickable 
+              count={row.invoices} 
+              invoiceNumbers={customer.allInvoiceNumbers} 
+              entityName={customer.name} 
+              module="sales" 
+            />
+          } 
+        />
         <KeyValue label="Opening Balance" value={row.openingBalance} valueClassName={TONE_CLASS[row.tones.openingBalance]} />
         <KeyValue label="Total Amount" value={row.amount} valueClassName={TONE_CLASS[row.tones.amount]} />
         <KeyValue label="Amount Paid" value={row.paid} valueClassName={TONE_CLASS[row.tones.paid]} />

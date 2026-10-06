@@ -1,6 +1,6 @@
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { InitialAvatar } from '@/features/customerForm/InitialAvatar';
-import { Badge, DataTable } from '@/ui';
+import { Badge, DataTable, TotalInvoicesClickable } from '@/ui';
 import { formatRupees } from '@/core/format';
 import { RevealablePhone } from './RevealablePhone';
 import { SupplierSummaryCard } from './SupplierSummaryCard';
@@ -23,7 +23,20 @@ export const SUPPLIER_COLUMNS = [
   { key: 'phone', header: 'Phone', render: (s) => <RevealablePhone phone={s.phone} /> },
   { key: 'address', header: 'Address', className: 'max-w-xs text-slate-600', value: (s) => s.address || '—' },
   num('openingBalance', 'Opening Balance', (s) => formatRupees(s.firstBillPreviousBalance + s.totalManualAdjustments)),
-  num('bills', 'Bills', (s) => s.totalBills),
+  {
+    key: 'bills',
+    header: 'Bills',
+    align: 'right',
+    className: 'tabular-nums',
+    render: (s) => (
+      <TotalInvoicesClickable 
+        count={s.totalBills} 
+        invoiceNumbers={s.invoiceNos} 
+        entityName={s.name} 
+        module="purchase" 
+      />
+    ),
+  },
   num('amount', 'Total Amount', (s) => formatRupees(s.totalAmount)),
   num('paid', 'Amount Paid', (s) => formatRupees(s.totalPaid)),
   num('discount', 'Discount', (s) => formatRupees(s.totalDiscount)),

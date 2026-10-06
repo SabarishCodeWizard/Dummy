@@ -1,7 +1,7 @@
 import { Users } from 'lucide-react';
 import { useMemo } from 'react';
 
-import { DataTable, EmptyState } from '@/ui';
+import { DataTable, EmptyState, TotalInvoicesClickable } from '@/ui';
 import { AddressText, CustomerName, PhoneReveal, ReminderAction, TONE_CLASS } from './CustomerCells';
 import { buildRowModel } from './rowModel';
 
@@ -25,7 +25,19 @@ export function CustomerTable({ rows, onRemind }) {
       },
       { key: 'phone', header: 'Phone', render: (c) => <PhoneReveal phone={c.phone} /> },
       { key: 'address', header: 'Address', render: (c) => <AddressText address={c.address} /> },
-      { key: 'invoices', header: 'Total Invoices', align: 'right', render: (c) => buildRowModel(c).invoices },
+      { 
+        key: 'invoices', 
+        header: 'Total Invoices', 
+        align: 'right', 
+        render: (c) => (
+          <TotalInvoicesClickable
+            count={buildRowModel(c).invoices}
+            invoiceNumbers={c.allInvoiceNumbers}
+            entityName={c.name}
+            module="sales"
+          />
+        )
+      },
       ...AMOUNT_COLUMNS.map(([key, header]) => ({
         key,
         header,

@@ -1,6 +1,6 @@
 import { MapPin } from 'lucide-react';
 import { InitialAvatar } from '@/features/customerForm/InitialAvatar';
-import { Card, KeyValue } from '@/ui';
+import { Card, KeyValue, TotalInvoicesClickable } from '@/ui';
 import { formatRupees } from '@/core/format';
 import { RevealablePhone } from './RevealablePhone';
 
@@ -23,7 +23,17 @@ export function SupplierSummaryCard({ supplier }) {
         </div>
       </div>
       <div className="mt-3 px-0.5">
-        <KeyValue label="Total Bills" value={String(supplier.totalBills)} />
+        <KeyValue 
+          label="Total Bills" 
+          value={
+            <TotalInvoicesClickable 
+              count={String(supplier.totalBills)} 
+              invoiceNumbers={supplier.invoiceNos} 
+              entityName={supplier.name} 
+              module="purchase" 
+            />
+          } 
+        />
         <KeyValue label="Opening Balance" value={formatRupees(supplier.firstBillPreviousBalance + supplier.totalManualAdjustments)} />
         <KeyValue label="Total Amount" value={formatRupees(supplier.totalAmount)} />
         <KeyValue label="Amount Paid" value={formatRupees(supplier.totalPaid)} />
