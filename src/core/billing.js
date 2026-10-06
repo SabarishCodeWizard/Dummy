@@ -6,7 +6,7 @@ import { db } from './db';
 import { getFinancialYear, toNum } from './format';
 export const rowAmount = (qty, rate) => toNum(qty) * toNum(rate);
 export function calcSubtotal(rows) {
-  return rows.reduce((sum, r) => sum + rowAmount(r.qty, r.rate), 0);
+  return (rows || []).reduce((sum, r) => sum + rowAmount(r.qty, r.rate), 0);
 }
 /** Rows with a description become product lines; `sno` is sequential. */
 export function buildProductLines(rows, opts = {}) {

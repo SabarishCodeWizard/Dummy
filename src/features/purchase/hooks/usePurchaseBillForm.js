@@ -1,5 +1,6 @@
 import { useAppNavigate } from '@/hooks/useRouteParams';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { useFeedback } from '@/ui';
 import { useFocusLoad } from '@/hooks/useFocusLoad';
 import { useShortcuts } from '@/hooks/useShortcuts';
@@ -18,7 +19,24 @@ export function usePurchaseBillForm() {
   const { toast, confirm, loading } = useFeedback();
   const nav = useAppNavigate();
   const shortcuts = useShortcuts();
-  const [form, setForm] = useState(emptyPurchaseForm);
+  const [searchParams] = useSearchParams();
+  
+  const [form, setForm] = useState(() => {
+    const initialForm = emptyPurchaseForm();
+    const paramProduct = searchParams.get('product');
+    if (paramProduct) {
+      initialForm.rows = [
+        {
+          description: paramProduct,
+          qty: searchParams.get('qty') || '',
+          rate: '',
+        },
+        { description: '', qty: '', rate: '' }
+      ];
+    }
+    return initialForm;
+  });
+  
   const [suppliers, setSuppliers] = useState([]);
   const [suggestion, setSuggestion] = useState({ lastInvoiceNo: '-', nextInvoiceNo: '' });
   /** a >= 10 character phone that matches no supplier */

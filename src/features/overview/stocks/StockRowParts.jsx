@@ -52,13 +52,20 @@ export function OpeningValue({ row }) {
  * "View History" plus "Add Old Stock", or "Edit Old Stock" + "Delete Old Stock" when an opening stock exists.
  * `compact` (table rows) turns Delete into an icon-only button so the actions stay on one line.
  */
-export function StockActions({ row, onViewHistory, onEditOpening, onDeleteOpening, compact }) {
+export function StockActions({ row, onViewHistory, onEditOpening, onDeleteOpening, onSetMinStock, compact }) {
   const hasOpening = openingActions(row) === 'edit';
   return (
     <div className="flex items-center gap-2">
       <Button variant="secondary" size="sm" icon={Eye} onClick={onViewHistory} className="flex-1 max-sm:min-h-11">
-        View History
+        History
       </Button>
+      <IconButton
+        icon={Plus}
+        label="Set Min Stock"
+        variant="primary"
+        onClick={onSetMinStock}
+        className="max-sm:min-h-11 max-sm:min-w-11"
+      />
       {hasOpening ? (
         <>
           <IconButton

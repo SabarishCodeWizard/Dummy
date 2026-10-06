@@ -494,6 +494,17 @@ export class Database {
       onError: 'empty',
     });
   }
+  // ------------------------------------------------------------------ Product Metadata
+  async saveProductMetadata(description, metadata) {
+    await setDoc(this.ref('productMetadata', description), { ...metadata, description, updatedAt: serverTimestamp() }, { merge: true });
+    this._cache.productMetadata = null;
+    return description;
+  }
+  async getAllProductMetadata() {
+    return this._load('productMetadata', () => this._all('productMetadata'), {
+      onError: 'empty',
+    });
+  }
   // ------------------------------------------------------------------ Expenses
   async saveExpense(expenseData) {
     await setDoc(this.ref('expenses', expenseData.id), expenseData);

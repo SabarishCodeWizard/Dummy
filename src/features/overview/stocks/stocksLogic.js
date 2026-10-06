@@ -12,6 +12,7 @@ const newAccumulator = (opening = 0) => ({
   opening,
   purchased: 0,
   sold: 0,
+  minStockLevel: 0,
   purchaseHistory: [],
   salesHistory: [],
 });
@@ -25,7 +26,7 @@ function sortHistory(entries) {
     })
     .map((x) => x.entry);
 }
-export function computeStocks(purchaseBills, salesInvoices, openingStocks) {
+export function computeStocks(purchaseBills, salesInvoices, openingStocks, productMetadata = []) {
   const stockMap = new Map();
   const entry = (description) => {
     let acc = stockMap.get(description);
@@ -41,6 +42,15 @@ export function computeStocks(purchaseBills, salesInvoices, openingStocks) {
     if (!description) return;
     entry(description).opening = toNum(stock.qty);
   });
+  
+  // Seed with metadata
+  if (productMetadata) {
+    productMetadata.forEach((meta) => {
+      const description = String(meta.description ?? '').trim();
+      if (!description) return;
+      entry(description).minStockLevel = toNum(meta.minStockLevel);
+    });
+  }
   let totalSales = 0;
   let cashReceived = 0;
   let totalPurchases = 0;
@@ -93,6 +103,7 @@ export function computeStocks(purchaseBills, salesInvoices, openingStocks) {
       purchased,
       sold,
       available: round3(opening + purchased - sold),
+      minStockLevel: acc.minStockLevel || 0,
       purchaseHistory: sortHistory(acc.purchaseHistory),
       salesHistory: sortHistory(acc.salesHistory),
     };

@@ -5,5 +5,6 @@ export async function loadStocks() {
   const purchaseBills = await db.getAllPurchaseBills();
   const salesInvoices = await db.getAllInvoices();
   const openingStocks = await db.getAllOpeningStocks();
-  return computeStocks(purchaseBills, salesInvoices, openingStocks);
+  const productMetadata = await db.getAllProductMetadata();
+  return computeStocks(purchaseBills, salesInvoices, openingStocks, productMetadata);
 }
