@@ -25,6 +25,7 @@ const SupplierDetailsPage = lazy(() => import('@/features/purchase/pages/Supplie
 const PurchaseBinPage = lazy(() => import('@/features/recycleBin/PurchaseBinPage'));
 
 const RevenuePage = lazy(() => import('@/features/overview/revenue/RevenuePage'));
+const StatisticsPage = lazy(() => import('@/features/overview/revenue/StatisticsPage'));
 const StocksPage = lazy(() => import('@/features/overview/stocks/StocksPage'));
 const ExpensesPage = lazy(() => import('@/features/overview/expenses/ExpensesPage'));
 const ShortcutsPage = lazy(() => import('@/features/overview/shortcuts/ShortcutsPage'));
@@ -68,6 +69,7 @@ export function AppRoutes() {
             <Route path="overview" element={<ModuleLayout module="overview" />}>
               <Route index element={<Navigate to="revenue" replace />} />
               <Route path="revenue" element={<RevenuePage />} />
+              <Route path="statistics" element={<StatisticsPage />} />
               <Route path="stocks" element={<StocksPage />} />
               <Route path="expenses" element={<ExpensesPage />} />
               <Route path="shortcuts" element={<ShortcutsPage />} />

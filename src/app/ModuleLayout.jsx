@@ -58,6 +58,7 @@ export const MODULES = {
     home: '/overview/revenue',
     items: [
       { to: '/overview/revenue', label: 'Revenue', short: 'Revenue', icon: TrendingUp },
+      { to: '/overview/statistics', label: 'Statistics', short: 'Stats', icon: PieChart },
       { to: '/overview/stocks', label: 'Stocks', short: 'Stocks', icon: Boxes },
       { to: '/overview/expenses', label: 'Expenses', short: 'Expenses', icon: Wallet },
       { to: '/overview/shortcuts', label: 'Shortcuts', short: 'Shortcuts', icon: Zap },
