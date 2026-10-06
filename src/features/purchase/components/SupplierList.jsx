@@ -31,7 +31,7 @@ export const SUPPLIER_COLUMNS = [
     render: (s) => (
       <TotalInvoicesClickable 
         count={s.totalBills} 
-        invoiceNumbers={s.invoiceNos} 
+        invoiceNumbers={s.allInvoiceNumbers} 
         entityName={s.name} 
         module="purchase" 
       />
@@ -40,6 +40,7 @@ export const SUPPLIER_COLUMNS = [
   num('amount', 'Total Amount', (s) => formatRupees(s.totalAmount)),
   num('paid', 'Amount Paid', (s) => formatRupees(s.totalPaid)),
   num('discount', 'Discount', (s) => formatRupees(s.totalDiscount)),
+  num('returns', 'Returns', (s) => formatRupees(s.totalReturns)),
   {
     key: 'balance',
     header: 'Balance Due',

@@ -28,7 +28,7 @@ export function SupplierSummaryCard({ supplier }) {
           value={
             <TotalInvoicesClickable 
               count={String(supplier.totalBills)} 
-              invoiceNumbers={supplier.invoiceNos} 
+              invoiceNumbers={supplier.allInvoiceNumbers} 
               entityName={supplier.name} 
               module="purchase" 
             />
@@ -38,6 +38,7 @@ export function SupplierSummaryCard({ supplier }) {
         <KeyValue label="Total Amount" value={formatRupees(supplier.totalAmount)} />
         <KeyValue label="Amount Paid" value={formatRupees(supplier.totalPaid)} />
         <KeyValue label="Discount" value={formatRupees(supplier.totalDiscount)} />
+        <KeyValue label="Returns" value={formatRupees(supplier.totalReturns)} />
       </div>
       <div
         className={

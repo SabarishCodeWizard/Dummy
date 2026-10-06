@@ -31,14 +31,17 @@ export default function SupplierDetailsPage() {
   const { toast } = useFeedback();
   const { params } = useRouteParams();
   const [bills, setBills] = useState([]);
+  const [returns, setReturns] = useState([]);
   const [query, setQuery] = useState(() => (typeof params.phone === 'string' ? params.phone : ''));
   const [exporting, setExporting] = useState(false);
 
   const { loading, refreshing, error, refresh } = useFocusLoad(async () => {
-    setBills(await db.getAllPurchaseBills());
+    const [b, r] = await Promise.all([db.getAllPurchaseBills(), db.getAllPurchaseReturns()]);
+    setBills(b);
+    setReturns(r);
   });
 
-  const suppliers = useMemo(() => aggregateSuppliers(bills), [bills]);
+  const suppliers = useMemo(() => aggregateSuppliers(bills, returns), [bills, returns]);
   const stats = useMemo(() => supplierStats(suppliers), [suppliers]);
   const visible = useMemo(() => filterSuppliers(suppliers, query), [suppliers, query]);
   const pager = usePagination(visible, { resetKey: query });

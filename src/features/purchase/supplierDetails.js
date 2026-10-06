@@ -14,8 +14,15 @@ function cleanInvoiceNo(invoiceNo) {
  * field — unlike billing.purchaseBalanceDue (`!== undefined`). Bills written by this app keep both in sync, so the
  * results only differ for stale legacy documents. `discount` is read without the `discountAmount` fallback history uses.
  */
-export function aggregateSuppliers(bills) {
+export function aggregateSuppliers(bills, returns = []) {
   if (!bills || !Array.isArray(bills)) return [];
+  const returnedByInvoice = new Map();
+  if (Array.isArray(returns)) {
+    for (const r of returns) {
+      const key = String(r.invoiceNo);
+      returnedByInvoice.set(key, (returnedByInvoice.get(key) ?? 0) + toNum(r.returnAmount));
+    }
+  }
   const bySupplier = new Map();
   bills.forEach((bill) => {
     if (!bill || !bill.supplierName) return;
@@ -33,8 +40,9 @@ export function aggregateSuppliers(bills) {
         totalManualAdjustments: 0,
         firstBillPreviousBalance: 0,
         firstBillNo: undefined,
-        balanceDue: toNum(bill.payment?.balanceDue || bill.balanceDue),
-        invoiceNos: [],
+        allInvoiceNumbers: [],
+        latestBalanceDue: 0,
+        lastInvoiceDate: null,
       };
       bySupplier.set(key, s);
     }
@@ -48,16 +56,32 @@ export function aggregateSuppliers(bills) {
     s.totalManualAdjustments += toNum(bill.manualPreviousBalance);
     
     if (bill.invoiceNo) {
-      s.invoiceNos.push(cleanInvoiceNo(bill.invoiceNo));
+      s.allInvoiceNumbers.push(cleanInvoiceNo(bill.invoiceNo));
       const numVal = parseInt(cleanInvoiceNo(bill.invoiceNo), 10);
       if (s.firstBillNo === undefined || numVal < s.firstBillNo) {
         s.firstBillNo = numVal;
         s.firstBillPreviousBalance = toNum(bill.previousBalance);
       }
     }
+    if (bill.invoiceDate) {
+      const dVal = new Date(bill.invoiceDate).getTime();
+      if (!s.lastInvoiceDate || dVal > new Date(s.lastInvoiceDate).getTime()) {
+        s.lastInvoiceDate = bill.invoiceDate;
+        s.latestBalanceDue = toNum(bill.payment?.balanceDue || bill.balanceDue);
+      }
+    }
   });
-  bySupplier.forEach((s) => s.invoiceNos.sort((a, b) => parseInt(b) - parseInt(a)));
-  return Array.from(bySupplier.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+  const suppliers = Array.from(bySupplier.values());
+  for (const s of suppliers) {
+    s.allInvoiceNumbers.sort((a, b) => parseInt(b) - parseInt(a));
+    s.totalReturns = 0;
+    for (const invoiceNo of s.allInvoiceNumbers) {
+      s.totalReturns += returnedByInvoice.get(String(invoiceNo)) ?? 0;
+    }
+    s.balanceDue = s.latestBalanceDue - s.totalReturns;
+  }
+  return suppliers.sort((a, b) => a.name.localeCompare(b.name));
 }
 export function supplierStats(suppliers) {
   const sum = (pick) => suppliers.reduce((total, s) => total + pick(s), 0);
@@ -67,6 +91,7 @@ export function supplierStats(suppliers) {
     totalAmount: sum((s) => s.totalAmount),
     totalPaid: sum((s) => s.totalPaid),
     totalDiscount: sum((s) => s.totalDiscount),
+    totalReturns: sum((s) => s.totalReturns),
     totalBalance: sum((s) => s.balanceDue),
   };
 }
@@ -99,6 +124,7 @@ const CSV_HEADERS = [
   'Total Amount',
   'Amount Paid',
   'Discount',
+  'Returns',
   'Balance Due',
   'Invoice Numbers',
 ];
@@ -113,8 +139,9 @@ export function buildSuppliersCsv(suppliers) {
     s.totalAmount.toFixed(2),
     s.totalPaid.toFixed(2),
     s.totalDiscount.toFixed(2),
+    s.totalReturns.toFixed(2),
     s.balanceDue.toFixed(2),
-    s.invoiceNos.join('; '),
+    s.allInvoiceNumbers.join('; '),
   ]);
   return [CSV_HEADERS, ...rows]
     .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
