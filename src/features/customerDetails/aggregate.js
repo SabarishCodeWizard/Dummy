@@ -34,6 +34,7 @@ export function buildCustomerSummaries(invoices, returns) {
         firstInvoicePreviousBalance: 0,
         firstInvoiceNo: undefined,
         allInvoiceNumbers: [],
+        latestBalanceDue: 0,
       };
       byName.set(invoice.customerName, customer);
     }
@@ -57,6 +58,7 @@ export function buildCustomerSummaries(invoices, returns) {
       if (!customer.lastInvoiceDate || dVal > dateValue(customer.lastInvoiceDate)) {
         customer.lastInvoiceDate = invoice.invoiceDate;
         customer.lastInvoiceNo = invoice.invoiceNo;
+        customer.latestBalanceDue = toNum(invoice.balanceDue);
       }
     }
   }
@@ -82,14 +84,7 @@ export function buildCustomerSummaries(invoices, returns) {
  * (see reminder.ts).
  */
 export function customerBalance(customer) {
-  return (
-    customer.firstInvoicePreviousBalance +
-    customer.totalManualAdjustments +
-    customer.totalCurrentBillAmount -
-    customer.amountPaid -
-    customer.totalReturns -
-    customer.totalDiscountAmount
-  );
+  return customer.latestBalanceDue - customer.totalReturns;
 }
 /** The six stat cards (+ the dynamic "Total Returns" card) computed over whatever list is currently shown. */
 export function computeStats(customers) {
@@ -105,7 +100,7 @@ export function computeStats(customers) {
     totalPaid,
     totalReturns,
     totalDiscountAmount,
-    pendingBalance: totalCurrentBillAmount - totalPaid - totalReturns - totalDiscountAmount,
+    pendingBalance: customers.reduce((sum, c) => sum + customerBalance(c), 0),
   };
 }
 /**
