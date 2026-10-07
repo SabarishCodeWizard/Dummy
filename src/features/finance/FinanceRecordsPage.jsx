@@ -108,25 +108,32 @@ export default function FinanceRecordsPage() {
     return acc;
   }, { principal: 0, interest: 0, total: 0, paid: 0, balance: 0, overdue: 0 });
 
-  const renderProgress = (stats) => {
+  const renderProgress = (stats, record) => {
     const paidMonths = stats.expectedMonthlyInterest > 0 ? Math.floor(stats.totalPaid / stats.expectedMonthlyInterest) : 0;
     const totalBlocks = Math.max(stats.totalMonths, stats.monthsElapsed, paidMonths, 1);
+    const start = new Date(record.startDate);
+    
     return (
-      <div className="flex flex-wrap gap-0.5 max-w-[160px]">
+      <div className="flex flex-wrap gap-1 max-w-[220px]">
         {Array.from({ length: totalBlocks }).map((_, i) => {
           const isPaid = i < paidMonths;
           const isOverdue = i >= paidMonths && i < stats.monthsElapsed;
+          
+          const due = new Date(start);
+          due.setMonth(start.getMonth() + i + 1);
+          const dateStr = due.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+
           return (
             <div 
               key={i} 
-              className={`h-4 min-w-[20px] flex items-center justify-center rounded-[3px] text-[8px] font-bold ${
+              className={`h-5 flex items-center justify-center rounded-[3px] text-[9px] font-bold px-1.5 ${
                 isPaid ? 'bg-emerald-500 text-white' : 
                 isOverdue ? 'bg-red-500 text-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)]' : 
                 'bg-slate-100 text-slate-400 border border-slate-200'
               }`}
               title={isPaid ? 'Paid' : isOverdue ? 'Overdue' : 'Upcoming'}
             >
-              M{i + 1}
+              {dateStr}
             </div>
           );
         })}
@@ -194,7 +201,7 @@ export default function FinanceRecordsPage() {
       className: 'whitespace-nowrap min-w-[120px]',
       render: (e) => {
         const stats = calculateFinanceStats(e, calcDate || undefined);
-        return renderProgress(stats);
+        return renderProgress(stats, e);
       }
     },
     { 
@@ -268,7 +275,7 @@ export default function FinanceRecordsPage() {
                 
                 <div className="mt-2 bg-white rounded-lg p-2 border border-line shadow-sm">
                   <div className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 tracking-wider">Interest Payment Progress</div>
-                  {renderProgress(stats)}
+                  {renderProgress(stats, e)}
                 </div>
               </div>
             );

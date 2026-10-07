@@ -50,10 +50,10 @@ export function calculateFinanceStats(record, targetDate) {
 
   const expectedMonthlyInterest = (principal * rate) / 100;
   
-  const end = (targetDate || record.endDate) ? new Date(targetDate || record.endDate) : new Date();
+  const calculationDate = targetDate ? new Date(targetDate) : new Date();
   const start = new Date(record.startDate);
   
-  let monthsElapsed = differenceInMonths(end, start);
+  let monthsElapsed = differenceInMonths(calculationDate, start);
   if (monthsElapsed < 0) monthsElapsed = 0;
   
   let totalMonths = monthsElapsed;
