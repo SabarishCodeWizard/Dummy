@@ -4,12 +4,12 @@ export const EMPTY_CUSTOMER_DRAFT = { phone: '', name: '', address: '' };
 /** Texts of the web page's alert() boxes, shown inline next to the offending field. */
 export const CUSTOMER_MESSAGES = {
   add: {
-    phone: 'Please enter a valid phone number (at least 10 digits).',
+    phone: 'Please enter a valid phone number (exactly 10 digits).',
     name: 'Customer name is required.',
     duplicate: 'A customer with this phone number already exists.',
   },
   edit: {
-    phone: 'Please enter a valid phone number.',
+    phone: 'Please enter a valid phone number (exactly 10 digits).',
     name: 'Name cannot be empty.',
     duplicate: 'A customer with the new phone number already exists.',
   },
@@ -23,7 +23,7 @@ export const trimDraft = (draft) => ({
  * The web page only checked `phone.length < 10`; a number with letters or punctuation padding it out passed.
  * Counting digits keeps every real number valid and rejects such junk (the phone is also the Firestore document id).
  */
-export const isValidCustomerPhone = (phone) => digitsOnly(phone).length >= 10;
+export const isValidCustomerPhone = (phone) => digitsOnly(phone).length === 10;
 /** Empty object = valid. Expects a trimmed draft (see `trimDraft`). */
 export function validateCustomerDraft(draft, mode) {
   const errors = {};

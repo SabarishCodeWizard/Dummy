@@ -15,6 +15,7 @@ import {
   UserPlus,
   Users,
   Wallet,
+  Landmark,
   Zap,
 } from 'lucide-react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
@@ -62,6 +63,15 @@ export const MODULES = {
       { to: '/overview/stocks', label: 'Stocks', short: 'Stocks', icon: Boxes },
       { to: '/overview/expenses', label: 'Expenses', short: 'Expenses', icon: Wallet },
       { to: '/overview/shortcuts', label: 'Shortcuts', short: 'Shortcuts', icon: Zap },
+    ],
+  },
+  finance: {
+    title: 'Finance',
+    icon: Landmark,
+    home: '/finance/records',
+    items: [
+      { to: '/finance/records', label: 'Finance Records', short: 'Records', icon: FilePlus2 },
+      { to: '/finance/lenders', label: 'Lender Details', short: 'Lenders', icon: Users },
     ],
   },
 };

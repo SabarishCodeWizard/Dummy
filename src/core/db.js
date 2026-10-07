@@ -705,5 +705,51 @@ export class Database {
       console.error('Error updating subsequent invoices:', error);
     }
   }
+  // ------------------------------------------------------------------ Finance
+  async saveFinanceRecord(record) {
+    const id = record.id || uid('finance');
+    await setDoc(this.ref('finance', id), {
+      ...record,
+      id,
+      updatedAt: serverTimestamp(),
+      createdAt: record.createdAt || new Date().toISOString(),
+    });
+    this._cache.finance = null;
+    return id;
+  }
+  async getAllFinanceRecords() {
+    return this._load('finance', async () => {
+      const records = await this._all('finance');
+      return records.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    });
+  }
+  async getFinanceRecord(id) {
+    const snap = await getDoc(this.ref('finance', id));
+    return snap.exists() ? snap.data() : null;
+  }
+  async deleteFinanceRecord(id) {
+    await deleteDoc(this.ref('finance', id));
+    this._cache.finance = null;
+  }
+  // ------------------------------------------------------------------ Lenders
+  async saveLender(lenderData) {
+    await setDoc(this.ref('lenders', lenderData.phone), {
+      ...lenderData,
+      updatedAt: serverTimestamp(),
+    });
+    this._cache.lenders = null;
+    return lenderData.phone;
+  }
+  async getLender(phone) {
+    const snap = await getDoc(this.ref('lenders', phone));
+    return snap.exists() ? snap.data() : null;
+  }
+  async getAllLenders() {
+    return this._load('lenders', () => this._all('lenders'));
+  }
+  async deleteLender(phone) {
+    await deleteDoc(this.ref('lenders', phone));
+    this._cache.lenders = null;
+  }
 }
 export const db = new Database();

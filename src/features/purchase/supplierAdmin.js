@@ -1,10 +1,11 @@
 /** Add Supplier page — port of js/manage-suppliers.js (validation, duplicate checks, rename side-effects). */
 import { db } from '@/core/db';
+import { digitsOnly } from '@/core/format';
 const trimmed = (i) => ({ phone: i.phone.trim(), name: i.name.trim(), address: i.address.trim() });
 /** addSupplier(): phone first, then name. Returns the message to show, or null when valid. */
 export function validateNewSupplier(input) {
   const { phone, name } = trimmed(input);
-  if (!phone || phone.length < 10) return 'Please enter a valid phone number (at least 10 digits).';
+  if (!phone || digitsOnly(phone).length !== 10) return 'Please enter a valid phone number (exactly 10 digits).';
   if (!name) return 'Supplier name is required.';
   return null;
 }
@@ -12,7 +13,7 @@ export function validateNewSupplier(input) {
 export function validateSupplierEdit(input) {
   const { phone, name } = trimmed(input);
   if (!name) return 'Name cannot be empty.';
-  if (!phone || phone.length < 10) return 'Please enter a valid phone number.';
+  if (!phone || digitsOnly(phone).length !== 10) return 'Please enter a valid phone number (exactly 10 digits).';
   return null;
 }
 /** Directory search box (the web page had none): case-insensitive match on name, phone or address. */

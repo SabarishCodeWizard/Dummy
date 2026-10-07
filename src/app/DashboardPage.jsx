@@ -12,6 +12,7 @@ import {
   Share,
   ShoppingCart,
   Sparkles,
+  Landmark,
 } from 'lucide-react';
 import { Link } from 'react-router';
 
@@ -44,6 +45,13 @@ const MODULE_CARDS = [
     text: 'Understand revenue, stock and expenses at a glance.',
     icon: PieChart,
     points: ['Revenue & profit', 'Live stock levels', 'Expense tracking'],
+  },
+  {
+    to: '/finance/records',
+    title: 'Finance',
+    text: 'Manage money borrowings and automatic interest tracking.',
+    icon: Landmark,
+    points: ['Lender details', 'Auto-calculated interest', 'Total payable tracking'],
   },
 ];
 
@@ -109,7 +117,7 @@ export default function DashboardPage() {
 
       {/* ------------------------------------------------------------ content */}
       <main className="pb-safe relative mx-auto -mt-20 max-w-6xl px-4 pb-12 sm:-mt-24 sm:px-6 lg:px-8">
-        <section aria-label="Modules" className="grid gap-4 md:grid-cols-3 md:gap-5">
+        <section aria-label="Modules" className="grid gap-4 md:grid-cols-4 md:gap-5">
           {MODULE_CARDS.map(({ to, title, text, icon: Icon, points }, i) => (
             <Link
               key={to}
