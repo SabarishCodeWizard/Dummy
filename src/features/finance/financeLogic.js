@@ -56,6 +56,12 @@ export function calculateFinanceStats(record, targetDate) {
   let monthsElapsed = differenceInMonths(end, start);
   if (monthsElapsed < 0) monthsElapsed = 0;
   
+  let totalMonths = monthsElapsed;
+  if (record.endDate) {
+    totalMonths = differenceInMonths(new Date(record.endDate), start);
+    if (totalMonths < 0) totalMonths = 0;
+  }
+  
   const totalStrictlyDue = monthsElapsed * expectedMonthlyInterest;
   const overdueAmount = totalStrictlyDue - totalPaid;
   const isOverdue = overdueAmount > 0;
@@ -69,6 +75,7 @@ export function calculateFinanceStats(record, targetDate) {
     isOverdue,
     overdueAmount: isOverdue ? overdueAmount : 0,
     monthsElapsed,
+    totalMonths,
   };
 }
 

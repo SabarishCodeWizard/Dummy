@@ -108,6 +108,32 @@ export default function FinanceRecordsPage() {
     return acc;
   }, { principal: 0, interest: 0, total: 0, paid: 0, balance: 0, overdue: 0 });
 
+  const renderProgress = (stats) => {
+    const paidMonths = stats.expectedMonthlyInterest > 0 ? Math.floor(stats.totalPaid / stats.expectedMonthlyInterest) : 0;
+    const totalBlocks = Math.max(stats.totalMonths, stats.monthsElapsed, paidMonths, 1);
+    return (
+      <div className="flex flex-wrap gap-0.5 max-w-[160px]">
+        {Array.from({ length: totalBlocks }).map((_, i) => {
+          const isPaid = i < paidMonths;
+          const isOverdue = i >= paidMonths && i < stats.monthsElapsed;
+          return (
+            <div 
+              key={i} 
+              className={`h-4 min-w-[20px] flex items-center justify-center rounded-[3px] text-[8px] font-bold ${
+                isPaid ? 'bg-emerald-500 text-white' : 
+                isOverdue ? 'bg-red-500 text-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)]' : 
+                'bg-slate-100 text-slate-400 border border-slate-200'
+              }`}
+              title={isPaid ? 'Paid' : isOverdue ? 'Overdue' : 'Upcoming'}
+            >
+              M{i + 1}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const columns = [
     { key: 'lender', header: 'Lender', className: 'whitespace-nowrap', value: (e) => e.lenderName },
     { key: 'phone', header: 'Phone', className: 'whitespace-nowrap', value: (e) => e.phone },
@@ -153,13 +179,22 @@ export default function FinanceRecordsPage() {
           <div className="flex flex-col items-end">
             <span>{rs(stats.balancePayable)}</span>
             {stats.isOverdue && (
-               <div className="text-red-500 text-xs mt-1 flex items-center gap-1 font-semibold">
+               <div className="text-red-500 text-[10px] mt-1 flex items-center gap-1 font-semibold">
                  <AlertCircle className="size-3" />
                  Overdue: {rs(stats.overdueAmount)}
                </div>
             )}
           </div>
         );
+      }
+    },
+    {
+      key: 'progress',
+      header: 'Progress',
+      className: 'whitespace-nowrap min-w-[120px]',
+      render: (e) => {
+        const stats = calculateFinanceStats(e, calcDate || undefined);
+        return renderProgress(stats);
       }
     },
     { 
@@ -195,7 +230,8 @@ export default function FinanceRecordsPage() {
                   <div>
                     <div className="font-semibold text-brand-900">{e.lenderName}</div>
                     <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><Phone className="size-3"/>{e.phone}</div>
-                    <div className="text-xs text-slate-500 mt-1">Rate: {e.rate}% / mo</div>
+                    <div className="text-[11px] font-medium text-slate-600 mt-1">Rate: {e.rate}% / mo</div>
+                    <div className="text-[11px] font-medium text-slate-600 mt-0.5">Start: {formatDateShort(e.startDate)} {e.endDate ? `| End: ${formatDateShort(e.endDate)}` : ''}</div>
                   </div>
                   <div className="flex gap-1">
                     <IconButton icon={History} onClick={() => setHistoryRecord(e)} label="History" className="text-slate-500 hover:text-brand-700" />
@@ -229,6 +265,11 @@ export default function FinanceRecordsPage() {
                      Overdue: {rs(stats.overdueAmount)}
                    </div>
                 )}
+                
+                <div className="mt-2 bg-white rounded-lg p-2 border border-line shadow-sm">
+                  <div className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 tracking-wider">Interest Payment Progress</div>
+                  {renderProgress(stats)}
+                </div>
               </div>
             );
           }}
@@ -310,7 +351,8 @@ export default function FinanceRecordsPage() {
       <FinancePaymentHistoryModal 
         record={historyRecord}
         onClose={() => setHistoryRecord(null)}
-        onUpdate={async () => {
+        onUpdate={async (updatedRecord) => {
+          setHistoryRecord(updatedRecord);
           await reload();
         }}
       />

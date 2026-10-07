@@ -1,12 +1,13 @@
 import { Save } from 'lucide-react';
 import { useState } from 'react';
 import { db } from '@/core/db';
-import { Button, Modal, NumberField, DateField, SelectField } from '@/ui';
+import { Button, Modal, NumberField, DateField, SelectField, useFeedback } from '@/ui';
 import { todayISO } from '@/core/format';
 
 const FORM_ID = 'finance-payment-form';
 
 export default function AddFinancePaymentModal({ record, onClose, onSave }) {
+  const { toast } = useFeedback();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     date: todayISO(),
@@ -20,6 +21,14 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
     e.preventDefault();
     if (!form.amount || parseFloat(form.amount) <= 0) return;
     
+    const isDuplicate = record.payments?.some(
+      p => p.date === form.date && parseFloat(p.amount) === parseFloat(form.amount)
+    );
+    if (isDuplicate) {
+      toast('Duplicate Entry', 'A payment of this exact amount is already recorded on this date.', 'error');
+      return;
+    }
+
     setSaving(true);
     try {
       const newPayment = {
