@@ -4,10 +4,10 @@ import { Button } from '@/ui';
 import { cn } from '@/ui/cn';
 
 /**
- * Resizes an image file to a maximum dimension (default 1280px) and compresses to JPEG data URL.
- * Keeps payload lightweight for Firestore storage, PDF embedding, and fast sharing.
+ * Resizes an image file to a balanced dimension (default 1024px) and compresses to JPEG data URL.
+ * Keeps payload ultra-lightweight (~40-60KB) for Firestore storage, PDF embedding, and fast sharing without sacrificing legibility.
  */
-export async function compressImageFile(file, maxDimension = 1280, quality = 0.8) {
+export async function compressImageFile(file, maxDimension = 1024, quality = 0.65) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
