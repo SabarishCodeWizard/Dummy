@@ -128,6 +128,15 @@ describe('sales view-model (same numbers as the web card)', () => {
     expect(byNo.get('002')?.returns).toHaveLength(1);
     expect(byNo.get('002')?.totalReturns).toBe(100);
   });
+  test('includes manualBillImage and hasManualBillImage indicator', () => {
+    const withImg = toHistoryInvoice(sales({ manualBillImage: 'data:image/jpeg;base64,TEST' }), [], [], true);
+    expect(withImg.manualBillImage).toBe('data:image/jpeg;base64,TEST');
+    expect(withImg.hasManualBillImage).toBe(true);
+
+    const withoutImg = toHistoryInvoice(sales({}), [], [], true);
+    expect(withoutImg.manualBillImage).toBeNull();
+    expect(withoutImg.hasManualBillImage).toBe(false);
+  });
   test('"Add Payment" only on each customer\'s latest invoice (over all invoices); list is newest first', () => {
     const list = buildSalesHistoryData(
       [

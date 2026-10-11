@@ -45,6 +45,8 @@ export function toHistoryPurchase(bill, payments, returns, canAddPayment) {
     returns: returns.map(toHistoryReturn),
     totalReturns,
     adjustedBalanceDue: balanceDue - totalReturns,
+    manualBillImage: bill.manualBillImage || null,
+    hasManualBillImage: Boolean(bill.manualBillImage),
     canAddPayment,
     canAddReturn: canAddPayment,
   };

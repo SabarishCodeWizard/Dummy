@@ -14,6 +14,7 @@
  */
 import {
   Banknote,
+  Camera,
   ChevronRight,
   Download,
   FileText,
@@ -51,6 +52,25 @@ export function InvoiceStatusBadge({ invoice, className }) {
     <Badge tone="danger" className={className}>
       Unpaid
     </Badge>
+  );
+}
+
+/** Visual indicator badge when an invoice has a manual bill / physical slip attached. */
+export function InvoiceSlipBadge({ invoice, className, onClick }) {
+  if (!invoice?.manualBillImage && !invoice?.hasManualBillImage) return null;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20 shadow-2xs',
+        onClick && 'cursor-pointer hover:bg-emerald-100 transition-colors',
+        className,
+      )}
+      onClick={onClick}
+      title="Manual bill slip attached"
+    >
+      <Camera className="size-3 shrink-0 text-emerald-600" aria-hidden />
+      <span>Slip Attached</span>
+    </span>
   );
 }
 

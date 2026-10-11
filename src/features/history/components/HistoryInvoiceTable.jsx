@@ -14,6 +14,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { cn } from '@/ui';
 import { displayInvoiceNo } from '../lib/types';
 import { HistoryInvoiceCard } from './HistoryInvoiceCard';
+import { InvoiceSlipBadge } from './InvoiceParts';
 
 const money = (n) => `₹${formatCurrency(n)}`;
 const balanceOf = (i) => (i.totalReturns > 0 ? i.adjustedBalanceDue : i.balanceDue);
@@ -59,6 +60,7 @@ export function buildInvoiceColumns(labels, actions) {
             aria-hidden
           />
           #{displayInvoiceNo(labels, i.invoiceNo)}
+          <InvoiceSlipBadge invoice={i} />
         </span>
       ),
     },

@@ -51,6 +51,8 @@ export function toHistoryInvoice(invoice, payments, returns, canAddPayment) {
     returns: returns.map(toHistoryReturn),
     totalReturns,
     adjustedBalanceDue: invoice.balanceDue - totalReturns,
+    manualBillImage: invoice.manualBillImage || null,
+    hasManualBillImage: Boolean(invoice.manualBillImage),
     canAddPayment,
     canAddReturn: canAddPayment,
   };

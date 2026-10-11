@@ -13,6 +13,7 @@ import {
   InvoiceActionButtons,
   InvoiceHistoryLinks,
   InvoiceProducts,
+  InvoiceSlipBadge,
   InvoiceStatusBadge,
   InvoiceSummaryBox,
   PaidProgress,
@@ -31,7 +32,10 @@ export const HistoryInvoiceCard = memo(function HistoryInvoiceCard({ invoice, la
         <h3 className="border-l-[3px] border-gold-400 pl-2.5 font-display text-base font-extrabold text-brand-800">
           Invoice #{displayInvoiceNo(labels, no)}
         </h3>
-        <InvoiceStatusBadge invoice={invoice} />
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <InvoiceSlipBadge invoice={invoice} />
+          <InvoiceStatusBadge invoice={invoice} />
+        </div>
       </div>
       <p className="mt-1.5 flex items-center gap-1.5 text-sm text-slate-600">
         <User className="size-3.5 shrink-0 text-slate-400" aria-hidden />
