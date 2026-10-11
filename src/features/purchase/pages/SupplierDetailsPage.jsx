@@ -32,16 +32,25 @@ export default function SupplierDetailsPage() {
   const { params } = useRouteParams();
   const [bills, setBills] = useState([]);
   const [returns, setReturns] = useState([]);
+  const [directorySuppliers, setDirectorySuppliers] = useState([]);
   const [query, setQuery] = useState(() => (typeof params.phone === 'string' ? params.phone : ''));
   const [exporting, setExporting] = useState(false);
 
   const { loading, refreshing, error, refresh } = useFocusLoad(async () => {
-    const [b, r] = await Promise.all([db.getAllPurchaseBills(), db.getAllPurchaseReturns()]);
+    const [b, r, s] = await Promise.all([
+      db.getAllPurchaseBills(),
+      db.getAllPurchaseReturns(),
+      db.getAllSuppliers(),
+    ]);
     setBills(b);
     setReturns(r);
+    setDirectorySuppliers(s);
   });
 
-  const suppliers = useMemo(() => aggregateSuppliers(bills, returns), [bills, returns]);
+  const suppliers = useMemo(
+    () => aggregateSuppliers(bills, returns, directorySuppliers),
+    [bills, returns, directorySuppliers],
+  );
   const stats = useMemo(() => supplierStats(suppliers), [suppliers]);
   const visible = useMemo(() => filterSuppliers(suppliers, query), [suppliers, query]);
   const pager = usePagination(visible, { resetKey: query });
@@ -63,14 +72,14 @@ export default function SupplierDetailsPage() {
     }
   };
 
-  if (loading && bills.length === 0) {
+  if (loading && bills.length === 0 && directorySuppliers.length === 0) {
     return (
       <Page title="Supplier Details" icon={Truck}>
         <LoadingState label="Loading supplier data…" />
       </Page>
     );
   }
-  if (error && bills.length === 0) {
+  if (error && bills.length === 0 && directorySuppliers.length === 0) {
     return (
       <Page title="Supplier Details" icon={Truck}>
         <ErrorState message={`Error loading supplier data: ${error}`} onRetry={refresh} />
@@ -130,7 +139,7 @@ export default function SupplierDetailsPage() {
               message={
                 query.trim()
                   ? 'No supplier matches your search.'
-                  : 'Start by creating purchase bills to see supplier data here'
+                  : 'Add suppliers or create purchase bills to see supplier data here'
               }
             />
           }

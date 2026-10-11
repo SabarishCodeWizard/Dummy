@@ -14,8 +14,8 @@ function cleanInvoiceNo(invoiceNo) {
  * field — unlike billing.purchaseBalanceDue (`!== undefined`). Bills written by this app keep both in sync, so the
  * results only differ for stale legacy documents. `discount` is read without the `discountAmount` fallback history uses.
  */
-export function aggregateSuppliers(bills, returns = []) {
-  if (!bills || !Array.isArray(bills)) return [];
+export function aggregateSuppliers(bills, returns = [], directorySuppliers = []) {
+  if ((!bills || !Array.isArray(bills)) && (!directorySuppliers || !Array.isArray(directorySuppliers))) return [];
   const returnedByInvoice = new Map();
   if (Array.isArray(returns)) {
     for (const r of returns) {
@@ -24,28 +24,62 @@ export function aggregateSuppliers(bills, returns = []) {
     }
   }
   const bySupplier = new Map();
-  bills.forEach((bill) => {
-    if (!bill || !bill.supplierName) return;
-    const key = bill.supplierName.trim();
-    let s = bySupplier.get(key);
-    if (!s) {
-      s = {
+
+  if (Array.isArray(directorySuppliers)) {
+    for (const ds of directorySuppliers) {
+      if (!ds || !ds.name) continue;
+      const key = ds.name.trim();
+      if (!key) continue;
+      bySupplier.set(key, {
         name: key,
-        phone: bill.supplierPhone || '',
-        address: bill.supplierAddress || '',
+        phone: ds.phone || '',
+        address: ds.address || '',
         totalBills: 0,
         totalAmount: 0,
         totalPaid: 0,
         totalDiscount: 0,
+        totalReturns: 0,
         totalManualAdjustments: 0,
         firstBillPreviousBalance: 0,
         firstBillNo: undefined,
         allInvoiceNumbers: [],
+        invoiceNos: [],
         latestBalanceDue: 0,
         lastInvoiceDate: null,
-      };
-      bySupplier.set(key, s);
+        balanceDue: 0,
+      });
     }
+  }
+
+  if (Array.isArray(bills)) {
+    bills.forEach((bill) => {
+      if (!bill || !bill.supplierName) return;
+      const key = bill.supplierName.trim();
+      if (!key) return;
+      let s = bySupplier.get(key);
+      if (!s) {
+        s = {
+          name: key,
+          phone: bill.supplierPhone || '',
+          address: bill.supplierAddress || '',
+          totalBills: 0,
+          totalAmount: 0,
+          totalPaid: 0,
+          totalDiscount: 0,
+          totalReturns: 0,
+          totalManualAdjustments: 0,
+          firstBillPreviousBalance: 0,
+          firstBillNo: undefined,
+          allInvoiceNumbers: [],
+          invoiceNos: [],
+          latestBalanceDue: 0,
+          lastInvoiceDate: null,
+          balanceDue: 0,
+        };
+        bySupplier.set(key, s);
+      }
+      if (!s.phone && bill.supplierPhone) s.phone = bill.supplierPhone;
+      if (!s.address && bill.supplierAddress) s.address = bill.supplierAddress;
     s.totalBills++;
     const billSubtotal = bill.subtotal !== undefined 
       ? toNum(bill.subtotal) 
@@ -71,10 +105,12 @@ export function aggregateSuppliers(bills, returns = []) {
       }
     }
   });
+  }
 
   const suppliers = Array.from(bySupplier.values());
   for (const s of suppliers) {
     s.allInvoiceNumbers.sort((a, b) => parseInt(b) - parseInt(a));
+    s.invoiceNos = s.allInvoiceNumbers;
     s.totalReturns = 0;
     for (const invoiceNo of s.allInvoiceNumbers) {
       s.totalReturns += returnedByInvoice.get(String(invoiceNo)) ?? 0;

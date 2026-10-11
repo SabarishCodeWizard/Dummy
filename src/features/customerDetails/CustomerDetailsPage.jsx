@@ -69,7 +69,7 @@ export default function CustomerDetailsPage() {
         <EmptyState
           icon={Users}
           title="No Customers Found"
-          message="Start by creating invoices to see customer data here"
+          message="Add customers or create invoices to see customer data here"
         />
       </div>
     );

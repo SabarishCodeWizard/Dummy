@@ -13,18 +13,20 @@ const dateValue = (date) => new Date(date).getTime();
  * PARITY NOTE: `balanceDue` / `adjustedBalanceDue` (last invoice's balance minus returns) and the grand-total sum are
  * computed by the web page but never displayed or exported, so they are not part of the summary here.
  */
-export function buildCustomerSummaries(invoices, returns) {
-  if (!Array.isArray(invoices)) return [];
+export function buildCustomerSummaries(invoices, returns, directoryCustomers = []) {
+  if (!Array.isArray(invoices) && !Array.isArray(directoryCustomers)) return [];
   const byName = new Map();
-  for (const invoice of invoices) {
-    // invoices without a customer name are skipped entirely (they count towards nothing)
-    if (!invoice || !invoice.customerName) continue;
-    let customer = byName.get(invoice.customerName);
-    if (!customer) {
-      customer = {
-        name: invoice.customerName,
-        phone: invoice.customerPhone || '',
-        address: invoice.customerAddress || '',
+
+  // First seed with master customer directory if provided
+  if (Array.isArray(directoryCustomers)) {
+    for (const dc of directoryCustomers) {
+      if (!dc || !dc.name) continue;
+      const key = dc.name.trim();
+      if (!key) continue;
+      byName.set(key, {
+        name: key,
+        phone: dc.phone || '',
+        address: dc.address || '',
         totalInvoices: 0,
         totalCurrentBillAmount: 0,
         amountPaid: 0,
@@ -35,30 +37,63 @@ export function buildCustomerSummaries(invoices, returns) {
         firstInvoiceNo: undefined,
         allInvoiceNumbers: [],
         latestBalanceDue: 0,
-      };
-      byName.set(invoice.customerName, customer);
+        lastInvoiceDate: null,
+        lastInvoiceNo: null,
+      });
     }
-    customer.totalInvoices += 1;
-    customer.totalCurrentBillAmount += toNum(invoice.subtotal);
-    customer.amountPaid += toNum(invoice.amountPaid);
-    // PARITY NOTE: read both `discountAmount` and legacy `discount`
-    customer.totalDiscountAmount += toNum(invoice.discountAmount || invoice.discount);
-    customer.totalManualAdjustments += toNum(invoice.manualPreviousBalance);
-    
-    if (invoice.invoiceNo) {
-      customer.allInvoiceNumbers.push(invoice.invoiceNo);
-      const numVal = invoiceNumberValue(invoice.invoiceNo);
-      if (customer.firstInvoiceNo === undefined || numVal < customer.firstInvoiceNo) {
-        customer.firstInvoiceNo = numVal;
-        customer.firstInvoicePreviousBalance = toNum(invoice.previousBalance);
+  }
+
+  if (Array.isArray(invoices)) {
+    for (const invoice of invoices) {
+      // invoices without a customer name are skipped entirely (they count towards nothing)
+      if (!invoice || !invoice.customerName) continue;
+      const key = invoice.customerName.trim();
+      if (!key) continue;
+      let customer = byName.get(key);
+      if (!customer) {
+        customer = {
+          name: key,
+          phone: invoice.customerPhone || '',
+          address: invoice.customerAddress || '',
+          totalInvoices: 0,
+          totalCurrentBillAmount: 0,
+          amountPaid: 0,
+          totalDiscountAmount: 0,
+          totalReturns: 0,
+          totalManualAdjustments: 0,
+          firstInvoicePreviousBalance: 0,
+          firstInvoiceNo: undefined,
+          allInvoiceNumbers: [],
+          latestBalanceDue: 0,
+          lastInvoiceDate: null,
+          lastInvoiceNo: null,
+        };
+        byName.set(key, customer);
       }
-    }
-    if (invoice.invoiceDate) {
-      const dVal = dateValue(invoice.invoiceDate);
-      if (!customer.lastInvoiceDate || dVal > dateValue(customer.lastInvoiceDate)) {
-        customer.lastInvoiceDate = invoice.invoiceDate;
-        customer.lastInvoiceNo = invoice.invoiceNo;
-        customer.latestBalanceDue = toNum(invoice.balanceDue);
+      if (!customer.phone && invoice.customerPhone) customer.phone = invoice.customerPhone;
+      if (!customer.address && invoice.customerAddress) customer.address = invoice.customerAddress;
+      customer.totalInvoices += 1;
+      customer.totalCurrentBillAmount += toNum(invoice.subtotal);
+      customer.amountPaid += toNum(invoice.amountPaid);
+      // PARITY NOTE: read both `discountAmount` and legacy `discount`
+      customer.totalDiscountAmount += toNum(invoice.discountAmount || invoice.discount);
+      customer.totalManualAdjustments += toNum(invoice.manualPreviousBalance);
+      
+      if (invoice.invoiceNo) {
+        customer.allInvoiceNumbers.push(invoice.invoiceNo);
+        const numVal = invoiceNumberValue(invoice.invoiceNo);
+        if (customer.firstInvoiceNo === undefined || numVal < customer.firstInvoiceNo) {
+          customer.firstInvoiceNo = numVal;
+          customer.firstInvoicePreviousBalance = toNum(invoice.previousBalance);
+        }
+      }
+      if (invoice.invoiceDate) {
+        const dVal = dateValue(invoice.invoiceDate);
+        if (!customer.lastInvoiceDate || dVal > dateValue(customer.lastInvoiceDate)) {
+          customer.lastInvoiceDate = invoice.invoiceDate;
+          customer.lastInvoiceNo = invoice.invoiceNo;
+          customer.latestBalanceDue = toNum(invoice.balanceDue);
+        }
       }
     }
   }
