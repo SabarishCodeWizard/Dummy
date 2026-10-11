@@ -1,4 +1,4 @@
-import { MapPin, Pencil, Phone, Trash2 } from 'lucide-react';
+import { IndianRupee, MapPin, Pencil, Phone, Trash2, Wallet } from 'lucide-react';
 import { memo } from 'react';
 
 import { Button } from '@/ui';
@@ -15,6 +15,7 @@ function InfoRow({ icon: Icon, text }) {
 
 /** One row of the "Customer Directory" table as a card body (DataTable draws the card frame): name, phone, address, Edit / Delete. */
 export const CustomerCard = memo(function CustomerCard({ customer, onEdit, onDelete }) {
+  const openingBal = parseFloat(customer.openingBalance || 0);
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -26,14 +27,15 @@ export const CustomerCard = memo(function CustomerCard({ customer, onEdit, onDel
       <div className="mt-3 space-y-1.5 rounded-xl bg-slate-50/70 p-3">
         <InfoRow icon={Phone} text={customer.phone || 'N/A'} />
         <InfoRow icon={MapPin} text={customer.address || 'N/A'} />
-        {customer.openingBalance ? (
-          <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-xs">
-            <span className="font-medium text-slate-500">Opening Balance:</span>
-            <span className="font-semibold text-brand-800 tabular-nums">
-              ₹{Number(customer.openingBalance).toFixed(2)}
-            </span>
-          </div>
-        ) : null}
+        <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-200/60 text-xs">
+          <span className="flex items-center gap-1.5 font-medium text-slate-600">
+            <Wallet className="size-3.5 text-gold-600" aria-hidden />
+            Opening Balance:
+          </span>
+          <span className={`font-bold tabular-nums text-sm ${openingBal > 0 ? 'text-amber-800' : 'text-slate-700'}`}>
+            ₹{openingBal.toFixed(2)}
+          </span>
+        </div>
       </div>
       <div className="mt-3 flex gap-2.5" onClick={(e) => e.stopPropagation()}>
         <Button

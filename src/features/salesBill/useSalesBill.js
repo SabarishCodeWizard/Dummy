@@ -49,6 +49,7 @@ export function useSalesBill() {
   const totals = useMemo(() => salesFormTotals(form), [form]);
   const { suggestion, refresh: refreshSuggestion } = useInvoiceSuggestion(form.invoiceDate);
   const patch = useCallback((change) => setSession((s) => editBill(s, change)), []);
+  const getForm = useCallback(() => sessionRef.current.form, []);
   const [openingBalancePopup, setOpeningBalancePopup] = useState(null);
   const handleCustomerFound = useCallback((customer) => {
     const ob = parseFloat(customer?.openingBalance ?? 0);

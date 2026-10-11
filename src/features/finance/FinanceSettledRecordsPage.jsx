@@ -181,12 +181,16 @@ export default function FinanceSettledRecordsPage() {
                   <div>
                     <div className="font-semibold text-brand-900">{e.lenderName}</div>
                     <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><Phone className="size-3"/>{e.phone}</div>
-                    <div className="text-[11px] font-medium text-slate-600 mt-0.5">
-                      Start: {formatDateShort(e.startDate)} {e.endDate ? `| End: ${formatDateShort(e.endDate)}` : ''} 
-                      {' • '}
-                      <span className="font-semibold text-slate-700">
-                        {e.endDate ? `${stats.totalMonths || '< 1'} Mo` : `${stats.monthsElapsed || '< 1'} Mo`}
-                      </span>
+                    <div className="text-[11px] font-medium text-slate-600 mt-1 space-y-0.5">
+                      <div>Start: <span className="font-semibold text-slate-700">{formatDateShort(e.startDate)}</span></div>
+                      {e.endDate ? (
+                        <div>End: <span className="font-semibold text-slate-700">{formatDateShort(e.endDate)}</span></div>
+                      ) : null}
+                      <div>
+                        Total Months: <span className="font-semibold text-slate-700">
+                          {e.endDate ? `${stats.totalMonths || '< 1'} Mo` : `${stats.monthsElapsed || '< 1'} Mo`}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
