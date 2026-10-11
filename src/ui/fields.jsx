@@ -89,14 +89,6 @@ export const TextField = forwardRef(function TextField(
           onChange={(e) => onChange?.(e.target.value)}
           {...rest}
         />
-        {emptyHint && !rest.value ? (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-y-0 left-3.5 hidden items-center text-slate-400 pointer-coarse:flex"
-          >
-            {emptyHint}
-          </span>
-        ) : null}
         {right ? <div className="absolute top-1/2 right-2 -translate-y-1/2">{right}</div> : null}
       </div>
     </Field>
@@ -130,8 +122,7 @@ export const NumberField = forwardRef(function NumberField({ onChange, allowNega
 
 /** <input type="date"> — value / onChange use 'YYYY-MM-DD' strings. */
 export const DateField = forwardRef(function DateField(props, ref) {
-  const hint = props.label ? 'Select date' : (props['aria-label'] ?? 'Select date');
-  return <TextField ref={ref} type="date" emptyHint={hint} {...props} />;
+  return <TextField ref={ref} type="date" {...props} />;
 });
 
 export const TextArea = forwardRef(function TextArea(
