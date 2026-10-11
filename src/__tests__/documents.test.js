@@ -70,6 +70,15 @@ describe('invoice HTML', () => {
     expect(withManual).toContain('Manual Bill Attachment');
     expect(withManual).toContain('data:image/jpeg;base64,TESTIMAGE');
   });
+  test('buildInvoiceHtml contains ORIGINAL and manual bill image, but no COPY page', () => {
+    const html = buildInvoiceHtml({
+      invoice: { ...invoice, manualBillImage: 'data:image/jpeg;base64,TESTIMAGE' },
+    });
+    expect(html).toContain('(ORIGINAL)');
+    expect(html).not.toContain('(COPY)');
+    expect(html).toContain('Manual Bill Attachment');
+    expect(html).toContain('data:image/jpeg;base64,TESTIMAGE');
+  });
 });
 describe('WhatsApp', () => {
   test('phone normalisation adds 91 to bare 10-digit numbers only', () => {

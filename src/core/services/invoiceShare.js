@@ -1,13 +1,13 @@
 /**
  * Print / share for sales invoices (the original used window.print + a wa.me link).
- *  - printInvoice():     browser print dialog (also "Save as PDF") — ORIGINAL + COPY pages
- *  - shareInvoicePdf():  print dialog, then opens the customer's WhatsApp chat so the PDF can be attached
+ *  - printInvoice():     browser print dialog (also "Save as PDF") — ORIGINAL page + slip image (if present)
+ *  - shareInvoicePdf():  print dialog / share sheet, then opens customer's WhatsApp — ORIGINAL page + slip image (if present)
  */
 import logoUrl from '@/assets/brand/logo.png';
 import { calculateTotalReturns } from '@/core/billing';
 import { db } from '@/core/db';
 import { printHtml, sharePdfHtml } from '@/platform';
-import { buildCombinedInvoiceHtml } from './invoiceHtml';
+import { buildInvoiceHtml } from './invoiceHtml';
 import { normalizeWhatsAppPhone, openWhatsApp } from './whatsapp';
 
 let logoPromise = null;
@@ -45,18 +45,18 @@ async function buildContext(invoice) {
   };
 }
 
-/** Opens the print dialog for the combined ORIGINAL + COPY invoice. */
+/** Opens the print dialog for the invoice (ORIGINAL page + attached slip image if present). */
 export async function printInvoice(invoice) {
-  const html = buildCombinedInvoiceHtml(await buildContext(invoice));
+  const html = buildInvoiceHtml(await buildContext(invoice));
   await printHtml(html);
 }
 
 /**
- * "Share BILL": builds the invoice PDF and opens the device's share sheet with it ('shared'). Where the browser cannot
+ * "Share BILL": builds the invoice PDF (ORIGINAL page + attached slip image if present) and opens the device's share sheet with it ('shared'). Where the browser cannot
  * share files: print dialog (save as PDF) and the customer's WhatsApp chat to attach it ('fallback').
  */
 export async function shareInvoicePdf(invoice) {
-  const html = buildCombinedInvoiceHtml(await buildContext(invoice));
+  const html = buildInvoiceHtml(await buildContext(invoice));
   if (
     (await sharePdfHtml(html, `SS ${invoice.invoiceNo}.pdf`, `SS ${invoice.invoiceNo}`)) ===
     'shared'
