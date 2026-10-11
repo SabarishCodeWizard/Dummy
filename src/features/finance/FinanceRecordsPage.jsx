@@ -1,4 +1,4 @@
-import { Landmark, Plus, Sigma, Trash2, Edit, CreditCard, AlertCircle, History, Phone } from 'lucide-react';
+import { Landmark, Plus, Sigma, Trash2, Edit, CreditCard, AlertCircle, History, Phone, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -42,7 +42,10 @@ export default function FinanceRecordsPage() {
     }
   });
 
-  const shown = records.filter(r => 
+  const ongoingAll = records.filter(r => !calculateFinanceStats(r, calcDate || undefined).isSettled);
+  const settledCount = records.filter(r => calculateFinanceStats(r, calcDate || undefined).isSettled).length;
+
+  const shown = ongoingAll.filter(r => 
     !searchTerm || 
     r.lenderName.toLowerCase().includes(searchTerm.toLowerCase()) || 
     r.phone.includes(searchTerm)
@@ -109,10 +112,41 @@ export default function FinanceRecordsPage() {
   }, { principal: 0, interest: 0, total: 0, paid: 0, balance: 0, overdue: 0 });
 
   const renderProgress = (stats, record) => {
-    const paidMonths = stats.expectedMonthlyInterest > 0 ? Math.floor(stats.totalPaid / stats.expectedMonthlyInterest) : 0;
-    const totalBlocks = Math.max(stats.totalMonths, stats.monthsElapsed, paidMonths, 1);
     const start = new Date(record.startDate);
-    
+    const totalBlocks = Math.max(stats.totalMonths, stats.monthsElapsed, 1);
+
+    if (stats.isSettled) {
+      return (
+        <div className="flex flex-col gap-1.5 items-start">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+            <CheckCircle2 className="size-3 text-emerald-600" />
+            Settled
+          </span>
+          <div className="flex flex-wrap gap-1 max-w-[220px]">
+            {Array.from({ length: totalBlocks }).map((_, i) => {
+              const due = new Date(start);
+              due.setMonth(start.getMonth() + i + 1);
+              const dateStr = due.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+
+              return (
+                <div 
+                  key={i} 
+                  className="h-5 flex items-center justify-center rounded-[3px] text-[9px] font-bold px-1.5 bg-emerald-500 text-white"
+                  title="Settled"
+                >
+                  {dateStr}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    const paidMonths = stats.expectedMonthlyInterest > 0 
+      ? Math.min(Math.floor(stats.totalPaid / stats.expectedMonthlyInterest), totalBlocks)
+      : 0;
+
     return (
       <div className="flex flex-wrap gap-1 max-w-[220px]">
         {Array.from({ length: totalBlocks }).map((_, i) => {
@@ -146,6 +180,18 @@ export default function FinanceRecordsPage() {
     { key: 'phone', header: 'Phone', className: 'whitespace-nowrap', value: (e) => e.phone },
     { key: 'start', header: 'Start Date', className: 'whitespace-nowrap', value: (e) => formatDateShort(e.startDate) },
     { key: 'end', header: 'End Date', className: 'whitespace-nowrap', value: (e) => e.endDate ? formatDateShort(e.endDate) : 'Ongoing' },
+    { 
+      key: 'totalMonths', 
+      header: 'Total Months', 
+      align: 'center', 
+      className: 'whitespace-nowrap font-medium text-slate-700 tabular-nums', 
+      value: (e) => {
+        const stats = calculateFinanceStats(e, calcDate || undefined);
+        const m = e.endDate ? stats.totalMonths : stats.monthsElapsed;
+        if (m === 0) return '< 1 Month';
+        return `${m} ${m === 1 ? 'Month' : 'Months'}${e.endDate ? '' : ' (Elapsed)'}`;
+      } 
+    },
     { key: 'rate', header: 'Rate/Mo', className: 'whitespace-nowrap', value: (e) => `${e.rate}%` },
     { 
       key: 'principal', 
@@ -238,7 +284,13 @@ export default function FinanceRecordsPage() {
                     <div className="font-semibold text-brand-900">{e.lenderName}</div>
                     <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><Phone className="size-3"/>{e.phone}</div>
                     <div className="text-[11px] font-medium text-slate-600 mt-1">Rate: {e.rate}% / mo</div>
-                    <div className="text-[11px] font-medium text-slate-600 mt-0.5">Start: {formatDateShort(e.startDate)} {e.endDate ? `| End: ${formatDateShort(e.endDate)}` : ''}</div>
+                    <div className="text-[11px] font-medium text-slate-600 mt-0.5">
+                      Start: {formatDateShort(e.startDate)} {e.endDate ? `| End: ${formatDateShort(e.endDate)}` : ''} 
+                      {' • '}
+                      <span className="font-semibold text-slate-700">
+                        {e.endDate ? `${stats.totalMonths || '< 1'} Mo` : `${stats.monthsElapsed || '< 1'} Mo (Elapsed)`}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex gap-1">
                     <IconButton icon={History} onClick={() => setHistoryRecord(e)} label="History" className="text-slate-500 hover:text-brand-700" />
@@ -283,8 +335,19 @@ export default function FinanceRecordsPage() {
           empty={
             <EmptyState
               icon={Landmark}
-              title="No finance records found."
-              message="Borrowings will show up here. Add a new record to get started."
+              title="No ongoing finance records."
+              message={
+                settledCount > 0
+                  ? `All current loans are settled! You have ${settledCount} settled record${settledCount > 1 ? 's' : ''}.`
+                  : "Borrowings will show up here. Add a new record to get started."
+              }
+              action={
+                settledCount > 0 ? (
+                  <Button variant="outline" size="sm" onClick={() => navigate('/finance/settled')}>
+                    View Settled Records ({settledCount})
+                  </Button>
+                ) : undefined
+              }
             />
           }
         />
@@ -302,6 +365,31 @@ export default function FinanceRecordsPage() {
         </Button>
       }
     >
+      {/* Top navigation tabs */}
+      <div className="flex items-center gap-2 mb-4 border-b border-line pb-2.5">
+        <button
+          type="button"
+          onClick={() => navigate('/finance/records')}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-900 text-white shadow-sm"
+        >
+          <Landmark className="size-3.5 text-slate-200" />
+          <span>Ongoing Records</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 text-white font-mono">
+            {ongoingAll.length}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/finance/settled')}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-brand-900 hover:bg-slate-100 transition-colors"
+        >
+          <CheckCircle2 className="size-3.5 text-emerald-600" />
+          <span>Settled Records</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-700 font-mono">
+            {settledCount}
+          </span>
+        </button>
+      </div>
       <KpiRow cols={4}>
         <InkStat icon={Landmark} label="Total Principal" value={rs(totals.principal)} />
         <InkStat icon={Sigma} label="Total Interest" value={rs(totals.interest)} tint="amber" />

@@ -17,6 +17,7 @@ import {
   Wallet,
   Landmark,
   Zap,
+  CheckCircle2,
 } from 'lucide-react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 
@@ -70,7 +71,8 @@ export const MODULES = {
     icon: Landmark,
     home: '/finance/records',
     items: [
-      { to: '/finance/records', label: 'Finance Records', short: 'Records', icon: FilePlus2 },
+      { to: '/finance/records', label: 'Ongoing Records', short: 'Ongoing', icon: FilePlus2 },
+      { to: '/finance/settled', label: 'Settled Records', short: 'Settled', icon: CheckCircle2 },
       { to: '/finance/lenders', label: 'Lender Details', short: 'Lenders', icon: Users },
     ],
   },

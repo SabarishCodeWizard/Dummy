@@ -1,7 +1,8 @@
-import { Receipt, X, Banknote, Landmark, Smartphone } from 'lucide-react';
+import { Receipt, X, Banknote, Landmark, Smartphone, CheckCircle2 } from 'lucide-react';
 import { db } from '@/core/db';
 import { Modal, Button, EmptyState, IconButton, useFeedback } from '@/ui';
 import { formatCurrency, formatDateShort } from '@/core/format';
+import { calculateFinanceStats } from './financeLogic';
 
 const ICONS = {
   'Cash': Banknote,
@@ -14,6 +15,7 @@ export default function FinancePaymentHistoryModal({ record, onClose, onUpdate }
 
   if (!record) return null;
 
+  const stats = calculateFinanceStats(record);
   const payments = [...(record.payments || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const handleDelete = async (paymentId) => {
@@ -52,8 +54,38 @@ export default function FinancePaymentHistoryModal({ record, onClose, onUpdate }
       }
     >
       <div className="mb-4 bg-slate-50 border border-line rounded-lg p-3">
-        <div className="text-sm text-slate-500">Lender</div>
-        <div className="font-semibold text-brand-900">{record.lenderName}</div>
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="text-xs text-slate-500 font-medium">Lender</div>
+            <div className="font-semibold text-brand-900">{record.lenderName}</div>
+            {record.phone && <div className="text-xs text-slate-500 mt-0.5">{record.phone}</div>}
+          </div>
+          {stats.isSettled ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              Settled
+            </span>
+          ) : (
+            <div className="text-right">
+              <div className="text-xs text-slate-500 font-medium">Balance Due</div>
+              <div className="text-sm font-bold text-emerald-700">₹{formatCurrency(stats.balancePayable)}</div>
+            </div>
+          )}
+        </div>
+        <div className="grid grid-cols-3 gap-2 mt-3 pt-2.5 border-t border-slate-200/70 text-xs">
+          <div>
+            <span className="text-slate-500">Principal:</span>{' '}
+            <span className="font-semibold text-brand-900">₹{formatCurrency(record.principal)}</span>
+          </div>
+          <div>
+            <span className="text-slate-500">Total Due:</span>{' '}
+            <span className="font-semibold text-amber-700">₹{formatCurrency(stats.totalPayable)}</span>
+          </div>
+          <div className="text-right">
+            <span className="text-slate-500">Paid:</span>{' '}
+            <span className="font-semibold text-blue-700">₹{formatCurrency(stats.totalPaid)}</span>
+          </div>
+        </div>
       </div>
 
       {payments.length === 0 ? (

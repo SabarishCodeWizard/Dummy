@@ -46,7 +46,7 @@ export function calculateFinanceStats(record, targetDate) {
   const totalPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
   
   const totalPayable = principal + totalInterestAccrued;
-  const balancePayable = totalPayable - totalPaid;
+  const balancePayable = Math.max(0, totalPayable - totalPaid);
 
   const expectedMonthlyInterest = (principal * rate) / 100;
   
@@ -64,7 +64,8 @@ export function calculateFinanceStats(record, targetDate) {
   
   const totalStrictlyDue = monthsElapsed * expectedMonthlyInterest;
   const overdueAmount = totalStrictlyDue - totalPaid;
-  const isOverdue = overdueAmount > 0;
+  const isOverdue = balancePayable > 0 && overdueAmount > 0;
+  const isSettled = balancePayable <= 0 && (totalPaid > 0 || principal === 0);
   
   return {
     totalInterestAccrued,
@@ -76,6 +77,7 @@ export function calculateFinanceStats(record, targetDate) {
     overdueAmount: isOverdue ? overdueAmount : 0,
     monthsElapsed,
     totalMonths,
+    isSettled,
   };
 }
 

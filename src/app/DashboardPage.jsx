@@ -51,7 +51,7 @@ const MODULE_CARDS = [
     title: 'Finance',
     text: 'Manage money borrowings and automatic interest tracking.',
     icon: Landmark,
-    points: ['Lender details', 'Auto-calculated interest', 'Total payable tracking'],
+    points: ['Ongoing & settled loans', 'Auto-calculated interest', 'Total payable tracking'],
   },
 ];
 
