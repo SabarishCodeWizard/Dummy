@@ -49,12 +49,23 @@ export function useSalesBill() {
   const totals = useMemo(() => salesFormTotals(form), [form]);
   const { suggestion, refresh: refreshSuggestion } = useInvoiceSuggestion(form.invoiceDate);
   const patch = useCallback((change) => setSession((s) => editBill(s, change)), []);
-  const getForm = useCallback(() => sessionRef.current.form, []);
+  const [openingBalancePopup, setOpeningBalancePopup] = useState(null);
+  const handleCustomerFound = useCallback((customer) => {
+    const ob = parseFloat(customer?.openingBalance ?? 0);
+    if (ob > 0) {
+      setOpeningBalancePopup({
+        customerName: customer.name || '',
+        customerPhone: customer.phone || '',
+        openingBalance: ob,
+      });
+    }
+  }, []);
   const lookup = useCustomerLookup({
     customersRef,
     getForm,
     patch,
     onError: (message) => toast('Error', message, 'error'),
+    onCustomerFound: handleCustomerFound,
   });
   /** Remove `?edit=` from this screen's own route (not the focused one, which may have changed by now). */
   const clearEditParam = useCallback(() => {
@@ -271,5 +282,7 @@ export function useSalesBill() {
     generate: () => output('pdf'),
     share: () => output('whatsapp'),
     reset,
+    openingBalancePopup,
+    closeOpeningBalancePopup: () => setOpeningBalancePopup(null),
   };
 }

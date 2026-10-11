@@ -17,7 +17,7 @@ describe('addCustomer', () => {
     expect(result).toEqual({
       ok: false,
       errors: {
-        phone: 'Please enter a valid phone number (at least 10 digits).',
+        phone: 'Please enter a valid phone number (exactly 10 digits).',
         name: 'Customer name is required.',
       },
     });
@@ -33,12 +33,12 @@ describe('addCustomer', () => {
     });
     expect(m.saveCustomer).not.toHaveBeenCalled();
   });
-  test('saves exactly { phone, name, address } with trimmed values', async () => {
+  test('saves { phone, name, address, openingBalance } with trimmed values', async () => {
     const m = stubDb();
-    const result = await addCustomer({ phone: ' 9876543210 ', name: ' SLN TEX ', address: ' Tirupur ' });
+    const result = await addCustomer({ phone: ' 9876543210 ', name: ' SLN TEX ', address: ' Tirupur ', openingBalance: '500' });
     expect(result).toEqual({ ok: true });
     expect(m.getCustomer).toHaveBeenCalledWith('9876543210');
-    expect(m.saveCustomer).toHaveBeenCalledWith({ phone: '9876543210', name: 'SLN TEX', address: 'Tirupur' });
+    expect(m.saveCustomer).toHaveBeenCalledWith({ phone: '9876543210', name: 'SLN TEX', address: 'Tirupur', openingBalance: 500 });
   });
   test('database failures propagate to the caller (the screen shows "Failed to add customer.")', async () => {
     stubDb();
@@ -53,7 +53,7 @@ describe('updateCustomer', () => {
     const result = await updateCustomer(original, { phone: '98', name: ' ', address: '' });
     expect(result).toEqual({
       ok: false,
-      errors: { phone: 'Please enter a valid phone number.', name: 'Name cannot be empty.' },
+      errors: { phone: 'Please enter a valid phone number (exactly 10 digits).', name: 'Name cannot be empty.' },
     });
     expect(m.updateCustomerDetails).not.toHaveBeenCalled();
   });

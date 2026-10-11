@@ -36,6 +36,13 @@ export function CustomerTable({ customers, emptyText, onEdit, onDelete }) {
         className: 'max-w-[16rem] text-slate-600',
       },
       {
+        key: 'openingBalance',
+        header: 'Opening Balance',
+        align: 'right',
+        value: (c) => (c.openingBalance ? `₹${Number(c.openingBalance).toFixed(2)}` : '₹0.00'),
+        className: 'whitespace-nowrap tabular-nums font-semibold text-slate-700',
+      },
+      {
         key: 'actions',
         header: 'Actions',
         align: 'center',

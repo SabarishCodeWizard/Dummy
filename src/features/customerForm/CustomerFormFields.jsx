@@ -1,9 +1,9 @@
-import { MapPin, Phone, User } from 'lucide-react';
+import { IndianRupee, MapPin, Phone, User } from 'lucide-react';
 import { useRef } from 'react';
 
-import { TextField } from '@/ui';
+import { NumberField, TextField } from '@/ui';
 
-/** Phone / name / address inputs of the customer form (manage-customers.html); Enter moves on and finally submits. */
+/** Phone / name / address / opening balance inputs of the customer form (manage-customers.html); Enter moves on and finally submits. */
 export function CustomerFormFields({ draft, errors, change, onSubmit }) {
   const nameRef = useRef(null);
   const addressRef = useRef(null);
@@ -47,6 +47,14 @@ export function CustomerFormFields({ draft, errors, change, onSubmit }) {
         leftIcon={MapPin}
         value={draft.address}
         onChange={change('address')}
+      />
+      <NumberField
+        label="Opening Balance"
+        placeholder="0.00"
+        allowNegative
+        leftIcon={IndianRupee}
+        value={draft.openingBalance !== undefined && draft.openingBalance !== null ? String(draft.openingBalance) : ''}
+        onChange={change('openingBalance')}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault();

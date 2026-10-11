@@ -269,7 +269,7 @@ export class Database {
     this._cache.customers = null;
   }
   /** Rewrites name/phone/address on all of a customer's invoices (matched by old name) and the customer doc. */
-  async updateCustomerDetails(oldName, newName, newPhone, newAddress) {
+  async updateCustomerDetails(oldName, newName, newPhone, newAddress, openingBalance) {
     const snap = await getDocs(query(this.col('invoices'), where('customerName', '==', oldName)));
     await Promise.all(
       snap.docs.map((d) =>
@@ -283,7 +283,9 @@ export class Database {
     );
     this._cache.invoices = null;
     if (newPhone) {
-      await this.saveCustomer({ name: newName, phone: newPhone, address: newAddress });
+      const customerData = { name: newName, phone: newPhone, address: newAddress };
+      if (openingBalance !== undefined) customerData.openingBalance = openingBalance;
+      await this.saveCustomer(customerData);
     }
   }
   // ------------------------------------------------------------------ Suppliers

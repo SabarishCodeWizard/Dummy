@@ -23,6 +23,7 @@ export function buildCustomerSummaries(invoices, returns, directoryCustomers = [
       if (!dc || !dc.name) continue;
       const key = dc.name.trim();
       if (!key) continue;
+      const openingBal = toNum(dc.openingBalance);
       byName.set(key, {
         name: key,
         phone: dc.phone || '',
@@ -33,10 +34,10 @@ export function buildCustomerSummaries(invoices, returns, directoryCustomers = [
         totalDiscountAmount: 0,
         totalReturns: 0,
         totalManualAdjustments: 0,
-        firstInvoicePreviousBalance: 0,
+        firstInvoicePreviousBalance: openingBal,
         firstInvoiceNo: undefined,
         allInvoiceNumbers: [],
-        latestBalanceDue: 0,
+        latestBalanceDue: openingBal,
         lastInvoiceDate: null,
         lastInvoiceNo: null,
       });

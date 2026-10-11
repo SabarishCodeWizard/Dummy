@@ -231,8 +231,14 @@ export async function calculatePreviousBalanceAtTime(
         return false;
       })
       .sort(byInvoiceNoAsc);
-    if (customerInvoices.length === 0)
-      return { totalPreviousBills: 0, balanceCarriedForward: 0, invoiceCount: 0 };
+    if (customerInvoices.length === 0) {
+      let initialBal = 0;
+      if (customerPhone) {
+        const cust = await db.getCustomer(customerPhone.trim());
+        if (cust && cust.openingBalance) initialBal = toNum(cust.openingBalance);
+      }
+      return { totalPreviousBills: 0, balanceCarriedForward: initialBal, invoiceCount: 0 };
+    }
     // New invoice: carry forward from the most recent existing invoice.
     if (!currentInvoiceNo || !customerInvoices.find((inv) => inv.invoiceNo === currentInvoiceNo)) {
       const mostRecent = customerInvoices[customerInvoices.length - 1];

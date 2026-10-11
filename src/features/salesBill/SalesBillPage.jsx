@@ -5,11 +5,12 @@
  * Phones: stacked cards (product rows become cards) with a sticky action bar above the tab bar.
  * Logic lives in useSalesBill (session, lookup, save / generate / share / reset).
  */
-import { Box, Camera, Receipt, ReceiptText, User, Zap } from 'lucide-react';
+import { Box, Camera, IndianRupee, Receipt, ReceiptText, User, Wallet, Zap } from 'lucide-react';
 import { useEffect } from 'react';
 import { InvoiceHeaderFields, ProductRowsEditor } from '@/components/bill';
+import { formatCurrency } from '@/core/format';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { Card, ErrorState, LoadingState, Page, RefreshButton, SectionHeader, TwoPane } from '@/ui';
+import { Button, Card, ErrorState, LoadingState, Modal, Page, RefreshButton, SectionHeader, TwoPane } from '@/ui';
 import { BillActionBar } from './BillActionBar';
 import { EditBanner, SaveBadge } from './BillStatusBar';
 import { CalculationSection } from './CalculationSection';
@@ -176,6 +177,44 @@ export default function SalesBillPage() {
           {actions('bar')}
         </div>
       )}
+
+      {/* Popup: Customer Opening Balance Notice */}
+      <Modal
+        open={Boolean(bill.openingBalancePopup)}
+        onClose={bill.closeOpeningBalancePopup}
+        title="Customer Opening Balance"
+        size="sm"
+        footer={
+          <Button variant="primary" onClick={bill.closeOpeningBalancePopup} className="w-full sm:w-auto">
+            Acknowledge & Continue
+          </Button>
+        }
+      >
+        <div className="flex flex-col items-center text-center p-2">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 ring-8 ring-amber-50/50 shadow-xs">
+            <Wallet className="size-7" />
+          </div>
+          <h3 className="font-display text-lg font-bold text-brand-900">
+            {bill.openingBalancePopup?.customerName || 'Customer'}
+          </h3>
+          {bill.openingBalancePopup?.customerPhone ? (
+            <p className="text-xs text-slate-500 tabular-nums">
+              Phone: {bill.openingBalancePopup.customerPhone}
+            </p>
+          ) : null}
+          <div className="mt-4 w-full rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+            <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+              Opening Balance Amount
+            </span>
+            <div className="mt-1 font-display text-3xl font-extrabold text-amber-900 tabular-nums">
+              ₹{formatCurrency(bill.openingBalancePopup?.openingBalance || 0)}
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            This customer has an existing opening balance on record. It will be accounted for in their billing statements.
+          </p>
+        </div>
+      </Modal>
     </Page>
   );
 }

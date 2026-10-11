@@ -1,6 +1,6 @@
 /** Pure rules of the Add Customer screen (manage-customers.js addCustomer / saveEdit validation and list). */
-import { digitsOnly } from '@/core/format';
-export const EMPTY_CUSTOMER_DRAFT = { phone: '', name: '', address: '' };
+import { digitsOnly, toNum } from '@/core/format';
+export const EMPTY_CUSTOMER_DRAFT = { phone: '', name: '', address: '', openingBalance: '' };
 /** Texts of the web page's alert() boxes, shown inline next to the offending field. */
 export const CUSTOMER_MESSAGES = {
   add: {
@@ -14,11 +14,17 @@ export const CUSTOMER_MESSAGES = {
     duplicate: 'A customer with the new phone number already exists.',
   },
 };
-export const trimDraft = (draft) => ({
-  phone: draft.phone.trim(),
-  name: draft.name.trim(),
-  address: draft.address.trim(),
-});
+export const trimDraft = (draft) => {
+  const result = {
+    phone: (draft.phone || '').trim(),
+    name: (draft.name || '').trim(),
+    address: (draft.address || '').trim(),
+  };
+  if (draft.openingBalance !== undefined && draft.openingBalance !== '') {
+    result.openingBalance = toNum(draft.openingBalance);
+  }
+  return result;
+};
 /**
  * The web page only checked `phone.length < 10`; a number with letters or punctuation padding it out passed.
  * Counting digits keeps every real number valid and rejects such junk (the phone is also the Firestore document id).

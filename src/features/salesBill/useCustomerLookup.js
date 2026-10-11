@@ -5,7 +5,7 @@ import { findCustomerByPhone, previousBalanceFor, shouldLookupPhone } from './cu
  * script.js `customerPhone` input handler: once the phone holds 10+ characters the customer is looked up; a hit fills
  * name/address and computes the previous balance, a miss clears them. Stale answers (the user kept typing) are dropped.
  */
-export function useCustomerLookup({ customersRef, getForm, patch, onError }) {
+export function useCustomerLookup({ customersRef, getForm, patch, onError, onCustomerFound }) {
   const latest = useRef(0);
   const notFoundRef = useRef(null);
   /** the 10+ character phone for which no customer exists (drives the "Add customer" hint) */
@@ -17,10 +17,11 @@ export function useCustomerLookup({ customersRef, getForm, patch, onError }) {
   const applyCustomer = useCallback(
     async (customer, rawPhone, request) => {
       patch({ customerName: customer.name || '', customerAddress: customer.address || '' });
+      onCustomerFound?.(customer);
       const previousBalance = await previousBalanceFor(customer.name || '', rawPhone, getForm().invoiceNo);
       if (request === latest.current) patch({ previousBalance });
     },
-    [getForm, patch],
+    [getForm, onCustomerFound, patch],
   );
   const onPhoneChange = useCallback(
     (rawPhone) => {
@@ -59,13 +60,14 @@ export function useCustomerLookup({ customersRef, getForm, patch, onError }) {
         customerName: party.name || '',
         customerAddress: party.address || '',
       });
+      onCustomerFound?.(party);
       void previousBalanceFor(party.name || '', party.phone, getForm().invoiceNo)
         .then((previousBalance) => {
           if (request === latest.current) patch({ previousBalance });
         })
         .catch((error) => console.error('Error calculating previous balance', error));
     },
-    [getForm, patch, setNotFound],
+    [getForm, onCustomerFound, patch, setNotFound],
   );
   /** After the customer list was refreshed (e.g. coming back from "Add Customer"): retry a number that was unknown. */
   const recheck = useCallback(() => {

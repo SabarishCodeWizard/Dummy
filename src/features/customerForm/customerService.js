@@ -8,7 +8,15 @@ export async function addCustomer(input) {
   if (hasErrors(errors)) return { ok: false, errors };
   if (await db.getCustomer(draft.phone))
     return { ok: false, errors: { phone: CUSTOMER_MESSAGES.add.duplicate } };
-  await db.saveCustomer({ phone: draft.phone, name: draft.name, address: draft.address });
+  const customerData = {
+    phone: draft.phone,
+    name: draft.name,
+    address: draft.address,
+  };
+  if (draft.openingBalance !== undefined) {
+    customerData.openingBalance = draft.openingBalance;
+  }
+  await db.saveCustomer(customerData);
   return { ok: true };
 }
 /**
@@ -24,7 +32,16 @@ export async function updateCustomer(original, input) {
   if (phoneChanged && (await db.getCustomer(draft.phone))) {
     return { ok: false, errors: { phone: CUSTOMER_MESSAGES.edit.duplicate } };
   }
-  await db.updateCustomerDetails(original.name ?? '', draft.name, draft.phone, draft.address);
+  const args = [
+    original.name ?? '',
+    draft.name,
+    draft.phone,
+    draft.address,
+  ];
+  if (draft.openingBalance !== undefined) {
+    args.push(draft.openingBalance);
+  }
+  await db.updateCustomerDetails(...args);
   if (phoneChanged && originalPhone) {
     try {
       await db.deleteCustomerDoc(originalPhone);

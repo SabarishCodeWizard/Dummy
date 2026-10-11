@@ -37,7 +37,12 @@ export function useCustomerManager() {
       setTarget({
         mode: 'edit',
         original: customer,
-        initial: { phone: customer.phone ?? '', name: customer.name ?? '', address: customer.address ?? '' },
+        initial: {
+          phone: customer.phone ?? '',
+          name: customer.name ?? '',
+          address: customer.address ?? '',
+          openingBalance: customer.openingBalance ?? '',
+        },
       });
       setFormOpen(!isExpanded);
     },

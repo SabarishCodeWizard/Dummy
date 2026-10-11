@@ -26,6 +26,14 @@ export const CustomerCard = memo(function CustomerCard({ customer, onEdit, onDel
       <div className="mt-3 space-y-1.5 rounded-xl bg-slate-50/70 p-3">
         <InfoRow icon={Phone} text={customer.phone || 'N/A'} />
         <InfoRow icon={MapPin} text={customer.address || 'N/A'} />
+        {customer.openingBalance ? (
+          <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-xs">
+            <span className="font-medium text-slate-500">Opening Balance:</span>
+            <span className="font-semibold text-brand-800 tabular-nums">
+              ₹{Number(customer.openingBalance).toFixed(2)}
+            </span>
+          </div>
+        ) : null}
       </div>
       <div className="mt-3 flex gap-2.5" onClick={(e) => e.stopPropagation()}>
         <Button
