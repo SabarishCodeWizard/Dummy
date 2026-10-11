@@ -4,10 +4,12 @@ import { useRef } from 'react';
 import { formatRupees } from '@/core/format';
 import { Button, DataTable, Modal, cn } from '@/ui';
 
+import { useAppNavigate } from '@/hooks/useRouteParams';
 import { AvailableValue, OpeningValue } from './StockRowParts';
 import { historyDate, historyInvoiceNo, historyTotal } from './stocksLogic';
 
 const PURCHASE = {
+  key: 'purchase',
   title: 'Purchase History',
   party: 'Supplier',
   empty: 'No purchases found.',
@@ -16,6 +18,7 @@ const PURCHASE = {
   heading: 'text-emerald-800',
 };
 const SALES = {
+  key: 'sales',
   title: 'Sales History',
   party: 'Customer',
   empty: 'No sales found.',
@@ -33,10 +36,18 @@ function SummaryItem({ label, children }) {
   );
 }
 
-function HistorySection({ kind, entries }) {
+function HistorySection({ kind, entries, onSelectBill }) {
   const columns = [
     { key: 'date', header: 'Date', className: 'whitespace-nowrap', value: (e) => historyDate(e.date) },
-    { key: 'invoice', header: 'Invoice No', value: (e) => historyInvoiceNo(e.invoiceNo) },
+    {
+      key: 'invoice',
+      header: 'Invoice No',
+      render: (e) => (
+        <span className="font-semibold text-brand-700 underline decoration-brand-300 underline-offset-2 hover:text-brand-900">
+          #{historyInvoiceNo(e.invoiceNo)}
+        </span>
+      ),
+    },
     { key: 'party', header: kind.party, value: (e) => e.party },
     { key: 'qty', header: 'Qty', align: 'right', className: 'tabular-nums', value: (e) => e.qty },
     {
@@ -56,28 +67,38 @@ function HistorySection({ kind, entries }) {
   ];
   return (
     <section className="mb-6 last:mb-0">
-      <h3 className={cn('mb-3 flex items-center gap-2.5 text-base font-bold', kind.heading)}>
-        <span
-          className={cn('flex size-8 items-center justify-center rounded-lg ring-1 ring-inset', kind.tile)}
-        >
-          <kind.Icon className="size-[18px]" aria-hidden />
-        </span>
-        {kind.title}
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 tabular-nums">
-          {entries.length}
-        </span>
-      </h3>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className={cn('flex items-center gap-2.5 text-base font-bold', kind.heading)}>
+          <span
+            className={cn('flex size-8 items-center justify-center rounded-lg ring-1 ring-inset', kind.tile)}
+          >
+            <kind.Icon className="size-[18px]" aria-hidden />
+          </span>
+          {kind.title}
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 tabular-nums">
+            {entries.length}
+          </span>
+        </h3>
+        {entries.length > 0 ? (
+          <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+            Click row to view bill →
+          </span>
+        ) : null}
+      </div>
       <DataTable
         columns={columns}
         rows={entries}
         rowKey={(_, i) => i}
+        onRowClick={(e) => onSelectBill?.(kind, e)}
         dense
         empty={<p className="py-6 text-center text-sm text-slate-500">{kind.empty}</p>}
         renderCard={(e) => (
           <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-slate-500">{historyDate(e.date)}</span>
-              <span className="font-display font-bold text-brand-800">#{historyInvoiceNo(e.invoiceNo)}</span>
+              <span className="font-display font-bold text-brand-800 underline decoration-brand-300 underline-offset-2">
+                #{historyInvoiceNo(e.invoiceNo)}
+              </span>
             </div>
             <div className="text-slate-800">
               {kind.party}: {e.party}
@@ -105,10 +126,25 @@ function HistorySection({ kind, entries }) {
 
 /** The original "Stock Details" modal: purchase history and sales history of one product. `row` null = closed. */
 export default function StockDetailModal({ row, onClose }) {
+  const nav = useAppNavigate();
   // keep the content while the dialog is closing / for the title
   const last = useRef(null);
   if (row) last.current = row;
   const shown = row ?? last.current;
+
+  const handleSelectBill = (kind, entry) => {
+    const rawNo = entry.rawInvoiceNo || entry.invoiceNo || '';
+    if (!rawNo) return;
+    const cleanNo = String(rawNo).replace(/^Return\s*#?/i, '').trim();
+    if (!cleanNo) return;
+    onClose();
+    if (kind === PURCHASE) {
+      nav.push(`/purchase/history?search=${encodeURIComponent(cleanNo)}&view=${encodeURIComponent(cleanNo)}`);
+    } else {
+      nav.push(`/sales/history?search=${encodeURIComponent(cleanNo)}&view=${encodeURIComponent(cleanNo)}`);
+    }
+  };
+
   return (
     <Modal
       open={row !== null}
@@ -137,8 +173,8 @@ export default function StockDetailModal({ row, onClose }) {
               <AvailableValue row={shown} showLabel />
             </SummaryItem>
           </dl>
-          <HistorySection kind={PURCHASE} entries={shown.purchaseHistory} />
-          <HistorySection kind={SALES} entries={shown.salesHistory} />
+          <HistorySection kind={PURCHASE} entries={shown.purchaseHistory} onSelectBill={handleSelectBill} />
+          <HistorySection kind={SALES} entries={shown.salesHistory} onSelectBill={handleSelectBill} />
         </>
       ) : null}
     </Modal>

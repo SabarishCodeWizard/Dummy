@@ -72,11 +72,17 @@ export function usePurchaseHistory(onDataChanged) {
   const clearFilters = useCallback(() => apply(EMPTY_FILTERS), [apply]);
   const selectRecent = useCallback((invoiceNo) => apply({ ...draftRef.current, search: invoiceNo }), [apply]);
   const filterByDay = useCallback((day) => apply(filterByDate(draftRef.current, day)), [apply]);
-  // ?search=<text> (the web page filled its search box from the same URL parameter)
+  // ?search=<text> or ?view=<invoiceNo> (the web page filled its search box from the same URL parameter)
   const searchParam = typeof params.search === 'string' ? params.search : '';
+  const viewParam = typeof params.view === 'string' ? params.view : '';
   useEffect(() => {
-    if (searchParam) apply({ ...EMPTY_FILTERS, search: searchParam });
-  }, [searchParam, apply]);
+    if (viewParam) {
+      apply({ ...EMPTY_FILTERS, search: viewParam });
+      setSheet({ kind: 'detail', invoiceNo: viewParam });
+    } else if (searchParam) {
+      apply({ ...EMPTY_FILTERS, search: searchParam });
+    }
+  }, [searchParam, viewParam, apply]);
   const filtered = useMemo(
     () => (data ? filterInvoices(data.invoices, applied, (i) => i.partyName) : []),
     [data, applied],

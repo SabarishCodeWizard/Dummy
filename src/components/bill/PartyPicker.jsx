@@ -69,10 +69,9 @@ export function PartyPicker({
     <div className="space-y-3">
       <div className="relative">
         <TextField
-          label={`${partyLabel} phone`}
-          type="tel"
-          inputMode="tel"
-          placeholder="Select or type phone number"
+          label={`${partyLabel} Phone / Name`}
+          type="text"
+          placeholder={`Type phone number or ${partyLabel.toLowerCase()} name`}
           autoComplete="off"
           leftIcon={Phone}
           hint={phoneHint}

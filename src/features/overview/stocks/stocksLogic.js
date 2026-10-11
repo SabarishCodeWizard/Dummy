@@ -76,6 +76,7 @@ export function computeStocks(
         qty,
         rate,
         invoiceNo: String(bill.invoiceNo || ''),
+        rawInvoiceNo: String(bill.invoiceNo || ''),
         amount: round2(qty * rate),
       });
     });
@@ -95,6 +96,7 @@ export function computeStocks(
         qty: -qty,
         rate,
         invoiceNo: pr.invoiceNo ? `Return #${pr.invoiceNo}` : 'Return',
+        rawInvoiceNo: String(pr.invoiceNo || ''),
         amount: -round2(qty * rate),
       });
     });
@@ -116,6 +118,7 @@ export function computeStocks(
         qty,
         rate,
         invoiceNo: String(invoice.invoiceNo || ''),
+        rawInvoiceNo: String(invoice.invoiceNo || ''),
         amount: round2(qty * rate),
       });
     });
@@ -135,6 +138,7 @@ export function computeStocks(
         qty: -qty,
         rate,
         invoiceNo: sr.invoiceNo ? `Return #${sr.invoiceNo}` : 'Return',
+        rawInvoiceNo: String(sr.invoiceNo || ''),
         amount: -round2(qty * rate),
       });
     });
