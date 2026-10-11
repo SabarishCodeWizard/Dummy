@@ -60,6 +60,12 @@ const CSS = `
   .declaration { flex: 1; }
   .customer-signature, .company-signature { text-align: center; flex: 1; }
   .developer-credit-print { text-align: center; margin-top: 18px; font-size: 10px; color: #555; border-top: 2px dashed #eee; padding-top: 10px; page-break-inside: avoid; }
+  .manual-bill-page { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 95vh; page-break-inside: avoid; }
+  .manual-bill-header { width: 100%; border-bottom: 2px solid #444; padding-bottom: 12px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
+  .manual-bill-title { font-size: 16px; font-weight: bold; color: #2c3e50; text-transform: uppercase; }
+  .manual-bill-subtitle { font-size: 12px; color: #666; }
+  .manual-bill-img-box { width: 100%; flex: 1; display: flex; justify-content: center; align-items: center; border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fafafa; }
+  .manual-bill-img { max-width: 100%; max-height: 800px; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 `;
 /** One page (ORIGINAL or COPY) of the invoice. */
 export function invoiceBody(input) {
@@ -240,8 +246,32 @@ export function invoiceBody(input) {
     </div>
   </div>`;
 }
+/** Attached manual bill slip page */
+export function manualBillPage(input) {
+  const { invoice } = input;
+  if (!invoice.manualBillImage) return '';
+  return `
+  <div class="watermark">${esc(COMPANY.monogram)} ${esc(invoice.invoiceNo)}</div>
+  <div class="manual-bill-page">
+    <div class="manual-bill-header">
+      <div>
+        <div class="manual-bill-title">Manual Bill Attachment</div>
+        <div class="manual-bill-subtitle">${esc(COMPANY.name)}</div>
+      </div>
+      <div style="text-align: right;">
+        <div><strong>Invoice No:</strong> ${esc(invoice.invoiceNo)}</div>
+        <div style="font-size: 11px; color: #555;"><strong>Party:</strong> ${esc(invoice.customerName || 'N/A')}</div>
+      </div>
+    </div>
+    <div class="manual-bill-img-box">
+      <img class="manual-bill-img" src="${invoice.manualBillImage}" alt="Manual Bill Slip #${esc(invoice.invoiceNo)}" />
+    </div>
+  </div>`;
+}
+
 function wrap(title, bodies) {
-  const joined = bodies.join('<div style="page-break-before: always;"></div>');
+  const validBodies = bodies.filter(Boolean);
+  const joined = validBodies.join('<div style="page-break-before: always;"></div>');
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -255,10 +285,19 @@ function wrap(title, bodies) {
 }
 /** Single page — used for sharing (the web app shared only the ORIGINAL page as a PDF). */
 export function buildInvoiceHtml(input) {
-  return wrap(`SS ${input.invoice.invoiceNo}`, [invoiceBody(input)]);
+  const pages = [invoiceBody(input)];
+  if (input.invoice?.manualBillImage) {
+    pages.push(manualBillPage(input));
+  }
+  return wrap(`SS ${input.invoice.invoiceNo}`, pages);
 }
 export function buildCombinedInvoiceHtml(input) {
-  return wrap(`SS ${input.invoice.invoiceNo}`, [
+  const pages = [
     invoiceBody({ ...input, copyType: 'ORIGINAL' }),
-  ]);
+    invoiceBody({ ...input, copyType: 'COPY' }),
+  ];
+  if (input.invoice?.manualBillImage) {
+    pages.push(manualBillPage(input));
+  }
+  return wrap(`SS ${input.invoice.invoiceNo}`, pages);
 }

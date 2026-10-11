@@ -63,6 +63,13 @@ describe('invoice HTML', () => {
     expect(html.indexOf('(ORIGINAL)')).toBeLessThan(html.indexOf('page-break-before'));
     expect(html.indexOf('page-break-before')).toBeLessThan(html.indexOf('(COPY)'));
   });
+  test('includes manual bill slip page when invoice has manualBillImage', () => {
+    const withManual = buildCombinedInvoiceHtml({
+      invoice: { ...invoice, manualBillImage: 'data:image/jpeg;base64,TESTIMAGE' },
+    });
+    expect(withManual).toContain('Manual Bill Attachment');
+    expect(withManual).toContain('data:image/jpeg;base64,TESTIMAGE');
+  });
 });
 describe('WhatsApp', () => {
   test('phone normalisation adds 91 to bare 10-digit numbers only', () => {

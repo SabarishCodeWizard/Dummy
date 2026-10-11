@@ -5,7 +5,7 @@
  * Phones: stacked cards (product rows become cards) with a sticky action bar above the tab bar.
  * Logic lives in useSalesBill (session, lookup, save / generate / share / reset).
  */
-import { Box, Receipt, ReceiptText, User, Zap } from 'lucide-react';
+import { Box, Camera, Receipt, ReceiptText, User, Zap } from 'lucide-react';
 import { useEffect } from 'react';
 import { InvoiceHeaderFields, ProductRowsEditor } from '@/components/bill';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -14,6 +14,7 @@ import { BillActionBar } from './BillActionBar';
 import { EditBanner, SaveBadge } from './BillStatusBar';
 import { CalculationSection } from './CalculationSection';
 import { CustomerSection } from './CustomerSection';
+import { ManualBillAttachment } from './ManualBillAttachment';
 import { useCustomerSummary } from './useCustomerSummary';
 import { useSalesBill } from './useSalesBill';
 
@@ -121,6 +122,23 @@ export default function SalesBillPage() {
           rows={form.rows}
           shortcuts={bill.shortcuts}
           onChange={(rows) => bill.patch({ rows })}
+        />
+      </Card>
+      <Card>
+        <SectionHeader
+          title="Manual Bill Attachment"
+          icon={Camera}
+          right={
+            form.manualBillImage ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20">
+                Slip Attached
+              </span>
+            ) : null
+          }
+        />
+        <ManualBillAttachment
+          value={form.manualBillImage}
+          onChange={(manualBillImage) => bill.patch({ manualBillImage })}
         />
       </Card>
     </>

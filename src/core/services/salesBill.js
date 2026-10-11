@@ -28,6 +28,7 @@ export function emptySalesForm() {
     upi: '0',
     account: '0',
     additionalPaymentsTotal: 0,
+    manualBillImage: null,
   };
 }
 export function salesFormTotals(form) {
@@ -96,6 +97,7 @@ export function buildSalesInvoice(form) {
     paymentBreakdown,
     amountPaid: totalPaid,
     balanceDue,
+    manualBillImage: form.manualBillImage || null,
     createdAt: new Date().toISOString(),
   };
 }
@@ -191,6 +193,7 @@ export async function loadSalesBillForEditing(invoiceNo) {
     upi: String(pb.upi || 0),
     account: String(pb.account || 0),
     additionalPaymentsTotal,
+    manualBillImage: invoice.manualBillImage || null,
   };
   return { form, invoice };
 }
