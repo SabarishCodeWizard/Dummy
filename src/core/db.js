@@ -10,18 +10,51 @@
  */
 import {
   collection,
-  deleteDoc,
+  deleteDoc as fbDeleteDoc,
   doc,
-  getDoc,
-  getDocs,
+  getDoc as fbGetDoc,
+  getDocs as fbGetDocs,
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
-  updateDoc,
+  setDoc as fbSetDoc,
+  updateDoc as fbUpdateDoc,
   where,
 } from 'firebase/firestore';
 import { getDb } from './firebase';
+import { recordFirestoreOperation } from './services/firestoreUsageTracker';
+
+// Transparent tracking wrappers — preserves exact signatures and behaviors with zero extra network overhead
+const getDoc = async (...args) => {
+  const res = await fbGetDoc(...args);
+  recordFirestoreOperation('read', 1);
+  return res;
+};
+
+const getDocs = async (...args) => {
+  const res = await fbGetDocs(...args);
+  recordFirestoreOperation('read', res.size || 1);
+  return res;
+};
+
+const setDoc = async (...args) => {
+  const res = await fbSetDoc(...args);
+  recordFirestoreOperation('write', 1);
+  return res;
+};
+
+const updateDoc = async (...args) => {
+  const res = await fbUpdateDoc(...args);
+  recordFirestoreOperation('write', 1);
+  return res;
+};
+
+const deleteDoc = async (...args) => {
+  const res = await fbDeleteDoc(...args);
+  recordFirestoreOperation('delete', 1);
+  return res;
+};
+
 const uid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 export class Database {
   initialized = false;
@@ -71,7 +104,10 @@ export class Database {
   async _load(key, fetcher, opts = {}) {
     const { memory = true, onError = 'throw' } = opts;
     this._checkInit();
-    if (memory && this._cache[key]) return this._cache[key];
+    if (memory && this._cache[key]) {
+      recordFirestoreOperation('cacheHit', 1);
+      return this._cache[key];
+    }
     if (memory && this._promises[key]) return this._promises[key];
     const run = (async () => {
       try {

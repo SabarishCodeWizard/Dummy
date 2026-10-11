@@ -6,6 +6,7 @@ import { fetchDashboardData, computeAnalytics, dateRanges } from './dashboardAna
 import { DashboardKPIs } from './components/DashboardKPIs';
 import { DashboardCharts } from './components/DashboardCharts';
 import { DashboardInsights } from './components/DashboardInsights';
+import { FirestoreUsageSection } from './components/FirestoreUsageSection';
 
 export default function StatisticsPage() {
   const [data, setData] = useState(null);
@@ -75,6 +76,7 @@ export default function StatisticsPage() {
           <DashboardKPIs data={analytics} />
           <DashboardCharts data={data} rangeKey={rangeKey} />
           <DashboardInsights data={data} rangeKey={rangeKey} dateRanges={dateRanges} />
+          <FirestoreUsageSection data={data} />
         </div>
       )}
     </Page>
