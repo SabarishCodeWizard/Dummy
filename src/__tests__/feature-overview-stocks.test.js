@@ -114,17 +114,18 @@ describe('computeStocks', () => {
   });
   test('purchase history: newest first, supplier fallback, amount = qty x rate to 2 decimals', () => {
     expect(row('Cotton Shirt').purchaseHistory).toEqual([
-      { date: '2026-09-15', party: 'Unknown', qty: 2.5, rate: 20, invoiceNo: 'P-002', amount: 50 },
-      { date: '2026-09-01', party: 'ABC', qty: 10, rate: 100, invoiceNo: 'P-001', amount: 1000 },
+      { date: '2026-09-15', party: 'Unknown', qty: 2.5, rate: 20, invoiceNo: 'P-002', rawInvoiceNo: 'P-002', amount: 50 },
+      { date: '2026-09-01', party: 'ABC', qty: 10, rate: 100, invoiceNo: 'P-001', rawInvoiceNo: 'P-001', amount: 1000 },
     ]);
     expect(historyTotal(row('Cotton Shirt').purchaseHistory)).toBe(1050);
+    expect(row('Cotton Shirt').avgPurchaseRate).toBe(84); // (1000 + 50) / (10 + 2.5) = 1050 / 12.5 = 84
   });
   test('sales history carries the customer; amount is rounded per entry before it is summed', () => {
     expect(row('Cotton Shirt').salesHistory).toEqual([
-      { date: '2026-09-20', party: 'SLN', qty: 4, rate: 150, invoiceNo: '001', amount: 600 },
+      { date: '2026-09-20', party: 'SLN', qty: 4, rate: 150, invoiceNo: '001', rawInvoiceNo: '001', amount: 600 },
     ]);
     expect(row('T Shirt').salesHistory).toEqual([
-      { date: '2026-09-25', party: 'Unknown', qty: 1, rate: 99.999, invoiceNo: '002', amount: 100 },
+      { date: '2026-09-25', party: 'Unknown', qty: 1, rate: 99.999, invoiceNo: '002', rawInvoiceNo: '002', amount: 100 },
     ]);
     expect(row('T Shirt').purchaseHistory[0].amount).toBe(151.5);
   });
@@ -200,6 +201,9 @@ describe('loadStocks', () => {
     jest.spyOn(db, 'getAllPurchaseBills').mockResolvedValue(purchases);
     jest.spyOn(db, 'getAllInvoices').mockResolvedValue(sales);
     jest.spyOn(db, 'getAllOpeningStocks').mockResolvedValue(opening);
+    jest.spyOn(db, 'getAllProductMetadata').mockResolvedValue([]);
+    jest.spyOn(db, 'getAllReturns').mockResolvedValue([]);
+    jest.spyOn(db, 'getAllPurchaseReturns').mockResolvedValue([]);
     const { rows, summary } = await loadStocks();
     expect(rows).toHaveLength(4);
     expect(summary.netProfitLoss).toBe(100.5);

@@ -6,7 +6,7 @@ import { Button, DataTable, Modal, cn } from '@/ui';
 
 import { useAppNavigate } from '@/hooks/useRouteParams';
 import { AvailableValue, OpeningValue } from './StockRowParts';
-import { historyDate, historyInvoiceNo, historyTotal } from './stocksLogic';
+import { historyDate, historyInvoiceNo, historyQty, historyTotal } from './stocksLogic';
 
 const PURCHASE = {
   key: 'purchase',
@@ -114,9 +114,24 @@ function HistorySection({ kind, entries, onSelectBill }) {
           </div>
         )}
         footer={
-          <div className="flex justify-between font-display font-bold text-brand-800">
-            <span>Total</span>
-            <span className="text-base tabular-nums">{formatRupees(historyTotal(entries))}</span>
+          <div className="flex flex-wrap items-center justify-between gap-3 font-display font-bold text-brand-800">
+            <span className="text-sm">Total</span>
+            <div className="flex flex-wrap items-center gap-4 text-sm tabular-nums">
+              <span className="text-slate-600 font-semibold">
+                Total Qty: <strong className="text-brand-800">{historyQty(entries)}</strong>
+              </span>
+              {kind === PURCHASE && entries.length > 0 ? (
+                <span className="text-slate-600 font-semibold">
+                  Avg Rate:{' '}
+                  <strong className="text-emerald-700">
+                    {historyQty(entries) > 0
+                      ? formatRupees(historyTotal(entries) / historyQty(entries))
+                      : '-'}
+                  </strong>
+                </span>
+              ) : null}
+              <span className="text-base text-brand-900">{formatRupees(historyTotal(entries))}</span>
+            </div>
           </div>
         }
       />
@@ -159,12 +174,17 @@ export default function StockDetailModal({ row, onClose }) {
     >
       {shown ? (
         <>
-          <dl className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-gold-50/60 p-3 ring-1 ring-gold-100 sm:grid-cols-4">
+          <dl className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-gold-50/60 p-3 ring-1 ring-gold-100 sm:grid-cols-5">
             <SummaryItem label="Opening">
               <OpeningValue row={shown} />
             </SummaryItem>
             <SummaryItem label="Purchased">
               <span className="font-semibold text-slate-800 tabular-nums">{shown.purchased}</span>
+            </SummaryItem>
+            <SummaryItem label="Avg Purchase Rate">
+              <span className="font-semibold text-brand-800 tabular-nums">
+                {shown.avgPurchaseRate > 0 ? formatRupees(shown.avgPurchaseRate) : '-'}
+              </span>
             </SummaryItem>
             <SummaryItem label="Sold">
               <span className="font-semibold text-slate-800 tabular-nums">{shown.sold}</span>

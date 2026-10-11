@@ -6,6 +6,7 @@
 import { Boxes, SearchX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+import { formatRupees } from '@/core/format';
 import { db } from '@/core/db';
 import { useFocusLoad } from '@/hooks/useFocusLoad';
 import { Card, DataTable, EmptyState, ErrorState, Page, SearchBar, useFeedback, Button } from '@/ui';
@@ -95,6 +96,13 @@ export default function StocksPage() {
       align: 'right',
       className: 'tabular-nums text-slate-700',
       value: (r) => r.purchased,
+    },
+    {
+      key: 'avgPurchaseRate',
+      header: 'Average Purchase Rate',
+      align: 'right',
+      className: 'tabular-nums font-semibold text-brand-800',
+      render: (r) => (r.avgPurchaseRate > 0 ? formatRupees(r.avgPurchaseRate) : '-'),
     },
     {
       key: 'sold',

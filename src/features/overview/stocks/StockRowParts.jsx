@@ -1,5 +1,6 @@
 import { Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 
+import { formatRupees } from '@/core/format';
 import { Button, IconButton, cn } from '@/ui';
 
 import { openingActions, stockTone } from './stocksLogic';
@@ -106,12 +107,17 @@ export function StockCard({ row, ...actions }) {
   return (
     <div className="space-y-3">
       <div className="font-display text-base font-bold break-words text-brand-800">{row.description}</div>
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
         <Metric label="Opening">
           <OpeningValue row={row} />
         </Metric>
         <Metric label="Purchased">
           <span className="font-semibold text-slate-800 tabular-nums">{row.purchased}</span>
+        </Metric>
+        <Metric label="Avg Rate">
+          <span className="font-semibold text-brand-800 tabular-nums">
+            {row.avgPurchaseRate > 0 ? formatRupees(row.avgPurchaseRate) : '-'}
+          </span>
         </Metric>
         <Metric label="Sold">
           <span className="font-semibold text-slate-800 tabular-nums">{row.sold}</span>

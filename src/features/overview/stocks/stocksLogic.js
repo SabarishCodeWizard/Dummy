@@ -148,10 +148,20 @@ export function computeStocks(
     const opening = round3(acc.opening);
     const purchased = round3(acc.purchased);
     const sold = round3(acc.sold);
+    const totalPurchaseCost = acc.purchaseHistory.reduce((sum, e) => sum + (e.qty > 0 ? e.amount : 0), 0);
+    const totalPositivePurchasedQty = acc.purchaseHistory.reduce((sum, e) => sum + (e.qty > 0 ? e.qty : 0), 0);
+    const avgPurchaseRate =
+      totalPositivePurchasedQty > 0
+        ? round2(totalPurchaseCost / totalPositivePurchasedQty)
+        : purchased > 0
+          ? round2(totalPurchaseCost / purchased)
+          : 0;
+
     return {
       description,
       opening,
       purchased,
+      avgPurchaseRate,
       sold,
       available: round3(opening + purchased - sold),
       minStockLevel: acc.minStockLevel || 0,
@@ -175,6 +185,10 @@ export function stockTone(available) {
 /** Detail-sheet total: sum of the (2-decimal rounded) amounts, formatted `toFixed(2)` like the web table. */
 export function historyTotal(entries) {
   return entries.reduce((sum, e) => sum + e.amount, 0);
+}
+/** Total quantity across history entries. */
+export function historyQty(entries) {
+  return round3(entries.reduce((sum, e) => sum + e.qty, 0));
 }
 /** Invoice number as the web history tables printed it ("P-" prefix dropped, for sales rows too). */
 export function historyInvoiceNo(invoiceNo) {
