@@ -52,6 +52,7 @@ export function toHistoryInvoice(invoice, payments, returns, canAddPayment) {
     totalReturns,
     adjustedBalanceDue: invoice.balanceDue - totalReturns,
     canAddPayment,
+    canAddReturn: canAddPayment,
   };
 }
 /**

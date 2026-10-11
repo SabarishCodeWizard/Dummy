@@ -26,7 +26,14 @@ function sortHistory(entries) {
     })
     .map((x) => x.entry);
 }
-export function computeStocks(purchaseBills, salesInvoices, openingStocks, productMetadata = []) {
+export function computeStocks(
+  purchaseBills,
+  salesInvoices,
+  openingStocks,
+  productMetadata = [],
+  salesReturns = [],
+  purchaseReturns = [],
+) {
   const stockMap = new Map();
   const entry = (description) => {
     let acc = stockMap.get(description);
@@ -73,6 +80,26 @@ export function computeStocks(purchaseBills, salesInvoices, openingStocks, produ
       });
     });
   });
+
+  // Account for purchase returns (goods returned to supplier decrease purchased stock)
+  if (Array.isArray(purchaseReturns)) {
+    purchaseReturns.forEach((pr) => {
+      if (!pr.description) return;
+      const qty = toNum(pr.qty);
+      const rate = toNum(pr.rate);
+      const acc = entry(String(pr.description).trim());
+      acc.purchased -= qty;
+      acc.purchaseHistory.push({
+        date: pr.returnDate || pr.date || '',
+        party: `${pr.supplierName || 'Supplier'} (Return)`,
+        qty: -qty,
+        rate,
+        invoiceNo: pr.invoiceNo ? `Return #${pr.invoiceNo}` : 'Return',
+        amount: -round2(qty * rate),
+      });
+    });
+  }
+
   salesInvoices.forEach((invoice) => {
     totalSales += toNum(invoice.grandTotal);
     cashReceived += toNum(invoice.amountPaid);
@@ -93,6 +120,26 @@ export function computeStocks(purchaseBills, salesInvoices, openingStocks, produ
       });
     });
   });
+
+  // Account for sales returns (goods returned by customer decrease sold stock / add back to stock)
+  if (Array.isArray(salesReturns)) {
+    salesReturns.forEach((sr) => {
+      if (!sr.description) return;
+      const qty = toNum(sr.qty);
+      const rate = toNum(sr.rate);
+      const acc = entry(String(sr.description).trim());
+      acc.sold -= qty;
+      acc.salesHistory.push({
+        date: sr.returnDate || sr.date || '',
+        party: `${sr.customerName || 'Customer'} (Return)`,
+        qty: -qty,
+        rate,
+        invoiceNo: sr.invoiceNo ? `Return #${sr.invoiceNo}` : 'Return',
+        amount: -round2(qty * rate),
+      });
+    });
+  }
+
   const rows = Array.from(stockMap, ([description, acc]) => {
     const opening = round3(acc.opening);
     const purchased = round3(acc.purchased);

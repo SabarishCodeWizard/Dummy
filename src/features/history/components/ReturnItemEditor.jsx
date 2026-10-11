@@ -15,11 +15,16 @@ const rs = (n) => `₹${formatCurrency(n)}`;
 const choiceToValue = (choice) => (choice === null ? '' : String(choice));
 const valueToChoice = (value) => (value === '' ? null : value === 'custom' ? 'custom' : Number(value));
 
+const cleanQty = (qty) => {
+  const n = Number(qty);
+  return Number.isFinite(n) ? Number(n.toFixed(2)).toString() : '0';
+};
+
 export function ReturnItemEditor({ index, item, products, returnedQty, onChange, onRemove }) {
   const selected = typeof item.choice === 'number' ? products[item.choice] : undefined;
   const alreadyReturned = selected ? (returnedQty.get(selected.description) ?? 0) : 0;
   return (
-    <fieldset className="mb-3 space-y-3 rounded-2xl border border-line bg-slate-50/70 p-3.5">
+    <fieldset className="mb-3 space-y-2.5 rounded-2xl border border-line bg-slate-50/70 p-3 sm:p-3.5">
       <legend className="sr-only">Return item {index + 1}</legend>
       <div className="flex items-center justify-between">
         <h4 className="flex items-center gap-2 font-display text-sm font-bold text-brand-800">
@@ -32,9 +37,9 @@ export function ReturnItemEditor({ index, item, products, returnedQty, onChange,
           type="button"
           onClick={onRemove}
           aria-label={`Remove return item ${index + 1}`}
-          className="flex size-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:outline-none"
+          className="flex size-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:outline-none"
         >
-          <X className="size-[18px]" aria-hidden />
+          <X className="size-4" aria-hidden />
         </button>
       </div>
 
@@ -44,13 +49,26 @@ export function ReturnItemEditor({ index, item, products, returnedQty, onChange,
         onChange={(v) => onChange(chooseReturnProduct(item, valueToChoice(v), products))}
       >
         <option value="">-- Select Product --</option>
-        {products.map((p, i) => (
-          <option key={`${i}-${p.description}`} value={String(i)}>
-            {`${p.description} (Avail: ${p.qty} @ ${rs(p.rate)})`}
-          </option>
-        ))}
+        {products.map((p, i) => {
+          const qtyStr = cleanQty(p.qty);
+          return (
+            <option key={`${i}-${p.description}`} value={String(i)}>
+              {`${p.description} (Avail: ${qtyStr})`}
+            </option>
+          );
+        })}
         <option value="custom">-- Enter Custom Product --</option>
       </SelectField>
+
+      {selected ? (
+        <div className="flex flex-wrap items-center justify-between gap-1 rounded-xl border border-gold-200 bg-gold-50/70 px-2.5 py-1.5 text-xs text-brand-900">
+          <span className="font-semibold truncate max-w-full">{selected.description}</span>
+          <span className="text-slate-600">
+            Available: <strong className="font-bold text-brand-900">{cleanQty(selected.qty)}</strong> · Rate: <strong className="font-bold text-brand-900">{rs(selected.rate)}</strong>
+          </span>
+        </div>
+      ) : null}
+
       {item.choice === 'custom' ? (
         <TextField
           placeholder="Enter custom product"
@@ -60,18 +78,19 @@ export function ReturnItemEditor({ index, item, products, returnedQty, onChange,
         />
       ) : null}
 
-      <div className="grid grid-cols-3 gap-2">
-        <NumberField label="Qty" value={item.qty} onChange={(qty) => onChange({ ...item, qty })} />
-        <NumberField label="Rate (₹)" value={item.rate} onChange={(rate) => onChange({ ...item, rate })} />
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+        <NumberField label="Qty" value={item.qty} onChange={(qty) => onChange({ ...item, qty })} className="min-w-0" />
+        <NumberField label="Rate (₹)" value={item.rate} onChange={(rate) => onChange({ ...item, rate })} className="min-w-0" />
         <NumberField
           label="Amount (₹)"
           value={returnItemAmount(item).toFixed(2)}
           onChange={() => undefined}
           readOnly
+          className="min-w-0"
         />
       </div>
       {alreadyReturned > 0 ? (
-        <p className="text-xs text-slate-500">Already returned: {alreadyReturned}</p>
+        <p className="text-xs text-slate-500">Already returned: {cleanQty(alreadyReturned)}</p>
       ) : null}
       <TextField
         label="Reason"

@@ -46,6 +46,7 @@ export function toHistoryPurchase(bill, payments, returns, canAddPayment) {
     totalReturns,
     adjustedBalanceDue: balanceDue - totalReturns,
     canAddPayment,
+    canAddReturn: canAddPayment,
   };
 }
 /**

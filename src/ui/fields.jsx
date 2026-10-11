@@ -166,7 +166,7 @@ export const SelectField = forwardRef(function SelectField(
       <select
         ref={ref}
         id={selectId}
-        className={cn(fieldClass(error), 'pr-8')}
+        className={cn(fieldClass(error), 'pr-8 truncate max-w-full')}
         onChange={(e) => onChange?.(e.target.value)}
         {...rest}
       >

@@ -90,7 +90,9 @@ export function validateReturnDraft(input) {
     lines.push({ description, qty, rate, returnAmount, reason: item.reason, returnDate });
     total += returnAmount;
   }
-  if (total > currentBalance) {
+  // If currentBalance is specified and greater than 0, check if return exceeds it; 
+  // if currentBalance <= 0 (e.g. fully paid older bill), allow the return against the products returned
+  if (currentBalance !== undefined && currentBalance !== null && currentBalance > 0 && total > currentBalance) {
     return {
       ok: false,
       title: 'Error',

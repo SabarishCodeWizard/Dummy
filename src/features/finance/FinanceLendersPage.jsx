@@ -205,7 +205,7 @@ export default function FinanceLendersPage() {
       icon={Users}
       actions={
         <>
-          <RefreshButton onClick={refresh} refreshing={refreshing} />
+          <RefreshButton onClick={refresh} loading={refreshing} />
           <Button icon={UserPlus} onClick={openAdd} className="max-sm:hidden">
             Add Lender
           </Button>

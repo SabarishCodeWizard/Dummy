@@ -68,8 +68,8 @@ export function Modal({
         {/* phone grab handle */}
         <span className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-200 sm:hidden" aria-hidden />
         {title ? (
-          <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5 sm:px-6 sm:py-4">
-            <h2 id={titleId} className="font-display text-lg font-bold text-brand-800">
+          <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6 sm:py-4">
+            <h2 id={titleId} className="font-display text-base sm:text-lg font-bold text-brand-800 truncate">
               {title}
             </h2>
             {dismissable ? (
@@ -84,9 +84,9 @@ export function Modal({
             ) : null}
           </header>
         ) : null}
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{children}</div>
         {footer ? (
-          <footer className="pb-safe flex flex-wrap justify-end gap-2 border-t border-line bg-slate-50/70 px-5 py-3.5 sm:px-6">
+          <footer className="pb-safe flex flex-wrap justify-end gap-2 border-t border-line bg-slate-50/70 px-4 py-3 sm:px-6 sm:py-3.5">
             {footer}
           </footer>
         ) : null}

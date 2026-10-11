@@ -295,9 +295,11 @@ export function InvoiceActionButtons({ invoice, actions, compact = false }) {
           Add Payment
         </Button>
       ) : null}
-      <Button variant="warning" icon={RotateCcw} className={cell} onClick={() => actions.addReturn(no)}>
-        Add Return
-      </Button>
+      {invoice.canAddReturn ? (
+        <Button variant="warning" icon={RotateCcw} className={cell} onClick={() => actions.addReturn(no)}>
+          Add Return
+        </Button>
+      ) : null}
       <Button
         variant="purple"
         icon={Share2}

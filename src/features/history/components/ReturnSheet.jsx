@@ -23,15 +23,15 @@ function SummaryRow({ label, value, tone, bold }) {
   return (
     <div
       className={cn(
-        'flex items-baseline justify-between gap-3 py-0.5 text-sm',
-        bold && 'mt-1.5 border-t border-gold-200 pt-2.5 font-bold',
+        'flex items-baseline justify-between gap-2 py-0.5 text-xs sm:text-sm',
+        bold && 'mt-1.5 border-t border-gold-200 pt-2 font-bold',
       )}
     >
-      <span className={bold ? 'text-brand-800' : 'text-slate-500'}>{label}</span>
+      <span className={cn('min-w-0 text-slate-600', bold && 'font-bold text-brand-800')}>{label}</span>
       <span
         className={cn(
-          'tabular-nums',
-          bold ? 'font-display text-lg font-extrabold' : 'font-semibold',
+          'tabular-nums shrink-0',
+          bold ? 'font-display text-base sm:text-lg font-extrabold' : 'font-semibold',
           tone ?? 'text-brand-800',
         )}
       >
@@ -141,16 +141,16 @@ export function ReturnSheet({
         Add Return Item
       </Button>
 
-      <div className="my-4 rounded-2xl border border-gold-200 bg-gold-50/60 p-3.5">
-        <SummaryRow label="Original Balance Due:" value={rs(balanceDue)} />
+      <div className="my-4 rounded-2xl border border-gold-200 bg-gold-50/60 p-3 sm:p-3.5">
+        <SummaryRow label="Original Balance:" value={rs(balanceDue)} />
         {previousReturns > 0 ? (
           <>
             <SummaryRow label="Previous Returns:" value={`-${rs(previousReturns)}`} tone="text-amber-700" />
-            <SummaryRow label="Current Balance Before This Return:" value={rs(currentBalance)} />
+            <SummaryRow label="Balance Before Return:" value={rs(currentBalance)} />
           </>
         ) : null}
         <SummaryRow label="This Return Amount:" value={rs(total)} />
-        <SummaryRow label="New Adjusted Balance Due:" value={rs(newAdjustedBalance)} bold />
+        <SummaryRow label="New Adjusted Balance:" value={rs(newAdjustedBalance)} bold />
       </div>
 
       {error ? (

@@ -7,6 +7,7 @@ import { db } from '@/core/db';
 import { filterInvoices, recentInvoices } from '../lib/filters';
 import { filterByDate, getDateWiseStatistics } from '../lib/grouping';
 import { returnSuccessMessage } from '../lib/returns';
+import { toNum } from '@/core/format';
 import { EMPTY_FILTERS, isUserError } from '../lib/types';
 import { toHistoryReturn } from '../sales/salesModel';
 import {
@@ -153,13 +154,38 @@ export function usePurchaseHistory(onDataChanged) {
           toast('Error', 'Invoice not found!', 'error');
           return;
         }
+        const allBills = await db.getAllPurchaseBills();
+        const supplierBills = allBills.filter(
+          (b) => b.supplierName && b.supplierName.trim().toLowerCase() === bill.supplierName.trim().toLowerCase(),
+        );
+        // Combine products from all bills of this supplier (unique descriptions with aggregated/total quantities)
+        const productMap = new Map();
+        for (const b of supplierBills) {
+          for (const p of b.products ?? []) {
+            if (!p || !p.description) continue;
+            const desc = p.description.trim();
+            if (!productMap.has(desc)) {
+              productMap.set(desc, {
+                description: desc,
+                qty: Number(toNum(p.qty).toFixed(2)),
+                rate: Number(toNum(p.rate).toFixed(2)),
+              });
+            } else {
+              const existing = productMap.get(desc);
+              existing.qty = Number((existing.qty + toNum(p.qty)).toFixed(2));
+              if (p.rate) existing.rate = Number(toNum(p.rate).toFixed(2));
+            }
+          }
+        }
+        const aggregatedProducts = Array.from(productMap.values());
+
         const returns = await db.getPurchaseReturnsByInvoice(invoiceNo);
         setSheet({
           kind: 'addReturn',
           invoiceNo,
           partyName: bill.supplierName,
           invoiceDate: bill.invoiceDate,
-          products: bill.products ?? [],
+          products: aggregatedProducts.length > 0 ? aggregatedProducts : (bill.products ?? []),
           balanceDue: purchaseBalanceDue(bill),
           returns: returns.map(toHistoryReturn),
         });
