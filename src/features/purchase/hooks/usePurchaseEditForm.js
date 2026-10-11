@@ -70,8 +70,8 @@ export function usePurchaseEditForm(invoiceNo) {
   };
   const save = async () => {
     if (!form || saving) return;
-    // the edit page did not require products to come from the shortcut list
-    const invalid = validatePurchaseBill(form, null);
+    const shortcutsList = shortcuts ?? (await db.getAllShortcuts());
+    const invalid = validatePurchaseBill(form, shortcutsList);
     if (invalid) {
       toast(invalid.title, invalid.message, 'error');
       return;

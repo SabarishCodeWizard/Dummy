@@ -51,15 +51,19 @@ export function validatePurchaseBill(form, shortcuts) {
     return { title: 'Missing Information', message: 'Please enter the Supplier Name.' };
   if (!form.supplierPhone.trim())
     return { title: 'Missing Information', message: 'Please enter the Supplier Phone Number.' };
-  const lines = buildProductLines(form.rows, { requirePositiveQty: true });
-  if (lines.length === 0) {
+  const described = form.rows.map((r) => (r.description ?? '').trim()).filter(Boolean);
+  if (described.length === 0) {
     return { title: 'Empty Bill', message: 'Please add at least one product with a valid quantity.' };
   }
   if (shortcuts) {
     const known = new Set(shortcuts.map((s) => s.fullDescription.toLowerCase().trim()));
-    if (!lines.every((l) => known.has(l.description.toLowerCase()))) {
+    if (!described.every((d) => known.has(d.toLowerCase()))) {
       return { title: 'Invalid Product', message: 'Please select products only from the suggestions list.' };
     }
+  }
+  const lines = buildProductLines(form.rows, { requirePositiveQty: true });
+  if (lines.length === 0) {
+    return { title: 'Empty Bill', message: 'Please add at least one product with a valid quantity.' };
   }
   return null;
 }

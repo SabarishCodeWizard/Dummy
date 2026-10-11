@@ -154,7 +154,8 @@ export function useSalesBill() {
     busy.current = true;
     try {
       const snapshot = sessionRef.current;
-      const plan = await planSave(snapshot, shortcutsRef.current);
+      const shortcutsList = shortcutsRef.current ?? (await db.getAllShortcuts());
+      const plan = await planSave(snapshot, shortcutsList);
       if (plan.kind === 'invalid') {
         toast(plan.error.title, plan.error.message, 'error');
         return;

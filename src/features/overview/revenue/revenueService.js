@@ -6,3 +6,5 @@ export async function loadRevenueRows() {
   const purchaseBills = await db.getAllPurchaseBills();
   return computeRevenueRows(invoices, purchaseBills);
 }
+
+

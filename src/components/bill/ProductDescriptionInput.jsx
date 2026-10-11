@@ -34,7 +34,8 @@ export function ProductDescriptionInput({
   const open = suggestions.length > 0;
   const noMatch =
     focused && !readOnly && !dismissed && !!shortcuts && value.trim().length > 0 && suggestions.length === 0;
-  const unknown = !focused && !!shortcuts && value.trim().length > 0 && !isKnownProduct(shortcuts, value);
+  const isKnown = !!shortcuts && isKnownProduct(shortcuts, value);
+  const unknown = !focused && !!shortcuts && value.trim().length > 0 && !isKnown;
   const active = Math.min(highlight, suggestions.length - 1);
 
   const pick = (s) => {
@@ -42,17 +43,48 @@ export function ProductDescriptionInput({
     setDismissed(true);
   };
 
+  const handleBlur = () => {
+    setFocused(false);
+    if (!value || !value.trim() || !shortcuts) return;
+    const trimmed = value.trim().toLowerCase();
+    // 1. If it matches a shortcut key (e.g. user typed "LJ"), resolve to the official catalogue description
+    const byKey = shortcuts.find((s) => (s.shortcutKey || '').trim().toLowerCase() === trimmed);
+    if (byKey) {
+      onChange(byKey.fullDescription);
+      return;
+    }
+    // 2. If it matches a full description (case-insensitive), normalize to official master casing
+    const byDesc = shortcuts.find((s) => (s.fullDescription || '').trim().toLowerCase() === trimmed);
+    if (byDesc) {
+      onChange(byDesc.fullDescription);
+    }
+  };
+
   const onKeyDown = (e) => {
-    if (!open) return;
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'ArrowDown' && open) {
       e.preventDefault();
       setHighlight(Math.min(active + 1, suggestions.length - 1));
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === 'ArrowUp' && open) {
       e.preventDefault();
       setHighlight(Math.max(active - 1, 0));
     } else if (e.key === 'Enter') {
-      e.preventDefault();
-      pick(suggestions[active]);
+      if (open && suggestions[active]) {
+        e.preventDefault();
+        pick(suggestions[active]);
+      } else if (shortcuts && value.trim()) {
+        const trimmed = value.trim().toLowerCase();
+        const byKey = shortcuts.find((s) => (s.shortcutKey || '').trim().toLowerCase() === trimmed);
+        if (byKey) {
+          e.preventDefault();
+          pick(byKey);
+        } else {
+          const byDesc = shortcuts.find((s) => (s.fullDescription || '').trim().toLowerCase() === trimmed);
+          if (byDesc) {
+            e.preventDefault();
+            pick(byDesc);
+          }
+        }
+      }
     } else if (e.key === 'Escape') {
       setDismissed(true);
     }
@@ -84,14 +116,16 @@ export function ProductDescriptionInput({
           setFocused(true);
           setDismissed(false);
         }}
-        onBlur={() => setFocused(false)}
+        onBlur={handleBlur}
         onKeyDown={onKeyDown}
         className={cn(
           'block min-h-11 w-full min-w-0 rounded-xl border bg-white px-3.5 py-2 text-slate-900 shadow-[inset_0_1px_2px_rgb(20_26_48/0.04)] transition duration-150 sm:min-h-10',
           'placeholder:text-slate-400 read-only:bg-slate-50 read-only:text-slate-600 hover:border-slate-400 focus:ring-4 focus:outline-none',
           unknown
             ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-            : 'border-slate-300 focus:border-gold-500 focus:ring-gold-100',
+            : isKnown
+              ? 'border-emerald-400/80 focus:border-emerald-500 focus:ring-emerald-100'
+              : 'border-slate-300 focus:border-gold-500 focus:ring-gold-100',
         )}
       />
       {open ? (
@@ -125,10 +159,15 @@ export function ProductDescriptionInput({
           ))}
         </ul>
       ) : null}
-      {noMatch ? <p className="mt-1.5 text-xs text-slate-500">No matching products found</p> : null}
+      {noMatch ? <p className="mt-1.5 text-xs font-medium text-amber-600">No matching products found in catalogue</p> : null}
       {unknown ? (
-        <p className="mt-1.5 text-xs font-medium text-red-600" role="alert">
+        <p className="mt-1.5 text-xs font-semibold text-red-600" role="alert">
           Select a product from the suggestions
+        </p>
+      ) : null}
+      {isKnown ? (
+        <p className="mt-1 text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+          ✓ Selected from catalogue
         </p>
       ) : null}
     </div>
