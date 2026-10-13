@@ -3,7 +3,7 @@
  * The product catalogue (key -> full description) the bill screens autocomplete from: KPI tiles, search, list
  * (table → cards on phones) with edit / delete, add + edit sheet (header button, floating "+" on phones).
  */
-import { Plus, SearchX, Zap, ZapOff, ListFilter, Layers } from 'lucide-react';
+import { Check, Copy, Layers, ListFilter, Plus, SearchX, Sparkles, Zap, ZapOff } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { db } from '@/core/db';
@@ -38,6 +38,8 @@ export default function ShortcutsPage() {
   const { toast, confirm, loading: overlay } = useFeedback();
   const [shortcuts, setShortcuts] = useState([]);
   const [search, setSearch] = useState('');
+  const [copiedKey, setCopiedKey] = useState(null);
+  const [testKey, setTestKey] = useState('');
   const [form, setForm] = useState(null); // null = sheet closed; oldKey '' = adding
   const [saving, setSaving] = useState(false);
 
@@ -52,6 +54,22 @@ export default function ShortcutsPage() {
 
   const shown = useMemo(() => filterShortcuts(shortcuts, search), [shortcuts, search]);
   const paged = usePagedRows(shown, search);
+
+  const testMatch = useMemo(() => {
+    const q = testKey.trim().toLowerCase();
+    if (!q) return null;
+    return shortcuts.find((s) => s.shortcutKey?.toLowerCase() === q);
+  }, [shortcuts, testKey]);
+
+  const handleCopy = (key, e) => {
+    e?.stopPropagation?.();
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(key);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 1500);
+      toast('Copied!', `Shortcut key "${key}" copied to clipboard`, 'success');
+    }
+  };
 
   const onSave = async () => {
     if (!form || saving) return;
@@ -141,7 +159,24 @@ export default function ShortcutsPage() {
       key: 'key',
       header: 'Shortcut Key',
       className: 'w-48',
-      render: (s) => <KeyCap>{s.shortcutKey}</KeyCap>,
+      render: (s) => (
+        <div className="flex items-center gap-1.5">
+          <KeyCap>{s.shortcutKey}</KeyCap>
+          <button
+            type="button"
+            onClick={(e) => handleCopy(s.shortcutKey, e)}
+            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            title="Copy shortcut key"
+            aria-label={`Copy shortcut key ${s.shortcutKey}`}
+          >
+            {copiedKey === s.shortcutKey ? (
+              <Check className="h-3.5 w-3.5 text-emerald-600" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
+      ),
     },
     {
       key: 'description',
@@ -176,7 +211,22 @@ export default function ShortcutsPage() {
           renderCard={(s) => (
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <KeyCap>{s.shortcutKey}</KeyCap>
+                <div className="flex items-center gap-1.5">
+                  <KeyCap>{s.shortcutKey}</KeyCap>
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopy(s.shortcutKey, e)}
+                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                    title="Copy shortcut key"
+                    aria-label={`Copy shortcut key ${s.shortcutKey}`}
+                  >
+                    {copiedKey === s.shortcutKey ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </div>
                 <div className="mt-1.5 font-medium break-words text-slate-800">{s.fullDescription}</div>
               </div>
               {actions(s)}
@@ -216,13 +266,40 @@ export default function ShortcutsPage() {
           tint="violet"
         />
       </KpiRow>
-      <Card className="mb-5 bg-white/80 p-3 sm:p-3.5">
+      <Card className="mb-5 bg-white/80 p-3 sm:p-3.5 space-y-3">
         <SearchBar
           value={search}
           onChange={setSearch}
           placeholder="Search shortcuts..."
           aria-label="Search shortcuts"
         />
+        <div className="border-t border-slate-100 pt-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs">
+            <span className="flex items-center gap-1.5 font-semibold text-slate-600">
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              Test Autocomplete:
+            </span>
+            <div className="flex items-center gap-2 flex-1">
+              <input
+                type="text"
+                value={testKey}
+                onChange={(e) => setTestKey(e.target.value)}
+                placeholder="Type a key (e.g. 101)..."
+                className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500 max-w-xs"
+              />
+              {testKey.trim() && (
+                testMatch ? (
+                  <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-medium truncate max-w-md">
+                    <Check className="h-3 w-3 shrink-0" />
+                    Expands to: &ldquo;{testMatch.fullDescription}&rdquo;
+                  </span>
+                ) : (
+                  <span className="text-slate-400 italic">No exact shortcut match</span>
+                )
+              )}
+            </div>
+          </div>
+        </div>
       </Card>
       {body}
       <FloatingAddButton label="Add shortcut" onClick={openAdd} />

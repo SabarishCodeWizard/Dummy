@@ -41,8 +41,50 @@ export default function StocksPage() {
     }
   });
 
-  const rows = useMemo(() => filterStocks(data?.rows ?? [], search), [data, search]);
-  const paged = usePagedRows(rows, search);
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'inStock' | 'lowStock' | 'outOfStock'
+
+  // Count products by inventory health
+  const statusCounts = useMemo(() => {
+    const list = data?.rows ?? [];
+    let inStock = 0;
+    let lowStock = 0;
+    let outOfStock = 0;
+    list.forEach((r) => {
+      const avail = r.available ?? 0;
+      const min = r.minStockLevel || 0;
+      if (avail <= 0) {
+        outOfStock++;
+      } else if (min > 0 && avail <= min) {
+        lowStock++;
+      } else {
+        inStock++;
+      }
+    });
+    return { all: list.length, inStock, lowStock, outOfStock };
+  }, [data]);
+
+  const rows = useMemo(() => {
+    const list = data?.rows ?? [];
+    let filteredByStatus = list;
+    if (statusFilter === 'inStock') {
+      filteredByStatus = list.filter((r) => {
+        const avail = r.available ?? 0;
+        const min = r.minStockLevel || 0;
+        return avail > 0 && (min === 0 || avail > min);
+      });
+    } else if (statusFilter === 'lowStock') {
+      filteredByStatus = list.filter((r) => {
+        const avail = r.available ?? 0;
+        const min = r.minStockLevel || 0;
+        return avail > 0 && min > 0 && avail <= min;
+      });
+    } else if (statusFilter === 'outOfStock') {
+      filteredByStatus = list.filter((r) => (r.available ?? 0) <= 0);
+    }
+    return filterStocks(filteredByStatus, search);
+  }, [data, statusFilter, search]);
+
+  const paged = usePagedRows(rows, `${search}|${statusFilter}`);
 
   const saveOpening = async (description, qty) => {
     try {
@@ -145,11 +187,102 @@ export default function StocksPage() {
       <>
         {data ? <RestockDashboard rows={data.rows} onReload={() => void reload()} /> : null}
         {data ? <FinancialSummary summary={data.summary} /> : null}
-        <Card className="mb-4 bg-white/80 p-3 sm:p-3.5">
+        <Card className="mb-4 bg-white/80 p-3 sm:p-3.5 space-y-3">
+          {/* INVENTORY HEALTH STATUS TABS */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+            <button
+              type="button"
+              onClick={() => setStatusFilter('all')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition whitespace-nowrap ${
+                statusFilter === 'all'
+                  ? 'bg-brand-900 text-gold-300 shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <span>All Products</span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                  statusFilter === 'all'
+                    ? 'bg-brand-800 text-gold-200'
+                    : 'bg-slate-200 text-slate-700'
+                }`}
+              >
+                {statusCounts.all}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('inStock')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition whitespace-nowrap ${
+                statusFilter === 'inStock'
+                  ? 'bg-emerald-700 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <span className="size-2 rounded-full bg-emerald-400 inline-block" />
+              <span>In Stock</span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                  statusFilter === 'inStock'
+                    ? 'bg-emerald-800 text-white'
+                    : 'bg-slate-200 text-slate-700'
+                }`}
+              >
+                {statusCounts.inStock}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('lowStock')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition whitespace-nowrap ${
+                statusFilter === 'lowStock'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <span className="size-2 rounded-full bg-amber-400 inline-block" />
+              <span>Low Stock</span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                  statusFilter === 'lowStock'
+                    ? 'bg-amber-700 text-white'
+                    : statusCounts.lowStock > 0
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-slate-200 text-slate-700'
+                }`}
+              >
+                {statusCounts.lowStock}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('outOfStock')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition whitespace-nowrap ${
+                statusFilter === 'outOfStock'
+                  ? 'bg-rose-700 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <span className="size-2 rounded-full bg-rose-400 inline-block" />
+              <span>Out of Stock</span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                  statusFilter === 'outOfStock'
+                    ? 'bg-rose-800 text-white'
+                    : statusCounts.outOfStock > 0
+                    ? 'bg-rose-100 text-rose-800'
+                    : 'bg-slate-200 text-slate-700'
+                }`}
+              >
+                {statusCounts.outOfStock}
+              </span>
+            </button>
+          </div>
+
           <SearchBar
             value={search}
             onChange={setSearch}
-            placeholder="Search by Product Description"
+            placeholder="Search by Product Description..."
             aria-label="Search by product description"
           />
         </Card>

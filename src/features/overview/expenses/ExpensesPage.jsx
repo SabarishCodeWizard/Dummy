@@ -31,7 +31,7 @@ import {
   validateExpense,
 } from './expensesLogic';
 
-const rs = (n) => `Rs. ${formatCurrency(n)}`;
+const rs = (n) => `₹${formatCurrency(n)}`;
 /** "Today's Total:" -> "Today's Total" (KPI labels have no trailing colon) */
 const kpiLabel = (text) => text.replace(/:$/, '');
 
@@ -56,6 +56,7 @@ export default function ExpensesPage() {
   const [bankAccounts, setBankAccounts] = useState([]);
   const [dateTerm, setDateTerm] = useState('');
   const [reasonTerm, setReasonTerm] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all'); // 'all' | 'cash' | 'bank'
   const [form, setForm] = useState(null); // null = sheet closed
   const [saving, setSaving] = useState(false);
 
@@ -75,12 +76,19 @@ export default function ExpensesPage() {
   });
 
   // totals are always computed from the full filtered list, never from the visible page
-  const shown = useMemo(
-    () => filterExpenses(expenses, dateTerm, reasonTerm),
-    [expenses, dateTerm, reasonTerm],
-  );
+  const shown = useMemo(() => {
+    const byText = filterExpenses(expenses, dateTerm, reasonTerm);
+    if (sourceFilter === 'cash') {
+      return byText.filter((e) => !e.paymentSource || e.paymentSource === 'cash');
+    }
+    if (sourceFilter === 'bank') {
+      return byText.filter((e) => e.paymentSource && e.paymentSource !== 'cash');
+    }
+    return byText;
+  }, [expenses, dateTerm, reasonTerm, sourceFilter]);
+
   const totals = useMemo(() => computeExpenseTotals(shown, dateTerm, todayISO()), [shown, dateTerm]);
-  const paged = usePagedRows(shown, `${dateTerm}|${reasonTerm}`);
+  const paged = usePagedRows(shown, `${dateTerm}|${reasonTerm}|${sourceFilter}`);
 
   const save = async () => {
     const invalid = validateExpense(form);
@@ -190,7 +198,7 @@ export default function ExpensesPage() {
     },
     {
       key: 'amount',
-      header: 'Amount (Rs.)',
+      header: 'Amount',
       align: 'right',
       className: 'font-display font-bold text-rose-700 tabular-nums whitespace-nowrap',
       value: (e) => rs(toNum(e.amount)),
@@ -283,9 +291,48 @@ export default function ExpensesPage() {
         text={reasonTerm}
         onTextChange={setReasonTerm}
         textPlaceholder="Search by Reason..."
+        quickDates
+        extraFilters={
+          <div className="flex items-center rounded-lg bg-slate-100 p-0.5 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setSourceFilter('all')}
+              className={`rounded-md px-2 py-0.5 transition ${
+                sourceFilter === 'all'
+                  ? 'bg-white text-brand-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              All Modes
+            </button>
+            <button
+              type="button"
+              onClick={() => setSourceFilter('cash')}
+              className={`rounded-md px-2 py-0.5 transition ${
+                sourceFilter === 'cash'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Cash Only
+            </button>
+            <button
+              type="button"
+              onClick={() => setSourceFilter('bank')}
+              className={`rounded-md px-2 py-0.5 transition ${
+                sourceFilter === 'bank'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Bank / UPI
+            </button>
+          </div>
+        }
         onClear={() => {
           setDateTerm('');
           setReasonTerm('');
+          setSourceFilter('all');
         }}
       />
       {body}

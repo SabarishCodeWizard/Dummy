@@ -194,7 +194,11 @@ export default function RevenuePage() {
         <StatCard icon={Wallet} label="Cost" value={loading ? '…' : rupees(totals.cost)} tint="amber" />
         <InkStat
           icon={TrendingUp}
-          label="Net Profit"
+          label={
+            !loading && totals.revenue > 0
+              ? `Net Profit (${((totals.profit / totals.revenue) * 100).toFixed(1)}%)`
+              : 'Net Profit'
+          }
           value={loading ? '…' : rupees(totals.profit)}
           negative={!loading && totals.profit < 0}
         />
@@ -205,6 +209,7 @@ export default function RevenuePage() {
         text={nameTerm}
         onTextChange={setNameTerm}
         textPlaceholder="Search by Customer Name..."
+        quickDates
         onClear={() => {
           setDateTerm('');
           setNameTerm('');
