@@ -308,6 +308,71 @@ export async function loadLiveAccountBalances() {
 }
 
 /**
+ * Extracts a reliable epoch millisecond timestamp from an item or record.
+ */
+export function getRecordTimestamp(ref, fallbackDateStr) {
+  if (!ref) {
+    if (fallbackDateStr) {
+      const d = new Date(fallbackDateStr);
+      return !isNaN(d.getTime()) ? d.getTime() : 0;
+    }
+    return 0;
+  }
+
+  // 1. If ref has createdAt or updatedAt or timestamp
+  const created = ref.createdAt || ref.timestamp || ref.updatedAt;
+  if (created) {
+    if (typeof created === 'number') return created;
+    if (typeof created.toDate === 'function') return created.toDate().getTime();
+    if (created.seconds) return created.seconds * 1000 + (created.nanoseconds ? created.nanoseconds / 1e6 : 0);
+    const d = new Date(created);
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+
+  // 2. Extract numeric millisecond timestamp from id if present (e.g. payment_1791888878195_..., uid('payment'))
+  const idStr = String(ref.id || ref._id || '');
+  const tsMatch = idStr.match(/(?:payment_|invoice_|tx_|bill_|ret_|exp_)?(\d{13})/);
+  if (tsMatch) {
+    const num = parseInt(tsMatch[1], 10);
+    if (num > 1577836800000 && num < 2524608000000) {
+      return num;
+    }
+  }
+
+  // 3. Fallback to fallbackDateStr or ref.date / ref.paymentDate / ref.invoiceDate
+  const dateVal = fallbackDateStr || ref.paymentDate || ref.date || ref.invoiceDate || ref.billDate || ref.startDate;
+  if (dateVal) {
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+
+  return 0;
+}
+
+/**
+ * Normalizes a date into a sortable YYYY-MM-DD string key.
+ */
+export function toDateKey(val) {
+  if (!val) return '';
+  if (typeof val === 'string') {
+    const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(val);
+    if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    const dmyMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(val);
+    if (dmyMatch) {
+      return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, '0')}-${dmyMatch[1].padStart(2, '0')}`;
+    }
+  }
+  const d = val instanceof Date ? val : new Date(val);
+  if (!isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return String(val);
+}
+
+/**
  * Extracts and itemizes every single inflow and outflow transaction for a specific account.
  */
 export function getAccountActivity({
@@ -349,16 +414,19 @@ export function getAccountActivity({
     const invNo = inv.invoiceNo || inv.billNo || 'Inv';
     const customer = inv.customerName || inv.partyName || 'Customer';
     const paymentsForInv = sPaymentsByInv.get(String(invNo));
+    const invTs = getRecordTimestamp(inv, invDate);
 
     if (paymentsForInv && paymentsForInv.length > 0) {
       paymentsForInv.forEach((p) => {
         const amt = toNum(p.amount);
         const pDate = p.paymentDate || invDate;
+        const pTs = getRecordTimestamp(p, pDate) || invTs;
         if (isCash && p.paymentMethod === 'cash') {
           if (amt > 0) {
             items.push({
               id: `sale-pay-${p.id || invNo}-${p.paymentMethod}`,
               date: pDate,
+              timestamp: pTs,
               type: p.paymentType === 'additional' ? 'Payment Received (Cash)' : 'Sale (Cash)',
               direction: 'in',
               category: 'Sales',
@@ -375,6 +443,7 @@ export function getAccountActivity({
               items.push({
                 id: `sale-pay-${p.id || invNo}-${p.paymentMethod}`,
                 date: pDate,
+                timestamp: pTs,
                 type: p.paymentMethod === 'upi' ? 'Sale (UPI)' : 'Sale (Bank Transfer)',
                 direction: 'in',
                 category: 'Sales',
@@ -395,6 +464,7 @@ export function getAccountActivity({
           items.push({
             id: `sale-${inv.id || invNo}-cash`,
             date: invDate,
+            timestamp: invTs,
             type: 'Sale (Cash)',
             direction: 'in',
             category: 'Sales',
@@ -414,6 +484,7 @@ export function getAccountActivity({
             items.push({
               id: `sale-${inv.id || invNo}-bank`,
               date: invDate,
+              timestamp: invTs,
               type: upiPaid > 0 && accPaid > 0 ? 'Sale (UPI & Bank)' : upiPaid > 0 ? 'Sale (UPI)' : 'Sale (Bank Transfer)',
               direction: 'in',
               category: 'Sales',
@@ -442,16 +513,19 @@ export function getAccountActivity({
     const billNo = bill.billNumber || bill.invoiceNo || 'Bill';
     const supplier = bill.supplierName || bill.partyName || 'Supplier';
     const paymentsForBill = pPaymentsByInv.get(String(billNo));
+    const billTs = getRecordTimestamp(bill, billDate);
 
     if (paymentsForBill && paymentsForBill.length > 0) {
       paymentsForBill.forEach((p) => {
         const amt = toNum(p.amount);
         const pDate = p.paymentDate || billDate;
+        const pTs = getRecordTimestamp(p, pDate) || billTs;
         if (isCash && p.paymentMethod === 'cash') {
           if (amt > 0) {
             items.push({
-              id: `purchase-pay-${p.id || billNo}-${p.paymentMethod}`,
+              id: `purch-pay-${p.id || billNo}-${p.paymentMethod}`,
               date: pDate,
+              timestamp: pTs,
               type: p.paymentType === 'additional' ? 'Supplier Payment (Cash)' : 'Purchase (Cash)',
               direction: 'out',
               category: 'Purchase',
@@ -466,8 +540,9 @@ export function getAccountActivity({
           if (targetBankId === accountId && p.paymentMethod !== 'cash') {
             if (amt > 0) {
               items.push({
-                id: `purchase-pay-${p.id || billNo}-${p.paymentMethod}`,
+                id: `purch-pay-${p.id || billNo}-${p.paymentMethod}`,
                 date: pDate,
+                timestamp: pTs,
                 type: p.paymentMethod === 'upi' ? 'Purchase (UPI)' : 'Purchase (Bank Transfer)',
                 direction: 'out',
                 category: 'Purchase',
@@ -481,7 +556,6 @@ export function getAccountActivity({
         }
       });
     } else {
-      // Fallback: Bill level payment
       const pay = bill.payment || bill.paymentBreakdown || {};
       if (isCash) {
         const cashAmt = toNum(pay.cash || (bill.paymentMethod === 'cash' ? bill.amountPaid : 0));
@@ -489,6 +563,7 @@ export function getAccountActivity({
           items.push({
             id: `purchase-${bill.id || billNo}-cash`,
             date: billDate,
+            timestamp: billTs,
             type: 'Purchase (Cash)',
             direction: 'out',
             category: 'Purchase',
@@ -508,6 +583,7 @@ export function getAccountActivity({
             items.push({
               id: `purchase-${bill.id || billNo}-bank`,
               date: billDate,
+              timestamp: billTs,
               type: upiPaid > 0 && accPaid > 0 ? 'Purchase (UPI & Bank)' : upiPaid > 0 ? 'Purchase (UPI)' : 'Purchase (Bank Transfer)',
               direction: 'out',
               category: 'Purchase',
@@ -527,11 +603,13 @@ export function getAccountActivity({
     const amt = toNum(exp.amount);
     const expDate = exp.date || exp.createdAt;
     const source = exp.paymentSource || 'cash';
+    const expTs = getRecordTimestamp(exp, expDate);
 
     if ((isCash && source === 'cash') || (!isCash && source === accountId)) {
       items.push({
         id: `exp-${exp.id}`,
         date: expDate,
+        timestamp: expTs,
         type: 'Business Expense',
         direction: 'out',
         category: 'Expense',
@@ -548,11 +626,13 @@ export function getAccountActivity({
     const principal = toNum(rec.principal);
     const dest = rec.depositAccount || 'cash';
     const lender = rec.lenderName || 'Lender';
+    const loanTs = getRecordTimestamp(rec, rec.startDate);
 
     if ((isCash && dest === 'cash') || (!isCash && dest === accountId)) {
       items.push({
         id: `fin-loan-${rec.id}`,
         date: rec.startDate,
+        timestamp: loanTs,
         type: 'Loan Received',
         direction: 'in',
         category: 'Finance',
@@ -567,11 +647,13 @@ export function getAccountActivity({
     (rec.payments || []).forEach((p, idx) => {
       const pAmt = toNum(p.amount);
       const source = p.sourceAccount || (p.mode === 'Cash' ? 'cash' : bankAccounts[0]?.id || 'cash');
+      const pTs = getRecordTimestamp(p, p.date) || loanTs;
 
       if ((isCash && source === 'cash') || (!isCash && source === accountId)) {
         items.push({
           id: `fin-pay-${rec.id}-${idx}`,
           date: p.date,
+          timestamp: pTs,
           type: 'Loan Repayment',
           direction: 'out',
           category: 'Finance',
@@ -590,6 +672,7 @@ export function getAccountActivity({
     const from = tx.fromAccount;
     const to = tx.toAccount;
     const txDate = tx.date || tx.createdAt;
+    const txTs = getRecordTimestamp(tx, txDate);
 
     // Outflow from this account
     if (from === accountId) {
@@ -597,6 +680,7 @@ export function getAccountActivity({
       items.push({
         id: `tx-out-${tx.id}`,
         date: txDate,
+        timestamp: txTs,
         type: tx.type || 'Internal Transfer Out',
         direction: 'out',
         category: 'Transfer',
@@ -613,6 +697,7 @@ export function getAccountActivity({
       items.push({
         id: `tx-in-${tx.id}`,
         date: txDate,
+        timestamp: txTs,
         type: tx.type || 'Internal Transfer In',
         direction: 'in',
         category: 'Transfer',
@@ -630,10 +715,12 @@ export function getAccountActivity({
       const amt = toNum(r.returnAmount || r.amount);
       if (amt <= 0) return;
       const rDate = r.returnDate || r.date || r.createdAt;
+      const rTs = getRecordTimestamp(r, rDate);
       if (isCash && r.refundMethod === 'cash') {
         items.push({
           id: `sale-ret-${r.id || r.invoiceNo}`,
           date: rDate,
+          timestamp: rTs,
           type: 'Sales Return (Cash Refund)',
           direction: 'out',
           category: 'Returns',
@@ -648,6 +735,7 @@ export function getAccountActivity({
           items.push({
             id: `sale-ret-${r.id || r.invoiceNo}`,
             date: rDate,
+            timestamp: rTs,
             type: 'Sales Return (Bank Refund)',
             direction: 'out',
             category: 'Returns',
@@ -666,10 +754,12 @@ export function getAccountActivity({
       const amt = toNum(r.returnAmount || r.amount);
       if (amt <= 0) return;
       const rDate = r.returnDate || r.date || r.createdAt;
+      const rTs = getRecordTimestamp(r, rDate);
       if (isCash && r.refundMethod === 'cash') {
         items.push({
           id: `purch-ret-${r.id || r.invoiceNo}`,
           date: rDate,
+          timestamp: rTs,
           type: 'Purchase Return (Cash Refund)',
           direction: 'in',
           category: 'Returns',
@@ -684,6 +774,7 @@ export function getAccountActivity({
           items.push({
             id: `purch-ret-${r.id || r.invoiceNo}`,
             date: rDate,
+            timestamp: rTs,
             type: 'Purchase Return (Bank Refund)',
             direction: 'in',
             category: 'Returns',
@@ -697,8 +788,26 @@ export function getAccountActivity({
     }
   });
 
-  // Sort by date descending (newest first)
-  items.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+  // Sort by date and recency descending (most recent first at top)
+  items.sort((a, b) => {
+    const dateStrA = toDateKey(a.date);
+    const dateStrB = toDateKey(b.date);
+
+    // 1. Calendar date descending
+    if (dateStrB !== dateStrA) {
+      return dateStrB.localeCompare(dateStrA);
+    }
+
+    // 2. Exact timestamp descending (more recent at top)
+    const timeB = b.timestamp || 0;
+    const timeA = a.timestamp || 0;
+    if (timeB !== timeA) {
+      return timeB - timeA;
+    }
+
+    // 3. Fallback tie breaker by id descending
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  });
 
   // Compute breakdown stats
   const totalInflows = items

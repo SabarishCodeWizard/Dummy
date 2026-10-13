@@ -22,7 +22,7 @@ import { useMemo, useState } from 'react';
 
 import { formatCurrency, formatDateShort } from '@/core/format';
 import { Badge, Button, EmptyState, IconButton, Modal } from '@/ui';
-import { getAccountActivity } from './accountsLogic';
+import { getAccountActivity, toDateKey } from './accountsLogic';
 
 const rs = (n) => `₹${formatCurrency(n)}`;
 
@@ -76,9 +76,9 @@ export default function BankAccountDetailModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Filter transactions
+  // Filter and sort transactions (newest / most recent always at top)
   const filteredItems = useMemo(() => {
-    return activity.items.filter((item) => {
+    const list = (activity.items || []).filter((item) => {
       // Direction filter
       if (filterType === 'in' && item.direction !== 'in') return false;
       if (filterType === 'out' && item.direction !== 'out') return false;
@@ -94,6 +94,16 @@ export default function BankAccountDetailModal({
       }
 
       return true;
+    });
+
+    return [...list].sort((a, b) => {
+      const dateStrA = toDateKey(a.date);
+      const dateStrB = toDateKey(b.date);
+      if (dateStrB !== dateStrA) return dateStrB.localeCompare(dateStrA);
+      const timeB = b.timestamp || 0;
+      const timeA = a.timestamp || 0;
+      if (timeB !== timeA) return timeB - timeA;
+      return String(b.id || '').localeCompare(String(a.id || ''));
     });
   }, [activity.items, filterType, searchQuery]);
 

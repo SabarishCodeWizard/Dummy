@@ -30,7 +30,7 @@ import KpiRow from '../overview/components/KpiRow';
 import RefreshButton from '../overview/components/RefreshButton';
 import SkeletonRows from '../overview/components/SkeletonRows';
 
-import { computeAccountBalances } from './accountsLogic';
+import { computeAccountBalances, getRecordTimestamp, toDateKey } from './accountsLogic';
 import BankAccountModal from './BankAccountModal';
 import BankAccountDetailModal from './BankAccountDetailModal';
 import CashOpeningModal from './CashOpeningModal';
@@ -123,6 +123,19 @@ export default function BankAccountsPage() {
     salesReturns,
     purchaseReturns,
   ]);
+
+  // Sort internal transfers descending (most recent first at top)
+  const sortedAccountTransactions = useMemo(() => {
+    return [...accountTransactions].sort((a, b) => {
+      const dateA = toDateKey(a.date || a.createdAt);
+      const dateB = toDateKey(b.date || b.createdAt);
+      if (dateB !== dateA) return dateB.localeCompare(dateA);
+      const timeB = getRecordTimestamp(b, b.date);
+      const timeA = getRecordTimestamp(a, a.date);
+      if (timeB !== timeA) return timeB - timeA;
+      return String(b.id || '').localeCompare(String(a.id || ''));
+    });
+  }, [accountTransactions]);
 
   // Handle Save Bank Account
   const handleSaveAccount = async (accountData) => {
@@ -514,7 +527,7 @@ export default function BankAccountsPage() {
       ) : (
         /* TRANSACTIONS / AUDIT TABLE */
         <div>
-          {accountTransactions.length === 0 ? (
+          {sortedAccountTransactions.length === 0 ? (
             <EmptyState
               title="No Internal Transfers Recorded"
               message="Record cash deposits to bank, cash withdrawals, or bank-to-bank transfers."
@@ -532,7 +545,7 @@ export default function BankAccountsPage() {
           ) : (
             <DataTable
               columns={txColumns}
-              rows={accountTransactions}
+              rows={sortedAccountTransactions}
               rowKey={(t) => t.id}
               renderCard={(t) => (
                 <div className="flex flex-col gap-2">
