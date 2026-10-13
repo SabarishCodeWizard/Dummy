@@ -61,6 +61,8 @@ export default function BankAccountsPage() {
   const [showTransfer, setShowTransfer] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('accounts'); // 'accounts' | 'transactions'
+  const [txDateFilter, setTxDateFilter] = useState('');
+  const [txSearchFilter, setTxSearchFilter] = useState('');
 
   const { loading, refreshing, refresh } = useFocusLoad(async () => {
     try {
@@ -210,6 +212,34 @@ export default function BankAccountsPage() {
     const acc = bankAccounts.find((a) => a.id === id);
     return acc ? acc.accountName : id;
   };
+
+  // Filtered internal transfers (datewise + keyword search)
+  const filteredAccountTransactions = useMemo(() => {
+    const q = txSearchFilter.trim().toLowerCase();
+    return sortedAccountTransactions.filter((t) => {
+      if (txDateFilter) {
+        const itemDateKey = toDateKey(t.date || t.createdAt);
+        if (itemDateKey !== txDateFilter) return false;
+      }
+      if (q) {
+        const fromLabel = getAccountLabel(t.fromAccount).toLowerCase();
+        const toLabel = getAccountLabel(t.toAccount).toLowerCase();
+        const type = (t.type || '').toLowerCase();
+        const notes = (t.notes || '').toLowerCase();
+        const amt = String(t.amount || '');
+        const dateShort = formatDateShort(t.date || t.createdAt).toLowerCase();
+        const match =
+          fromLabel.includes(q) ||
+          toLabel.includes(q) ||
+          type.includes(q) ||
+          notes.includes(q) ||
+          amt.includes(q) ||
+          dateShort.includes(q);
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [sortedAccountTransactions, txDateFilter, txSearchFilter, bankAccounts]);
 
   // Transactions columns definition
   const txColumns = [
@@ -526,7 +556,19 @@ export default function BankAccountsPage() {
         </div>
       ) : (
         /* TRANSACTIONS / AUDIT TABLE */
-        <div>
+        <div className="space-y-4">
+          <FilterBar
+            date={txDateFilter}
+            onDateChange={setTxDateFilter}
+            text={txSearchFilter}
+            onTextChange={setTxSearchFilter}
+            textPlaceholder="Search transfers by account, type, note or amount..."
+            onClear={() => {
+              setTxDateFilter('');
+              setTxSearchFilter('');
+            }}
+          />
+
           {sortedAccountTransactions.length === 0 ? (
             <EmptyState
               title="No Internal Transfers Recorded"
@@ -542,10 +584,29 @@ export default function BankAccountsPage() {
                 </Button>
               }
             />
+          ) : filteredAccountTransactions.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center bg-white shadow-sm">
+              <CalendarDays className="mx-auto size-8 text-slate-400" />
+              <p className="mt-2 text-sm font-semibold text-slate-700">No transfers match your filters</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Try selecting a different date or search query.
+              </p>
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => {
+                  setTxDateFilter('');
+                  setTxSearchFilter('');
+                }}
+                className="mt-3"
+              >
+                Clear Filters
+              </Button>
+            </div>
           ) : (
             <DataTable
               columns={txColumns}
-              rows={sortedAccountTransactions}
+              rows={filteredAccountTransactions}
               rowKey={(t) => t.id}
               renderCard={(t) => (
                 <div className="flex flex-col gap-2">
