@@ -21,11 +21,17 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { formatCurrency, formatDateShort, formatDateIN } from '@/core/format';
+import { formatCurrency, formatDateShort, formatDateIN, toNum } from '@/core/format';
 import { Badge, Button, EmptyState, IconButton, Modal } from '@/ui';
 import { getAccountActivity, toDateKey } from './accountsLogic';
 
-const rs = (n) => `₹${formatCurrency(n)}`;
+const rs = (n) => {
+  const val = toNum(n);
+  if (val < 0) {
+    return `-₹${formatCurrency(Math.abs(val))}`;
+  }
+  return `₹${formatCurrency(val)}`;
+};
 
 function getTransactionBadgeStyle(item) {
   const t = item.type || '';
@@ -67,7 +73,11 @@ function formatItemTime(ts) {
   try {
     const d = new Date(ts);
     if (!isNaN(d.getTime())) {
-      if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+      // Suppress if local midnight or UTC midnight (which translates to 05:30:00 in IST from a date-only string)
+      if (
+        (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) ||
+        (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0)
+      ) {
         return '';
       }
       return d.toLocaleTimeString('en-IN', {
@@ -292,7 +302,7 @@ export default function BankAccountDetailModal({
               +{rs(activity.totalInflows)}
             </div>
             <div className="mt-2 text-[10px] text-emerald-600">
-              Sales, Loans & Transfers In
+              Sales, Loans, Deposits & Inflows
             </div>
           </div>
 
@@ -305,7 +315,7 @@ export default function BankAccountDetailModal({
               -{rs(activity.totalOutflows)}
             </div>
             <div className="mt-2 text-[10px] text-rose-600">
-              Purchases, Exps & Transfers Out
+              Purchases, Exps, Deductions & Outflows
             </div>
           </div>
 
@@ -392,7 +402,7 @@ export default function BankAccountDetailModal({
             </div>
             <div className="space-y-1.5 text-xs text-slate-600">
               <div className="flex justify-between">
-                <span>Sales Collections (UPI/Bank):</span>
+                <span>{isCash ? 'Sales Collections (Cash):' : 'Sales Collections (UPI/Bank):'}</span>
                 <span className="font-bold text-emerald-700">
                   {rs(activity.breakdown.salesInflow)}
                 </span>
@@ -409,6 +419,26 @@ export default function BankAccountDetailModal({
                   {rs(activity.breakdown.transferInflow)}
                 </span>
               </div>
+              {(activity.breakdown.additionalInflow > 0 ||
+                (!activity.breakdown.salesInflow &&
+                  !activity.breakdown.loanInflow &&
+                  !activity.breakdown.transferInflow &&
+                  activity.totalInflows > 0)) && (
+                <div className="flex justify-between">
+                  <span>Additional Amounts (Capital / Deposits):</span>
+                  <span className="font-bold text-emerald-700">
+                    +{rs(activity.breakdown.additionalInflow)}
+                  </span>
+                </div>
+              )}
+              {activity.breakdown.purchaseReturnInflow > 0 && (
+                <div className="flex justify-between">
+                  <span>Purchase Return Refunds:</span>
+                  <span className="font-bold text-teal-700">
+                    +{rs(activity.breakdown.purchaseReturnInflow)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -442,6 +472,22 @@ export default function BankAccountDetailModal({
                   {rs(activity.breakdown.transferOutflow)}
                 </span>
               </div>
+              {activity.breakdown.manualDeductionOutflow > 0 && (
+                <div className="flex justify-between">
+                  <span>Manual Deductions (Drawings / Fees):</span>
+                  <span className="font-bold text-rose-700">
+                    -{rs(activity.breakdown.manualDeductionOutflow)}
+                  </span>
+                </div>
+              )}
+              {activity.breakdown.salesReturnOutflow > 0 && (
+                <div className="flex justify-between">
+                  <span>Sales Return Refunds:</span>
+                  <span className="font-bold text-rose-700">
+                    -{rs(activity.breakdown.salesReturnOutflow)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

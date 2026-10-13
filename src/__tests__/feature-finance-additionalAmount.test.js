@@ -129,6 +129,7 @@ describe('getAccountActivity with manual additions and deductions', () => {
     expect(item.amount).toBe(3000);
     expect(item.title).toBe('Additional Amount: Counter Cash Top-Up');
     expect(item.subtitle).toBe('Added extra change in register');
+    expect(activity.breakdown.additionalInflow).toBe(3000);
   });
 
   test('itemizes manual deduction as an outflow with proper title and direction', () => {
@@ -155,5 +156,6 @@ describe('getAccountActivity with manual additions and deductions', () => {
     expect(item.amount).toBe(250);
     expect(item.title).toBe('Deduction: Bank Charges');
     expect(item.subtitle).toBe('Annual debit card fee');
+    expect(activity.breakdown.manualDeductionOutflow).toBe(250);
   });
 });

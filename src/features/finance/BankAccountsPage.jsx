@@ -20,7 +20,7 @@ import {
 import { useMemo, useState } from 'react';
 
 import { db } from '@/core/db';
-import { formatCurrency, formatDateShort } from '@/core/format';
+import { formatCurrency, formatDateShort, toNum } from '@/core/format';
 import { useFocusLoad } from '@/hooks/useFocusLoad';
 import { Badge, Button, DataTable, EmptyState, IconButton, Page, useFeedback } from '@/ui';
 
@@ -39,7 +39,13 @@ import CashOpeningModal from './CashOpeningModal';
 import FundTransferModal from './FundTransferModal';
 import FinanceNavTabs from './FinanceNavTabs';
 
-const rs = (n) => `₹${formatCurrency(n)}`;
+const rs = (n) => {
+  const val = toNum(n);
+  if (val < 0) {
+    return `-₹${formatCurrency(Math.abs(val))}`;
+  }
+  return `₹${formatCurrency(val)}`;
+};
 
 export default function BankAccountsPage() {
   const { toast, confirm } = useFeedback();

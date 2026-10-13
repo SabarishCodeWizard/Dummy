@@ -828,14 +828,86 @@ export function getAccountActivity({
     .filter((i) => i.direction === 'out')
     .reduce((sum, i) => sum + i.amount, 0);
 
-  const salesInflow = items.filter((i) => i.category === 'Sales').reduce((sum, i) => sum + i.amount, 0);
-  const loanInflow = items.filter((i) => i.type === 'Loan Received').reduce((sum, i) => sum + i.amount, 0);
-  const transferInflow = items.filter((i) => i.direction === 'in' && i.category === 'Transfer').reduce((sum, i) => sum + i.amount, 0);
+  const salesInflow = items
+    .filter((i) => i.direction === 'in' && i.category === 'Sales')
+    .reduce((sum, i) => sum + i.amount, 0);
 
-  const purchaseOutflow = items.filter((i) => i.category === 'Purchase').reduce((sum, i) => sum + i.amount, 0);
-  const expenseOutflow = items.filter((i) => i.category === 'Expense').reduce((sum, i) => sum + i.amount, 0);
-  const loanRepayOutflow = items.filter((i) => i.type === 'Loan Repayment').reduce((sum, i) => sum + i.amount, 0);
-  const transferOutflow = items.filter((i) => i.direction === 'out' && i.category === 'Transfer').reduce((sum, i) => sum + i.amount, 0);
+  const loanInflow = items
+    .filter((i) => i.direction === 'in' && i.type === 'Loan Received')
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const transferInflow = items
+    .filter(
+      (i) =>
+        i.direction === 'in' &&
+        (i.type?.includes('Transfer In') ||
+          (i.category === 'Transfer' &&
+            i.sourceRef?.fromAccount &&
+            i.sourceRef.fromAccount !== 'external' &&
+            i.sourceRef.fromAccount !== 'manual')),
+    )
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const additionalInflow = items
+    .filter(
+      (i) =>
+        i.direction === 'in' &&
+        (i.type === 'Additional Amount' ||
+          (i.category !== 'Sales' &&
+            i.category !== 'Returns' &&
+            i.type !== 'Loan Received' &&
+            (!i.sourceRef?.fromAccount ||
+              i.sourceRef.fromAccount === 'external' ||
+              i.sourceRef.fromAccount === 'manual'))),
+    )
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const purchaseReturnInflow = items
+    .filter((i) => i.direction === 'in' && i.category === 'Returns')
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const purchaseOutflow = items
+    .filter((i) => i.direction === 'out' && i.category === 'Purchase')
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const expenseOutflow = items
+    .filter((i) => i.direction === 'out' && i.category === 'Expense')
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const loanRepayOutflow = items
+    .filter((i) => i.direction === 'out' && i.type === 'Loan Repayment')
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const transferOutflow = items
+    .filter(
+      (i) =>
+        i.direction === 'out' &&
+        (i.type?.includes('Transfer Out') ||
+          (i.category === 'Transfer' &&
+            i.sourceRef?.toAccount &&
+            i.sourceRef.toAccount !== 'external' &&
+            i.sourceRef.toAccount !== 'manual')),
+    )
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const manualDeductionOutflow = items
+    .filter(
+      (i) =>
+        i.direction === 'out' &&
+        (i.type === 'Manual Deduction' ||
+          (i.category !== 'Purchase' &&
+            i.category !== 'Expense' &&
+            i.category !== 'Returns' &&
+            i.type !== 'Loan Repayment' &&
+            (!i.sourceRef?.toAccount ||
+              i.sourceRef.toAccount === 'external' ||
+              i.sourceRef.toAccount === 'manual'))),
+    )
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const salesReturnOutflow = items
+    .filter((i) => i.direction === 'out' && i.category === 'Returns')
+    .reduce((sum, i) => sum + i.amount, 0);
 
   const openingBalance = toNum(account.openingBalance);
   const computedCurrentBalance = openingBalance + totalInflows - totalOutflows;
@@ -850,10 +922,14 @@ export function getAccountActivity({
       salesInflow,
       loanInflow,
       transferInflow,
+      additionalInflow,
+      purchaseReturnInflow,
       purchaseOutflow,
       expenseOutflow,
       loanRepayOutflow,
       transferOutflow,
+      manualDeductionOutflow,
+      salesReturnOutflow,
     },
   };
 }
