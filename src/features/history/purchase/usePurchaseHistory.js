@@ -135,11 +135,13 @@ export function usePurchaseHistory(onDataChanged) {
           toast('Notification', 'No return records found for this invoice.', 'info');
           return;
         }
+        const bId = bill.bankAccountId || bill.payment?.bankAccountId;
         setSheet({
           kind: 'returns',
           invoiceNo,
           partyName: bill.supplierName,
-          returns: returns.map(toHistoryReturn),
+          bankAccountId: bId,
+          returns: returns.map((r) => toHistoryReturn(r, bId)),
         });
       } catch (e) {
         console.error('Error viewing return status:', e);

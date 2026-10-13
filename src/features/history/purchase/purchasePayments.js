@@ -46,6 +46,7 @@ export function withUntrackedInitialPayment(bill, payments) {
     paymentDate: bill.invoiceDate || todayISO(),
     amount,
     paymentMethod,
+    bankAccountId: bill.bankAccountId || bill.payment?.bankAccountId || undefined,
     paymentType: 'initial',
   };
   return [synthetic, ...payments];
@@ -113,7 +114,14 @@ export async function loadPurchasePaymentHistory(invoiceNo) {
     db.getPurchaseBill(invoiceNo),
   ]);
   if (!bill) throw userError(PURCHASE_BILL_NOT_FOUND);
-  return { bill, payments: withUntrackedInitialPayment(bill, documents.map(toHistoryPayment)) };
+  const bankAccountId = bill.bankAccountId || bill.payment?.bankAccountId;
+  return {
+    bill,
+    payments: withUntrackedInitialPayment(
+      bill,
+      documents.map((p) => toHistoryPayment(p, bankAccountId)),
+    ),
+  };
 }
 // ------------------------------------------------------------------ undo
 /**

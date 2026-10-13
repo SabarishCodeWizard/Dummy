@@ -2,7 +2,7 @@
 import { toNum } from '@/core/format';
 import { compareNewestFirst } from '../lib/filters';
 import { indexByInvoiceNo, latestInvoiceNoPerParty, sumReturnAmounts } from '../lib/lookups';
-export function toHistoryPayment(p) {
+export function toHistoryPayment(p, defaultBankAccountId) {
   return {
     id: p.id,
     // older documents stored the day under `date`
@@ -10,10 +10,11 @@ export function toHistoryPayment(p) {
     amount: p.amount,
     paymentMethod: p.paymentMethod,
     paymentType: p.paymentType,
+    bankAccountId: p.bankAccountId || p.account || p.sourceAccount || p.destinationAccount || defaultBankAccountId,
     note: p.note,
   };
 }
-export function toHistoryReturn(r) {
+export function toHistoryReturn(r, defaultBankAccountId) {
   return {
     id: r.id,
     returnDate: r.returnDate || r.date || '',
@@ -22,6 +23,9 @@ export function toHistoryReturn(r) {
     rate: r.rate,
     returnAmount: r.returnAmount,
     reason: r.reason,
+    settlementType: r.settlementType,
+    refundMethod: r.refundMethod,
+    bankAccountId: r.bankAccountId || defaultBankAccountId,
   };
 }
 /**
@@ -47,8 +51,9 @@ export function toHistoryInvoice(invoice, payments, returns, canAddPayment) {
     balanceDue: invoice.balanceDue,
     paymentBreakdown: invoice.paymentBreakdown,
     legacyPaymentMethod: invoice.paymentMethod || undefined,
-    payments: payments.map(toHistoryPayment),
-    returns: returns.map(toHistoryReturn),
+    bankAccountId: invoice.bankAccountId,
+    payments: payments.map((p) => toHistoryPayment(p, invoice.bankAccountId)),
+    returns: returns.map((r) => toHistoryReturn(r, invoice.bankAccountId)),
     totalReturns,
     adjustedBalanceDue: invoice.balanceDue - totalReturns,
     manualBillImage: invoice.manualBillImage || null,

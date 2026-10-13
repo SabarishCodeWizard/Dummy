@@ -105,7 +105,8 @@ export function useSalesHistory(onDataChanged) {
           invoiceNo,
           partyName: invoice.customerName,
           balanceDue: invoice.balanceDue,
-          payments: payments.map(toHistoryPayment),
+          bankAccountId: invoice.bankAccountId,
+          payments: payments.map((p) => toHistoryPayment(p, invoice.bankAccountId)),
           canAddPayment,
         });
       } catch (e) {
@@ -130,7 +131,8 @@ export function useSalesHistory(onDataChanged) {
           kind: 'returns',
           invoiceNo,
           partyName: invoice.customerName,
-          returns: returns.map(toHistoryReturn),
+          bankAccountId: invoice.bankAccountId,
+          returns: returns.map((r) => toHistoryReturn(r, invoice.bankAccountId)),
         });
       } catch (e) {
         console.error('Error viewing return status:', e);

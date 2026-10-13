@@ -9,13 +9,51 @@
  *   onUndoAll()         undo all payments (the caller confirms)
  *   onAddPayment?()     "Add Payment" footer button – only pass it when the invoice may take another payment
  */
-import { Banknote, Plus, Undo2 } from 'lucide-react';
-import { useMemo } from 'react';
+import { Banknote, Landmark, Plus, Smartphone, Undo2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { db } from '@/core/db';
 import { formatCurrency, formatDateIN } from '@/core/format';
 import { Button, EmptyState } from '@/ui';
 import { sumPaymentAmounts } from '../lib/lookups';
-import { paymentMethodLabel, sortPaymentsByDate } from '../lib/payments';
+import { sortPaymentsByDate } from '../lib/payments';
 import { HistorySheet } from './HistorySheet';
+
+function PaymentMethodBadge({ payment, bankMap, defaultBank }) {
+  const rawMethod = payment.paymentMethod?.toLowerCase() || 'cash';
+  const bank = payment.bankAccountId ? bankMap.get(payment.bankAccountId) : null;
+  const activeBank = bank || (rawMethod === 'account' ? defaultBank : null);
+
+  if (rawMethod === 'account') {
+    const accName = activeBank ? activeBank.accountName : 'Bank Account';
+    const bankDesc = activeBank?.bankName || activeBank?.accountType || '';
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800 ring-1 ring-blue-200">
+        <Landmark className="size-3.5 text-blue-600" />
+        <span>Account: {accName}</span>
+        {bankDesc && <span className="font-medium text-blue-600/80">({bankDesc})</span>}
+      </span>
+    );
+  }
+
+  if (rawMethod === 'upi') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-800 ring-1 ring-purple-200">
+        <Smartphone className="size-3.5 text-purple-600" />
+        <span>UPI</span>
+        {activeBank && (
+          <span className="font-medium text-purple-600/80">({activeBank.accountName})</span>
+        )}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 ring-1 ring-emerald-200">
+      <Banknote className="size-3.5 text-emerald-600" />
+      <span>Cash in Hand</span>
+    </span>
+  );
+}
 
 export function PaymentHistorySheet({
   open,
@@ -29,7 +67,22 @@ export function PaymentHistorySheet({
   onUndoAll,
   onAddPayment,
 }) {
+  const [bankAccounts, setBankAccounts] = useState([]);
+
+  useEffect(() => {
+    db.getAllBankAccounts().then(setBankAccounts).catch(console.error);
+  }, []);
+
+  const bankMap = useMemo(() => {
+    const map = new Map();
+    for (const b of bankAccounts) {
+      map.set(b.id, b);
+    }
+    return map;
+  }, [bankAccounts]);
+
   const sorted = useMemo(() => sortPaymentsByDate(payments), [payments]);
+
   return (
     <HistorySheet
       open={open}
@@ -80,30 +133,36 @@ export function PaymentHistorySheet({
                     {formatDateIN(payment.paymentDate)}
                   </span>
                 </div>
-                <p>
-                  <span className="font-semibold text-slate-500">Amount: </span>
-                  <span className="font-display font-extrabold text-emerald-600 tabular-nums">
-                    ₹{formatCurrency(payment.amount)}
-                  </span>
-                </p>
-                <p>
-                  <span className="font-semibold text-slate-500">Method: </span>
-                  {paymentMethodLabel(payment, 'CASH')}
-                </p>
-                <p>
-                  <span className="font-semibold text-slate-500">Type: </span>
-                  {payment.paymentType === 'initial' ? 'Initial Payment' : 'Additional Payment'}
-                </p>
-                {payment.note ? (
+                <div className="space-y-1.5">
                   <p>
-                    <span className="font-semibold text-slate-500">Notes: </span>
-                    {payment.note}
+                    <span className="font-semibold text-slate-500">Amount: </span>
+                    <span className="font-display font-extrabold text-emerald-600 tabular-nums">
+                      ₹{formatCurrency(payment.amount)}
+                    </span>
                   </p>
-                ) : null}
-                <p className="text-xs break-all text-slate-400">
-                  <span className="font-semibold text-slate-500">Payment ID: </span>
-                  {id}
-                </p>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-500">Method: </span>
+                    <PaymentMethodBadge
+                      payment={payment}
+                      bankMap={bankMap}
+                      defaultBank={bankAccounts[0]}
+                    />
+                  </div>
+                  <p>
+                    <span className="font-semibold text-slate-500">Type: </span>
+                    {payment.paymentType === 'initial' ? 'Initial Payment' : 'Additional Payment'}
+                  </p>
+                  {payment.note ? (
+                    <p>
+                      <span className="font-semibold text-slate-500">Notes: </span>
+                      {payment.note}
+                    </p>
+                  ) : null}
+                  <p className="text-xs break-all text-slate-400">
+                    <span className="font-semibold text-slate-500">Payment ID: </span>
+                    {id}
+                  </p>
+                </div>
                 <div className="mt-2 flex justify-end">
                   <Button variant="outlineDanger" size="sm" icon={Undo2} onClick={() => onUndo(id)}>
                     Undo This Payment

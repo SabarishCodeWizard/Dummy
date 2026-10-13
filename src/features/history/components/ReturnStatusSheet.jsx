@@ -5,13 +5,48 @@
  * Props: open (bool) · invoiceNo · partyName · returns (HistoryReturn[]) · onClose() ·
  *        onUndo(returnId) · onUndoAll() (callers confirm) · onAddReturn?() ("Add Return" footer button).
  */
-import { Plus, RotateCcw, Undo2 } from 'lucide-react';
-import { useMemo } from 'react';
+import { Banknote, Landmark, Plus, RotateCcw, Undo2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { db } from '@/core/db';
 import { formatCurrency, formatDateIN } from '@/core/format';
 import { Button, EmptyState } from '@/ui';
 import { dateMillis } from '../lib/dates';
 import { sumReturnAmounts } from '../lib/lookups';
 import { HistorySheet } from './HistorySheet';
+
+function ReturnMethodBadge({ item, bankMap, defaultBank }) {
+  const isRefund = item.settlementType === 'refund';
+  const refundMethod = item.refundMethod?.toLowerCase();
+  const bank = item.bankAccountId ? bankMap.get(item.bankAccountId) : null;
+  const activeBank = bank || (refundMethod === 'bank' ? defaultBank : null);
+
+  if (isRefund) {
+    if (refundMethod === 'bank') {
+      const accName = activeBank ? activeBank.accountName : 'Bank Account';
+      const bankDesc = activeBank?.bankName || activeBank?.accountType || '';
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800 ring-1 ring-blue-200">
+          <Landmark className="size-3.5 text-blue-600" />
+          <span>Bank Refund: {accName}</span>
+          {bankDesc && <span className="font-medium text-blue-600/80">({bankDesc})</span>}
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 ring-1 ring-emerald-200">
+        <Banknote className="size-3.5 text-emerald-600" />
+        <span>Cash Refund</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-200">
+      <RotateCcw className="size-3.5 text-amber-600" />
+      <span>Bill Balance Adjustment</span>
+    </span>
+  );
+}
 
 export function ReturnStatusSheet({
   open,
@@ -23,10 +58,25 @@ export function ReturnStatusSheet({
   onUndoAll,
   onAddReturn,
 }) {
+  const [bankAccounts, setBankAccounts] = useState([]);
+
+  useEffect(() => {
+    db.getAllBankAccounts().then(setBankAccounts).catch(console.error);
+  }, []);
+
+  const bankMap = useMemo(() => {
+    const map = new Map();
+    for (const b of bankAccounts) {
+      map.set(b.id, b);
+    }
+    return map;
+  }, [bankAccounts]);
+
   const sorted = useMemo(
     () => [...returns].sort((a, b) => dateMillis(a.returnDate) - dateMillis(b.returnDate)),
     [returns],
   );
+
   return (
     <HistorySheet
       open={open}
@@ -67,27 +117,37 @@ export function ReturnStatusSheet({
                   {formatDateIN(item.returnDate)}
                 </span>
               </div>
-              <p>
-                <span className="font-semibold text-slate-500">Product: </span>
-                {item.description}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-500">Quantity: </span>
-                {item.qty}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-500">Rate: </span>₹{formatCurrency(item.rate)}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-500">Amount: </span>
-                <span className="font-display font-extrabold text-red-600 tabular-nums">
-                  ₹{formatCurrency(item.returnAmount)}
-                </span>
-              </p>
-              <p>
-                <span className="font-semibold text-slate-500">Reason: </span>
-                {item.reason || 'N/A'}
-              </p>
+              <div className="space-y-1.5">
+                <p>
+                  <span className="font-semibold text-slate-500">Product: </span>
+                  {item.description}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-500">Quantity: </span>
+                  {item.qty}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-500">Rate: </span>₹{formatCurrency(item.rate)}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-500">Amount: </span>
+                  <span className="font-display font-extrabold text-red-600 tabular-nums">
+                    ₹{formatCurrency(item.returnAmount)}
+                  </span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-slate-500">Method: </span>
+                  <ReturnMethodBadge
+                    item={item}
+                    bankMap={bankMap}
+                    defaultBank={bankAccounts[0]}
+                  />
+                </div>
+                <p>
+                  <span className="font-semibold text-slate-500">Reason: </span>
+                  {item.reason || 'N/A'}
+                </p>
+              </div>
               <div className="mt-2 flex justify-end">
                 <Button variant="danger" size="sm" icon={Undo2} onClick={() => onUndo(item.id)}>
                   Undo This Return
