@@ -33,7 +33,7 @@ const getDoc = async (...args) => {
 
 const getDocs = async (...args) => {
   const res = await fbGetDocs(...args);
-  recordFirestoreOperation('read', res.size || 1);
+  recordFirestoreOperation('read', res?.size ?? res?.docs?.length ?? 1);
   return res;
 };
 
@@ -129,16 +129,17 @@ export class Database {
   }
   async _all(name) {
     const snap = await getDocs(this.col(name));
-    return snap.docs.map((d) => d.data());
+    return snap?.docs ? snap.docs.map((d) => d.data()) : [];
   }
   async _where(name, field, value) {
     const snap = await getDocs(query(this.col(name), where(field, '==', value)));
-    return snap.docs.map((d) => d.data());
+    return snap?.docs ? snap.docs.map((d) => d.data()) : [];
   }
   async _deleteWhere(name, field, value) {
     const snap = await getDocs(query(this.col(name), where(field, '==', value)));
+    if (!snap?.docs) return 0;
     await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
-    return snap.size;
+    return snap.size || 0;
   }
   // ------------------------------------------------------------------ Sales invoices
   async saveInvoice(invoiceData) {
@@ -287,7 +288,7 @@ export class Database {
   }
   async getCustomer(phone) {
     const snap = await getDoc(this.ref('customers', phone));
-    return snap.exists() ? snap.data() : null;
+    return snap?.exists?.() ? snap.data() : null;
   }
   async getAllCustomers() {
     return this._load('customers', () => this._all('customers'));
@@ -364,7 +365,7 @@ export class Database {
       'purchaseInvoices',
       async () => {
         const snap = await getDocs(query(this.col('purchase_invoices'), orderBy('timestamp', 'desc')));
-        return snap.docs.map((d) => d.data());
+        return snap?.docs ? snap.docs.map((d) => d.data()) : Array.isArray(snap) ? snap : [];
       },
       { onError: 'empty' },
     );
@@ -629,12 +630,14 @@ export class Database {
     const invoiceData = all.find((inv) => String(inv.invoiceNo) === String(invoiceNo));
     if (!invoiceData) return;
     const payments = await this.getPurchasePaymentsByInvoice(invoiceNo);
+    const returns = await this.getPurchaseReturnsByInvoice(invoiceNo);
     const entry = {
       id: `pinvoice_${invoiceNo}_${Date.now()}`,
       type: 'purchase_invoice',
       originalId: invoiceNo,
       data: invoiceData,
       payments,
+      returns,
       deletedAt: serverTimestamp(),
       supplierName: invoiceData.supplierName,
       supplierPhone: invoiceData.supplierPhone || '',
@@ -644,6 +647,7 @@ export class Database {
     await setDoc(this.ref('purchaseRecycleBin', entry.id), entry);
     await deleteDoc(this.ref('purchase_invoices', invoiceNo));
     await this.deletePurchasePaymentsByInvoice(invoiceNo);
+    await this.deletePurchaseReturnsByInvoice(invoiceNo);
     this._cache.purchaseRecycleBin = null;
     this._cache.purchaseInvoices = null;
     await this.cleanupOrphanedData();
@@ -666,9 +670,10 @@ export class Database {
     if (item.type === 'purchase_invoice') {
       await setDoc(this.ref('purchase_invoices', item.originalId), item.data);
       for (const payment of item.payments || []) await this.savePurchasePayment(payment);
+      for (const returnItem of item.returns || []) await this.savePurchaseReturn(returnItem);
     }
     await deleteDoc(docRef);
-    this.invalidate('purchaseRecycleBin', 'purchaseInvoices');
+    this.invalidate('purchaseRecycleBin', 'purchaseInvoices', 'purchasePayments', 'purchaseReturns');
     return item.originalId;
   }
   async permanentDeletePurchaseFromRecycleBin(itemId) {
@@ -789,5 +794,67 @@ export class Database {
     await deleteDoc(this.ref('lenders', phone));
     this._cache.lenders = null;
   }
+  // ------------------------------------------------------------------ Bank & Cash Accounts
+  async saveBankAccount(account) {
+    const id = account.id || uid('acc');
+    await setDoc(this.ref('bank_accounts', id), {
+      ...account,
+      id,
+      updatedAt: serverTimestamp(),
+      createdAt: account.createdAt || new Date().toISOString(),
+    });
+    this._cache.bank_accounts = null;
+    return id;
+  }
+  async getAllBankAccounts() {
+    return this._load('bank_accounts', async () => {
+      const records = await this._all('bank_accounts');
+      return records.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+    });
+  }
+  async getBankAccount(id) {
+    const snap = await getDoc(this.ref('bank_accounts', id));
+    return snap.exists() ? snap.data() : null;
+  }
+  async deleteBankAccount(id) {
+    await deleteDoc(this.ref('bank_accounts', id));
+    this._cache.bank_accounts = null;
+  }
+
+  // ------------------------------------------------------------------ Cash in Hand / Drawer Config
+  async getCashSettings() {
+    const snap = await getDoc(this.ref('settings', 'cash_in_hand'));
+    return snap.exists() ? snap.data() : { openingBalance: 0, updatedAt: null };
+  }
+  async saveCashSettings(data) {
+    await setDoc(this.ref('settings', 'cash_in_hand'), {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  // ------------------------------------------------------------------ Fund Transfers / Account Transactions
+  async saveAccountTransaction(tx) {
+    const id = tx.id || uid('atx');
+    await setDoc(this.ref('account_transactions', id), {
+      ...tx,
+      id,
+      updatedAt: serverTimestamp(),
+      createdAt: tx.createdAt || new Date().toISOString(),
+    });
+    this._cache.account_transactions = null;
+    return id;
+  }
+  async getAllAccountTransactions() {
+    return this._load('account_transactions', async () => {
+      const records = await this._all('account_transactions');
+      return records.sort((a, b) => new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime());
+    });
+  }
+  async deleteAccountTransaction(id) {
+    await deleteDoc(this.ref('account_transactions', id));
+    this._cache.account_transactions = null;
+  }
 }
 export const db = new Database();
+

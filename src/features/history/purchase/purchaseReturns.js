@@ -11,8 +11,17 @@ import { db } from '@/core/db';
 import { validateReturnDraft } from '../lib/returns';
 import { userError } from '../lib/types';
 /** The document written for one submitted return line (db.savePurchaseReturn adds `id` and the server `createdAt`). */
-export function buildPurchaseReturnRecord(invoiceNo, supplierName, line, now) {
-  return { invoiceNo, supplierName, ...line, createdAt: now.toISOString() };
+export function buildPurchaseReturnRecord(invoiceNo, supplierName, line, now, settlement = {}) {
+  const record = {
+    invoiceNo,
+    supplierName,
+    ...line,
+    createdAt: now.toISOString(),
+  };
+  if (settlement.settlementType) record.settlementType = settlement.settlementType;
+  if (settlement.refundMethod) record.refundMethod = settlement.refundMethod;
+  if (settlement.bankAccountId) record.bankAccountId = settlement.bankAccountId;
+  return record;
 }
 /**
  * Validates the draft against the bill (qty left to return, balance), then saves one return document per line and
@@ -33,10 +42,15 @@ export async function savePurchaseReturnDraft(invoiceNo, input, now = new Date()
     products: bill.products ?? [],
     existingReturns,
     currentBalance: purchaseBalanceDue(bill) - currentReturns,
+    settlementType: input.settlementType,
   });
   if (!validation.ok) return validation;
+  const settlement = {};
+  if (input.settlementType) settlement.settlementType = input.settlementType;
+  if (input.refundMethod) settlement.refundMethod = input.refundMethod;
+  if (input.bankAccountId) settlement.bankAccountId = input.bankAccountId;
   for (const line of validation.lines) {
-    await db.savePurchaseReturn(buildPurchaseReturnRecord(invoiceNo, bill.supplierName, line, now));
+    await db.savePurchaseReturn(buildPurchaseReturnRecord(invoiceNo, bill.supplierName, line, now, settlement));
   }
   await updatePurchaseBillWithReturns(invoiceNo);
   return { ok: true, total: validation.total };

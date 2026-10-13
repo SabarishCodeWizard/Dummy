@@ -9,10 +9,11 @@
  *   returns    returns already stored for the invoice (HistoryReturn[])
  *   onSubmit({ returnDate, items }) => Promise<string | null>   string = inline error, null = saved
  */
-import { Plus, Save } from 'lucide-react';
+import { AlertTriangle, Banknote, Building2, Plus, ReceiptText, Save } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { formatCurrency, formatDateIN, todayISO } from '@/core/format';
-import { Button, DateField, cn } from '@/ui';
+import { Button, DateField, SelectField, cn } from '@/ui';
+import { loadLiveAccountBalances } from '@/features/finance/accountsLogic';
 import { newReturnItem, returnSummary, returnedQtyByDescription } from '../lib/returns';
 import { HistorySheet } from './HistorySheet';
 import { ReturnItemEditor } from './ReturnItemEditor';
@@ -53,10 +54,14 @@ export function ReturnSheet({
   onClose,
   onSubmit,
 }) {
+  const isSales = labels?.party?.toLowerCase()?.includes('customer');
   const nextKey = useRef(1);
   const makeItem = useCallback(() => newReturnItem(`item-${nextKey.current++}`), []);
   const [returnDate, setReturnDate] = useState(todayISO());
   const [items, setItems] = useState(() => [makeItem()]);
+  const [settlementType, setSettlementType] = useState('adjustment'); // 'adjustment' | 'cash' | 'bank'
+  const [bankAccountId, setBankAccountId] = useState('');
+  const [liveBalances, setLiveBalances] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -64,10 +69,20 @@ export function ReturnSheet({
     if (open) {
       setReturnDate(todayISO());
       setItems([makeItem()]);
+      setSettlementType('adjustment');
+      setBankAccountId('');
       setError(null);
       setBusy(false);
+      loadLiveAccountBalances()
+        .then((b) => setLiveBalances(b))
+        .catch(console.error);
     }
   }, [open, makeItem]);
+
+  const bankAccounts = liveBalances?.bankAccounts || [];
+  const cashBalance = liveBalances?.cashBalance ?? 0;
+  const selectedBankId = bankAccountId || bankAccounts[0]?.id || '';
+  const selectedBank = bankAccounts.find((b) => b.id === selectedBankId);
 
   const previousReturns = returns.reduce((sum, r) => sum + (Number(r.returnAmount) || 0), 0);
   const currentBalance = balanceDue - previousReturns;
@@ -75,12 +90,21 @@ export function ReturnSheet({
   const returned = returnedQtyByDescription(returns);
   const update = (key, next) => setItems((list) => list.map((i) => (i.key === key ? next : i)));
 
+  const isCashOverdraft = isSales && settlementType === 'cash' && total > cashBalance;
+  const isBankOverdraft = isSales && settlementType === 'bank' && selectedBank && total > selectedBank.currentBalance;
+
   const submit = async () => {
     if (busy) return;
     setError(null);
     setBusy(true);
     try {
-      const failure = await onSubmit({ returnDate, items });
+      const failure = await onSubmit({
+        returnDate,
+        items,
+        settlementType: settlementType === 'adjustment' ? 'adjustment' : 'refund',
+        refundMethod: settlementType === 'adjustment' ? null : settlementType,
+        bankAccountId: settlementType === 'bank' ? selectedBankId : null,
+      });
       if (failure) setError(failure);
     } finally {
       setBusy(false);
@@ -141,6 +165,114 @@ export function ReturnSheet({
         Add Return Item
       </Button>
 
+      {/* Settlement / Refund Option */}
+      <div className="my-4 space-y-2.5 rounded-2xl border border-line bg-slate-50/80 p-3 sm:p-3.5">
+        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+          Settlement / Refund Method
+        </label>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <button
+            type="button"
+            onClick={() => setSettlementType('adjustment')}
+            className={cn(
+              'flex items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition cursor-pointer',
+              settlementType === 'adjustment'
+                ? 'border-gold-500 bg-gold-50/80 text-brand-900 shadow-xs ring-1 ring-gold-400'
+                : 'border-line bg-white text-slate-700 hover:bg-slate-50',
+            )}
+          >
+            <ReceiptText className="size-4 shrink-0 text-brand-700" />
+            <span>Adjust Balance Due</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSettlementType('cash')}
+            className={cn(
+              'flex items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition cursor-pointer',
+              settlementType === 'cash'
+                ? 'border-emerald-500 bg-emerald-50/80 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
+                : 'border-line bg-white text-slate-700 hover:bg-slate-50',
+            )}
+          >
+            <Banknote className="size-4 shrink-0 text-emerald-600" />
+            <span>{isSales ? 'Refund via Cash' : 'Supplier Cash Refund'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSettlementType('bank')}
+            className={cn(
+              'flex items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition cursor-pointer',
+              settlementType === 'bank'
+                ? 'border-brand-500 bg-brand-50/80 text-brand-900 shadow-xs ring-1 ring-brand-400'
+                : 'border-line bg-white text-slate-700 hover:bg-slate-50',
+            )}
+          >
+            <Building2 className="size-4 shrink-0 text-brand-700" />
+            <span>{isSales ? 'Refund via Bank' : 'Supplier Bank Refund'}</span>
+          </button>
+        </div>
+
+        {/* Cash Balance Indicator */}
+        {settlementType === 'cash' && liveBalances && (
+          <div
+            className={cn(
+              'flex items-center justify-between rounded-xl px-3 py-1.5 text-xs transition border',
+              isCashOverdraft
+                ? 'border-amber-300 bg-amber-50 text-amber-900 shadow-xs'
+                : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-900 shadow-xs',
+            )}
+          >
+            <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+              <span className={cn('size-2 rounded-full', isCashOverdraft ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500')} />
+              Current Cash in Drawer
+            </span>
+            <span className="font-display font-extrabold text-[13px] tabular-nums">
+              ₹{formatCurrency(cashBalance)}
+            </span>
+          </div>
+        )}
+
+        {isCashOverdraft && (
+          <div className="flex items-center gap-1.5 px-2 text-[11px] font-semibold text-amber-700">
+            <AlertTriangle className="size-3.5 shrink-0" />
+            <span>
+              Refund amount (₹{formatCurrency(total)}) exceeds available cash drawer balance (₹{formatCurrency(cashBalance)}).
+            </span>
+          </div>
+        )}
+
+        {/* Bank Account Selector */}
+        {settlementType === 'bank' && bankAccounts.length > 0 && (
+          <div className="space-y-1.5 rounded-xl border border-line bg-white p-2.5">
+            <SelectField
+              label={isSales ? 'Refund Customer from Bank Account' : 'Receive Supplier Refund into Bank Account'}
+              value={selectedBankId}
+              onChange={(bId) => setBankAccountId(bId)}
+              options={bankAccounts.map((a) => ({
+                value: a.id,
+                label: `${a.accountName} (${a.bankName || a.accountType}) • Balance: ₹${formatCurrency(a.currentBalance)}`,
+              }))}
+            />
+            {selectedBank && (
+              <div className="flex items-center justify-between rounded-lg bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600 border border-slate-200/60">
+                <span>Account Available:</span>
+                <span className="font-bold font-display text-slate-800 tabular-nums">
+                  ₹{formatCurrency(selectedBank.currentBalance)}
+                </span>
+              </div>
+            )}
+            {isBankOverdraft && (
+              <div className="flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-amber-700">
+                <AlertTriangle className="size-3.5 shrink-0" />
+                <span>
+                  Refund amount (₹{formatCurrency(total)}) exceeds available bank balance (₹{formatCurrency(selectedBank.currentBalance)}).
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="my-4 rounded-2xl border border-gold-200 bg-gold-50/60 p-3 sm:p-3.5">
         <SummaryRow label="Original Balance:" value={rs(balanceDue)} />
         {previousReturns > 0 ? (
@@ -150,7 +282,16 @@ export function ReturnSheet({
           </>
         ) : null}
         <SummaryRow label="This Return Amount:" value={rs(total)} />
-        <SummaryRow label="New Adjusted Balance:" value={rs(newAdjustedBalance)} bold />
+        {settlementType === 'adjustment' ? (
+          <SummaryRow label="New Adjusted Balance:" value={rs(newAdjustedBalance)} bold />
+        ) : (
+          <SummaryRow
+            label={isSales ? 'Direct Refund to Customer:' : 'Direct Refund from Supplier:'}
+            value={rs(total)}
+            tone={isSales ? 'text-amber-700' : 'text-emerald-700'}
+            bold
+          />
+        )}
       </div>
 
       {error ? (

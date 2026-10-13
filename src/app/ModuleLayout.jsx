@@ -69,14 +69,16 @@ export const MODULES = {
   finance: {
     title: 'Finance',
     icon: Landmark,
-    home: '/finance/records',
+    home: '/finance/accounts',
     items: [
+      { to: '/finance/accounts', label: 'Bank & Cash Balances', short: 'Accounts', icon: Landmark },
       { to: '/finance/records', label: 'Ongoing Records', short: 'Ongoing', icon: FilePlus2 },
       { to: '/finance/settled', label: 'Settled Records', short: 'Settled', icon: CheckCircle2 },
       { to: '/finance/lenders', label: 'Lender Details', short: 'Lenders', icon: Users },
     ],
   },
 };
+
 
 function useLogout() {
   const { logout } = useAuth();
@@ -277,13 +279,15 @@ function BottomTabs({ module }) {
                 <>
                   <span
                     className={cn(
-                      'rounded-full px-4 py-1 transition',
+                      'rounded-full px-3 py-1 sm:px-4 transition',
                       isActive && 'bg-gold-sheen text-brand-900 shadow-gold',
                     )}
                   >
-                    <Icon className="size-5" aria-hidden />
+                    <Icon className="size-4.5 sm:size-5" aria-hidden />
                   </span>
-                  {short}
+                  <span className="truncate max-w-[75px] sm:max-w-none text-center leading-tight">
+                    {short}
+                  </span>
                 </>
               )}
             </NavLink>

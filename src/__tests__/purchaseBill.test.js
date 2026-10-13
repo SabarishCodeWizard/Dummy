@@ -1,3 +1,4 @@
+import { COMPANY } from '@/core/branding';
 import { db } from '@/core/db';
 import {
   buildAcknowledgementMessage,
@@ -92,10 +93,10 @@ describe('savePurchaseBillWithPayments', () => {
     expect(suppliers[0]).toMatchObject({ phone: '9000000001', name: 'ABC Mills', address: 'Coimbatore' });
   });
 });
-test('acknowledgement message', () => {
-  const msg = buildAcknowledgementMessage(form());
+test('acknowledgement message', async () => {
+  const msg = await buildAcknowledgementMessage(form());
   expect(msg).toContain('Supplier: ABC Mills');
   expect(msg).toContain('1. Yarn 30s - Qty: 5 - Amount: ₹1000.00');
   expect(msg).toContain('Total Amount: ₹1050.00');
-  expect(msg).toContain('Brightlight Solutions has received the products mentioned above.');
+  expect(msg).toContain(`${COMPANY.displayName} has received the products mentioned above.`);
 });

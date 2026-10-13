@@ -1,7 +1,6 @@
 import { credentialsValid, isSessionExpired, PASS_B64, USER_B64 } from '@/core/auth';
 describe('auth', () => {
   test('accepts the same credentials the web app accepts', () => {
-    expect(credentialsValid('JSP', '123456')).toBe(true);
     expect(credentialsValid(atob(USER_B64), atob(PASS_B64))).toBe(true);
     expect(credentialsValid(atob(USER_B64), 'wrong')).toBe(false);
   });

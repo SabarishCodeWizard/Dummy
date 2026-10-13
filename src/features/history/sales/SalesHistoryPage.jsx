@@ -116,6 +116,7 @@ export default function SalesHistoryPage() {
           open
           invoiceNo={sheet.invoiceNo}
           balanceDue={sheet.balanceDue}
+          mode="sales"
           onClose={h.closeSheet}
           onSubmit={(submission) => h.submitPayment(sheet.invoiceNo, submission)}
         />

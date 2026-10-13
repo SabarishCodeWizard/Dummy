@@ -45,10 +45,11 @@ describe('buildExpense', () => {
       date: '2026-10-03',
       amount: 125.5,
       reason: 'Tea',
+      paymentSource: 'cash',
       updatedAt: '2026-10-03T08:15:30.123Z',
     });
     // exactly the fields (and order) the web page wrote
-    expect(Object.keys(doc)).toEqual(['id', 'date', 'amount', 'reason', 'updatedAt']);
+    expect(Object.keys(doc)).toEqual(['id', 'date', 'amount', 'reason', 'paymentSource', 'updatedAt']);
   });
   test('editing keeps the existing id', () => {
     expect(buildExpense(form({ id: '1717171717171' }), now).id).toBe('1717171717171');
@@ -56,12 +57,13 @@ describe('buildExpense', () => {
 });
 describe('form helpers', () => {
   test('empty form defaults to the given day; editing loads the stored values as text', () => {
-    expect(emptyExpenseForm('2026-10-03')).toEqual({ id: '', date: '2026-10-03', amount: '', reason: '' });
+    expect(emptyExpenseForm('2026-10-03')).toEqual({ id: '', date: '2026-10-03', amount: '', reason: '', paymentSource: 'cash' });
     expect(expenseToForm(e('9', '2026-10-01', 12.5, 'Rent'))).toEqual({
       id: '9',
       date: '2026-10-01',
       amount: '12.5',
       reason: 'Rent',
+      paymentSource: 'cash',
     });
   });
 });

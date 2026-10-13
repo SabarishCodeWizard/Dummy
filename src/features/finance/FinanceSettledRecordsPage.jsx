@@ -1,5 +1,5 @@
-import { Landmark, Sigma, Trash2, Edit, CreditCard, History, Phone, CheckCircle2, CheckCheck } from 'lucide-react';
-import { useState } from 'react';
+import { Landmark, Sigma, Trash2, Edit, CreditCard, History, Phone, CheckCircle2, CheckCheck, Banknote, Building2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 
 import { db } from '@/core/db';
@@ -15,13 +15,16 @@ import { usePagedRows } from '../overview/components/paging';
 import { calculateFinanceStats, validateFinanceForm } from './financeLogic';
 import FinanceFormModal from './FinanceFormModal';
 import FinancePaymentHistoryModal from './FinancePaymentHistoryModal';
+import FinanceNavTabs from './FinanceNavTabs';
 
 const rs = (n) => `Rs. ${formatCurrency(n)}`;
+
 
 export default function FinanceSettledRecordsPage() {
   const { toast, confirm } = useFeedback();
   const navigate = useNavigate();
   const [records, setRecords] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [calcDate, setCalcDate] = useState('');
   const [form, setForm] = useState(null);
@@ -30,13 +33,26 @@ export default function FinanceSettledRecordsPage() {
 
   const { loading, error, reload } = useFocusLoad(async () => {
     try {
-      setRecords(await db.getAllFinanceRecords());
+      const [recs, banks] = await Promise.all([
+        db.getAllFinanceRecords(),
+        db.getAllBankAccounts().catch(() => []),
+      ]);
+      setRecords(recs);
+      setBankAccounts(banks || []);
     } catch (e) {
       console.error('Error loading finance records:', e);
       toast('Error', 'Failed to load finance records', 'error');
       throw e;
     }
   });
+
+  const bankMap = useMemo(() => {
+    const map = {};
+    (bankAccounts || []).forEach((b) => {
+      map[b.id] = b;
+    });
+    return map;
+  }, [bankAccounts]);
 
   const ongoingCount = records.filter(r => !calculateFinanceStats(r, calcDate || undefined).isSettled).length;
   const settledAll = records.filter(r => calculateFinanceStats(r, calcDate || undefined).isSettled);
@@ -103,15 +119,15 @@ export default function FinanceSettledRecordsPage() {
   }, { count: 0, principal: 0, interestPaid: 0, totalPaid: 0 });
 
   const columns = [
-    { key: 'lender', header: 'Lender', className: 'whitespace-nowrap', value: (e) => e.lenderName },
-    { key: 'phone', header: 'Phone', className: 'whitespace-nowrap', value: (e) => e.phone },
-    { key: 'start', header: 'Start Date', className: 'whitespace-nowrap', value: (e) => formatDateShort(e.startDate) },
-    { key: 'end', header: 'End Date', className: 'whitespace-nowrap', value: (e) => e.endDate ? formatDateShort(e.endDate) : 'Ongoing' },
+    { key: 'lender', header: 'Lender', className: 'whitespace-nowrap font-bold text-slate-900', value: (e) => e.lenderName },
+    { key: 'phone', header: 'Phone', className: 'whitespace-nowrap text-slate-600 font-mono text-xs', value: (e) => e.phone },
+    { key: 'start', header: 'Start Date', className: 'whitespace-nowrap text-slate-600', value: (e) => formatDateShort(e.startDate) },
+    { key: 'end', header: 'End Date', className: 'whitespace-nowrap text-slate-600', value: (e) => e.endDate ? formatDateShort(e.endDate) : 'Ongoing' },
     { 
       key: 'totalMonths', 
       header: 'Total Months', 
       align: 'center', 
-      className: 'whitespace-nowrap font-medium text-slate-700 tabular-nums', 
+      className: 'whitespace-nowrap font-semibold text-slate-800 tabular-nums', 
       value: (e) => {
         const stats = calculateFinanceStats(e, calcDate || undefined);
         const m = e.endDate ? stats.totalMonths : stats.monthsElapsed;
@@ -119,13 +135,36 @@ export default function FinanceSettledRecordsPage() {
         return `${m} ${m === 1 ? 'Month' : 'Months'}`;
       } 
     },
-    { key: 'rate', header: 'Rate/Mo', className: 'whitespace-nowrap', value: (e) => `${e.rate}%` },
+    { key: 'rate', header: 'Rate/Mo', className: 'whitespace-nowrap font-bold text-amber-800 tabular-nums', value: (e) => `${e.rate}%` },
     { 
       key: 'principal', 
       header: 'Principal Settled', 
       align: 'right', 
-      className: 'font-display font-bold text-brand-800 tabular-nums whitespace-nowrap', 
+      className: 'font-display font-bold text-slate-800 tabular-nums whitespace-nowrap', 
       value: (e) => rs(toNum(e.principal)) 
+    },
+    {
+      key: 'receiveLoanIn',
+      header: 'Receive Loan In',
+      className: 'whitespace-nowrap',
+      render: (e) => {
+        const isCash = !e.depositAccount || e.depositAccount === 'cash';
+        const bank = !isCash ? bankMap[e.depositAccount] : null;
+        return isCash ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+            <Banknote className="size-3.5" />
+            Cash in Hand
+          </span>
+        ) : (
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200"
+            title={bank ? `${bank.accountName} (${bank.bankName || ''})` : 'Bank Account'}
+          >
+            <Building2 className="size-3.5" />
+            {bank ? bank.accountName : 'Bank Account'}
+          </span>
+        );
+      },
     },
     {
       key: 'paid',
@@ -179,15 +218,15 @@ export default function FinanceSettledRecordsPage() {
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-semibold text-brand-900">{e.lenderName}</div>
-                    <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><Phone className="size-3"/>{e.phone}</div>
+                    <div className="font-bold text-slate-900">{e.lenderName}</div>
+                    <div className="text-xs text-slate-600 font-mono flex items-center gap-1 mt-0.5"><Phone className="size-3 text-slate-400"/>{e.phone}</div>
                     <div className="text-[11px] font-medium text-slate-600 mt-1 space-y-0.5">
-                      <div>Start: <span className="font-semibold text-slate-700">{formatDateShort(e.startDate)}</span></div>
+                      <div>Start: <span className="font-semibold text-slate-800">{formatDateShort(e.startDate)}</span></div>
                       {e.endDate ? (
-                        <div>End: <span className="font-semibold text-slate-700">{formatDateShort(e.endDate)}</span></div>
+                        <div>End: <span className="font-semibold text-slate-800">{formatDateShort(e.endDate)}</span></div>
                       ) : null}
                       <div>
-                        Total Months: <span className="font-semibold text-slate-700">
+                        Total Months: <span className="font-semibold text-slate-800">
                           {e.endDate ? `${stats.totalMonths || '< 1'} Mo` : `${stats.monthsElapsed || '< 1'} Mo`}
                         </span>
                       </div>
@@ -204,14 +243,28 @@ export default function FinanceSettledRecordsPage() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-2 mt-2 bg-slate-50 p-2.5 rounded-lg border border-line">
+                <div className="grid grid-cols-2 gap-2 mt-2 bg-slate-50/80 p-2.5 rounded-xl border border-line">
                   <div>
                     <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Principal Settled</div>
-                    <div className="font-display font-semibold text-brand-900">{rs(toNum(e.principal))}</div>
+                    <div className="font-display font-bold text-slate-800">{rs(toNum(e.principal))}</div>
                   </div>
                   <div>
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Receive Loan In</div>
+                    <div className="text-xs font-semibold mt-0.5">
+                      {(!e.depositAccount || e.depositAccount === 'cash') ? (
+                        <span className="text-emerald-700 flex items-center gap-1 font-semibold">
+                          <Banknote className="size-3.5" /> Cash in Hand
+                        </span>
+                      ) : (
+                        <span className="text-blue-700 flex items-center gap-1 font-semibold">
+                          <Building2 className="size-3.5" /> {bankMap[e.depositAccount]?.accountName || 'Bank Account'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-span-2 border-t border-slate-200/60 pt-1.5 mt-0.5">
                     <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Total Repaid</div>
-                    <div className="font-display font-extrabold text-blue-700">{rs(stats.totalPaid)}</div>
+                    <div className="font-display font-black text-blue-800 text-base">{rs(stats.totalPaid)}</div>
                   </div>
                 </div>
               </div>
@@ -235,32 +288,11 @@ export default function FinanceSettledRecordsPage() {
       icon={CheckCircle2}
     >
       {/* Top navigation tabs */}
-      <div className="flex items-center gap-2 mb-4 border-b border-line pb-2.5">
-        <button
-          type="button"
-          onClick={() => navigate('/finance/records')}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-brand-900 hover:bg-slate-100 transition-colors"
-        >
-          <Landmark className="size-3.5 text-slate-500" />
-          <span>Ongoing Records</span>
-          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-700 font-mono">
-            {ongoingCount}
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/finance/settled')}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-900 text-white shadow-sm"
-        >
-          <CheckCircle2 className="size-3.5 text-emerald-400" />
-          <span>Settled Records</span>
-          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 text-white font-mono">
-            {settledAll.length}
-          </span>
-        </button>
-      </div>
+      <FinanceNavTabs />
 
       <KpiRow cols={4}>
+
+
         <InkStat icon={CheckCheck} label="Settled Loans" value={totals.count} />
         <InkStat icon={Landmark} label="Total Principal" value={rs(totals.principal)} tint="brand" />
         <InkStat icon={Sigma} label="Interest Repaid" value={rs(totals.interestPaid)} tint="amber" />

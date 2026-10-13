@@ -20,6 +20,7 @@ export function ProductDescriptionInput({
   value,
   onChange,
   shortcuts,
+  stockMap,
   readOnly,
   label,
   placeholder = 'Type product name or shortcut',
@@ -38,6 +39,11 @@ export function ProductDescriptionInput({
   const unknown = !focused && !!shortcuts && value.trim().length > 0 && !isKnown;
   const active = Math.min(highlight, suggestions.length - 1);
 
+  const matchedStock =
+    stockMap && value && typeof value === 'string' && value.trim()
+      ? stockMap.get(value.trim()) || stockMap.get(value.trim().toLowerCase()) || null
+      : null;
+
   const pick = (s) => {
     onChange(s.fullDescription);
     setDismissed(true);
@@ -45,7 +51,7 @@ export function ProductDescriptionInput({
 
   const handleBlur = () => {
     setFocused(false);
-    if (!value || !value.trim() || !shortcuts) return;
+    if (!value || typeof value !== 'string' || !value.trim() || !shortcuts) return;
     const trimmed = value.trim().toLowerCase();
     // 1. If it matches a shortcut key (e.g. user typed "LJ"), resolve to the official catalogue description
     const byKey = shortcuts.find((s) => (s.shortcutKey || '').trim().toLowerCase() === trimmed);
@@ -71,7 +77,7 @@ export function ProductDescriptionInput({
       if (open && suggestions[active]) {
         e.preventDefault();
         pick(suggestions[active]);
-      } else if (shortcuts && value.trim()) {
+      } else if (shortcuts && value && typeof value === 'string' && value.trim()) {
         const trimmed = value.trim().toLowerCase();
         const byKey = shortcuts.find((s) => (s.shortcutKey || '').trim().toLowerCase() === trimmed);
         if (byKey) {
@@ -105,7 +111,7 @@ export function ProductDescriptionInput({
         autoCapitalize="none"
         spellCheck={false}
         placeholder={placeholder}
-        value={value}
+        value={value || ''}
         readOnly={readOnly}
         onChange={(e) => {
           setDismissed(false);
@@ -154,7 +160,26 @@ export function ProductDescriptionInput({
               <strong className="shrink-0 rounded-md bg-gold-100 px-1.5 py-0.5 text-xs font-bold text-gold-800 ring-1 ring-gold-200">
                 {s.shortcutKey}
               </strong>
-              <span className="min-w-0 truncate">{s.fullDescription}</span>
+              <span className="min-w-0 flex-1 truncate">{s.fullDescription}</span>
+              {stockMap ? (() => {
+                const stockInfo = stockMap.get(s.fullDescription?.trim()) || stockMap.get(s.fullDescription?.trim().toLowerCase());
+                if (!stockInfo || typeof stockInfo.available !== 'number') return null;
+                const qty = stockInfo.available;
+                return (
+                  <span
+                    className={cn(
+                      'ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                      qty > 0
+                        ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'
+                        : qty === 0
+                          ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-200'
+                          : 'bg-red-100 text-red-800 ring-1 ring-red-200',
+                    )}
+                  >
+                    Stock: {qty}
+                  </span>
+                );
+              })() : null}
             </li>
           ))}
         </ul>
@@ -166,9 +191,23 @@ export function ProductDescriptionInput({
         </p>
       ) : null}
       {isKnown ? (
-        <p className="mt-1 text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-          ✓ Selected from catalogue
-        </p>
+        <div className="mt-1 flex items-center justify-between gap-1 text-[11px] font-semibold">
+          <span className="flex items-center gap-1 text-emerald-600">✓ In catalogue</span>
+          {matchedStock != null && typeof matchedStock?.available === 'number' && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-bold tabular-nums ring-1',
+                matchedStock.available > 0
+                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                  : matchedStock.available === 0
+                    ? 'bg-amber-50 text-amber-700 ring-amber-200'
+                    : 'bg-red-50 text-red-700 ring-red-200',
+              )}
+            >
+              📦 In Stock: {matchedStock.available}
+            </span>
+          )}
+        </div>
       ) : null}
     </div>
   );

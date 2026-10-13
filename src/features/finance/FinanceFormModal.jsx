@@ -3,17 +3,20 @@ import { useEffect, useState } from 'react';
 import { db } from '@/core/db';
 import { PartyNotFoundHint, PartyPicker } from '@/components/bill';
 import { differenceInMonths, differenceInDays } from 'date-fns';
-import { Button, Grid, Modal, NumberField, DateField, TextArea } from '@/ui';
+import { Button, Grid, Modal, NumberField, DateField, TextArea, SelectField } from '@/ui';
 
 const FORM_ID = 'finance-record-form';
 
 export default function FinanceFormModal({ form, onChange, saving, onClose, onSave }) {
   const editing = !!form?.id;
   const [lenders, setLenders] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
 
   useEffect(() => {
     db.getAllLenders().then(setLenders).catch(console.error);
+    db.getAllBankAccounts().then(setBankAccounts).catch(console.error);
   }, []);
+
 
   const handlePhoneChange = (v) => {
     onChange({ ...form, phone: v });
@@ -133,6 +136,18 @@ export default function FinanceFormModal({ form, onChange, saving, onClose, onSa
                 value={form.endDate}
                 onChange={(v) => onChange({ ...form, endDate: v })}
               />
+              <SelectField
+                label="Receive Loan In (Account / Cash)"
+                value={form.depositAccount || 'cash'}
+                onChange={(v) => onChange({ ...form, depositAccount: v })}
+                options={[
+                  { value: 'cash', label: 'Cash in Hand (Physical Cash)' },
+                  ...bankAccounts.map((a) => ({
+                    value: a.id,
+                    label: `${a.accountName} (${a.bankName || a.accountType})`,
+                  })),
+                ]}
+              />
               <TextArea
                 label="Notes"
                 placeholder="Any additional terms or notes..."
@@ -142,6 +157,7 @@ export default function FinanceFormModal({ form, onChange, saving, onClose, onSa
                 rows={2}
               />
             </Grid>
+
           </div>
         </form>
       ) : null}

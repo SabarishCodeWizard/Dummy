@@ -12,6 +12,8 @@ import {
   purchaseFormTotals,
   savePurchaseBillWithPayments,
 } from '@/core/services/purchaseBill';
+import { formatCurrency } from '@/core/format';
+import { loadLiveAccountBalances } from '@/features/finance/accountsLogic';
 import { shareAcknowledgement, validateAcknowledgement } from '../acknowledgement';
 import { checkPurchaseBeforeSave, lookupSupplier, previousBalanceFor } from '../purchaseCreate';
 /** State + actions of the Purchase Bill (create) screen — purchase.js. */
@@ -131,6 +133,44 @@ export function usePurchaseBillForm() {
       });
       if (!ok) return;
     }
+
+    // Pre-purchase fund balance verification
+    try {
+      const balances = await loadLiveAccountBalances();
+      const cashAmt = parseFloat(form.cash) || 0;
+      const upiAmt = parseFloat(form.upi) || 0;
+      const accAmt = parseFloat(form.account) || 0;
+      const bankAmt = upiAmt + accAmt;
+
+      if (cashAmt > 0 && cashAmt > balances.cashBalance) {
+        const ok = await confirm({
+          title: 'Insufficient Cash in Hand',
+          message: `Paying ₹${formatCurrency(cashAmt)} in Cash exceeds available cash balance (₹${formatCurrency(balances.cashBalance)}). This will make your physical cash balance negative.\n\nDo you want to proceed with an overdraft, or cancel and adjust the payment?`,
+          tone: 'warning',
+          confirmText: 'Proceed Anyway',
+          cancelText: 'Cancel & Adjust',
+        });
+        if (!ok) return;
+      }
+
+      if (bankAmt > 0) {
+        const targetId = form.bankAccountId || balances.bankAccounts[0]?.id;
+        const targetBank = balances.bankAccounts.find((b) => b.id === targetId);
+        if (targetBank && bankAmt > targetBank.currentBalance) {
+          const ok = await confirm({
+            title: `Insufficient Balance in ${targetBank.accountName}`,
+            message: `Paying ₹${formatCurrency(bankAmt)} exceeds the available balance in ${targetBank.accountName} (₹${formatCurrency(targetBank.currentBalance)}).\n\nDo you want to proceed with account overdraft?`,
+            tone: 'warning',
+            confirmText: 'Proceed Anyway',
+            cancelText: 'Cancel & Adjust',
+          });
+          if (!ok) return;
+        }
+      }
+    } catch (err) {
+      console.error('Error verifying fund balances:', err);
+    }
+
     setSaving(true);
     try {
       await loading.run(

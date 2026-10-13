@@ -7,8 +7,17 @@ import { db } from '@/core/db';
 import { validateReturnDraft } from '../lib/returns';
 import { userError } from '../lib/types';
 /** The documents written for one submitted return line (db.saveReturn adds `id` and the server `createdAt`). */
-export function buildReturnRecord(invoiceNo, customerName, line, now) {
-  return { invoiceNo, customerName, ...line, createdAt: now.toISOString() };
+export function buildReturnRecord(invoiceNo, customerName, line, now, settlement = {}) {
+  const record = {
+    invoiceNo,
+    customerName,
+    ...line,
+    createdAt: now.toISOString(),
+  };
+  if (settlement.settlementType) record.settlementType = settlement.settlementType;
+  if (settlement.refundMethod) record.refundMethod = settlement.refundMethod;
+  if (settlement.bankAccountId) record.bankAccountId = settlement.bankAccountId;
+  return record;
 }
 /**
  * Validates the draft against the invoice (qty left to return, balance), then saves one return document per line,
@@ -26,10 +35,15 @@ export async function saveSalesReturn(invoiceNo, input, now = new Date()) {
     products: invoice.products ?? [],
     existingReturns,
     currentBalance: invoice.balanceDue - currentReturns,
+    settlementType: input.settlementType,
   });
   if (!validation.ok) return validation;
+  const settlement = {};
+  if (input.settlementType) settlement.settlementType = input.settlementType;
+  if (input.refundMethod) settlement.refundMethod = input.refundMethod;
+  if (input.bankAccountId) settlement.bankAccountId = input.bankAccountId;
   for (const line of validation.lines) {
-    await db.saveReturn(buildReturnRecord(invoiceNo, invoice.customerName, line, now));
+    await db.saveReturn(buildReturnRecord(invoiceNo, invoice.customerName, line, now, settlement));
   }
   await updateInvoiceWithReturns(invoiceNo);
   await updateSubsequentInvoices(invoice.customerName, invoiceNo);

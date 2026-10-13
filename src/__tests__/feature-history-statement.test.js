@@ -244,12 +244,12 @@ describe('statement HTML', () => {
     expect(html).toContain('-Rs. 200.00');
     expect(html).toContain('Product Returns');
     expect(html).toContain('This is a computer-generated statement. No signature is required.');
-    expect(html).toContain('For any queries, please contact: +91 78450 81278');
+    expect(html).toContain('For any queries, please contact: 90872 93268, 9092779599');
     expect(html).toContain('Generated on: 4/10/2026, 4:05:09 pm');
-    expect(html).toContain('Powered by Brightlight Solutions');
+    expect(html).toContain('Software created by Sabarish R.');
     expect(html).not.toContain('<img');
   });
-  test('combined: the logo is used for header and watermark when given; return/payment sections only when present', () => {
+  test('combined: the logo is used for header when given; return/payment sections only when present', () => {
     const only = buildCombinedStatement('SLN TEX', [toHistoryInvoice(INVOICES[0], [], [], false)]);
     const html = buildCombinedStatementHtml({
       statement: only,
@@ -257,7 +257,7 @@ describe('statement HTML', () => {
       logoSrc: 'data:image/png;base64,AAA',
       now: NOW,
     });
-    expect(html.match(/data:image\/png;base64,AAA/g)).toHaveLength(2);
+    expect(html.match(/data:image\/png;base64,AAA/g)).toHaveLength(1);
     expect(html).not.toContain('RETURN INFORMATION');
     expect(html).not.toContain('PAYMENT HISTORY');
   });
@@ -341,16 +341,16 @@ describe('statement HTML', () => {
     expect(html).toContain('PAYMENT HISTORY');
   });
   test('file names', () => {
-    expect(combinedStatementFileName('SLN Tex & Co.', NOW)).toBe('Statement_SLN_Tex___Co__2026-10-04.pdf');
-    expect(easyStatementFileName('sln', NOW)).toBe('Statement_Easy_sln_2026-10-04.pdf');
-    expect(invoiceStatementFileName('002', 'SLN TEX', NOW)).toBe('Statement_002_SLN TEX_2026-10-04.pdf');
-    expect(invoiceStatementFileName('002', 'A/B', NOW)).toBe('Statement_002_A_B_2026-10-04.pdf');
+    expect(combinedStatementFileName('SLN Tex & Co.', NOW)).toBe('SS_SLN_Tex___Co__2026-10-04.pdf');
+    expect(easyStatementFileName('sln', NOW)).toBe('SS_Easy_sln_2026-10-04.pdf');
+    expect(invoiceStatementFileName('002', 'SLN TEX', NOW)).toBe('SS_002_SLN TEX_2026-10-04.pdf');
+    expect(invoiceStatementFileName('002', 'A/B', NOW)).toBe('SS_002_A_B_2026-10-04.pdf');
   });
 });
 describe('WhatsApp text of the combined statement', () => {
   const message = buildCombinedStatementMessage(statement(), SALES_LABELS);
   test('header, customer block and invoices (newest first) with their figures', () => {
-    expect(message).toContain('*BRIGHTLIGHT SOLUTIONS - ACCOUNT STATEMENT*');
+    expect(message).toContain('*SANTHAMANI TEXTILES - ACCOUNT STATEMENT*');
     expect(message).toContain('*CUSTOMER DETAILS*');
     expect(message).toContain('👤 Customer: sln');
     expect(message).toContain('📍 Address: Tirupur');
@@ -381,8 +381,8 @@ describe('WhatsApp text of the combined statement', () => {
     expect(message).toContain('📦 Total Return Amount: ₹100.00');
     expect(message).toContain('• #002 - 3/10/2026 - Due: ₹850.00');
     expect(message).toContain('• #001 - 1/9/2026 - Due: ₹600.00');
-    expect(message).toContain('📍 Tiruppur, Tamil Nadu');
-    expect(message).toContain('📞 *Phone: +91 78450 81278*');
+    expect(message).toContain('📍 Tirupur');
+    expect(message).toContain('📞 *Phone: 90872 93268, 9092779599*');
     expect(
       message.trimEnd().endsWith('_This is an automated statement. Please contact us for any queries._'),
     ).toBe(true);

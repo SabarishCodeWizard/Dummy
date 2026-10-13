@@ -20,7 +20,8 @@ import { PaymentMethodsEditor } from './PaymentMethodsEditor';
 
 const rupees = (n) => `₹${formatCurrency(n)}`;
 
-export function BillTotalsPanel({ title, form, totals, onChange, balanceLabel, note }) {
+export function BillTotalsPanel({ title, form, totals, onChange, balanceLabel, note, mode }) {
+  const effectiveMode = mode || (title === 'Bill Summary' ? 'purchase' : 'sales');
   const due = totals.balanceDue > 0;
   return (
     <section
@@ -76,10 +77,17 @@ export function BillTotalsPanel({ title, form, totals, onChange, balanceLabel, n
             Payment Methods
           </h3>
           <PaymentMethodsEditor
-            values={{ cash: String(form.cash), upi: String(form.upi), account: String(form.account) }}
+            mode={effectiveMode}
+            values={{
+              cash: String(form.cash),
+              upi: String(form.upi),
+              account: String(form.account),
+              bankAccountId: form.bankAccountId,
+            }}
             totalPaid={totals.totalPaid}
             onChange={onChange}
           />
+
           {note ? <p className="mt-2 text-xs text-slate-500">{note}</p> : null}
         </div>
 

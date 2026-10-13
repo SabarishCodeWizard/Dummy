@@ -1,19 +1,26 @@
 import { Save } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '@/core/db';
 import { Button, Modal, NumberField, DateField, SelectField, useFeedback } from '@/ui';
-import { todayISO } from '@/core/format';
+import { formatCurrency, todayISO } from '@/core/format';
 
 const FORM_ID = 'finance-payment-form';
 
 export default function AddFinancePaymentModal({ record, onClose, onSave }) {
   const { toast } = useFeedback();
   const [saving, setSaving] = useState(false);
+  const [bankAccounts, setBankAccounts] = useState([]);
   const [form, setForm] = useState({
     date: todayISO(),
     amount: '',
-    mode: 'Cash'
+    mode: 'Cash',
+    sourceAccount: 'cash',
   });
+
+  useEffect(() => {
+    db.getAllBankAccounts().then(setBankAccounts).catch(console.error);
+  }, []);
+
 
   if (!record) return null;
 
@@ -35,7 +42,8 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
         id: crypto.randomUUID(),
         date: form.date,
         amount: parseFloat(form.amount),
-        mode: form.mode
+        mode: form.mode,
+        sourceAccount: form.sourceAccount || (form.mode === 'Cash' ? 'cash' : bankAccounts[0]?.id || 'cash'),
       };
 
       const updatedRecord = {
@@ -51,6 +59,16 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
       setSaving(false);
     }
   };
+
+  const accountOptions = [
+    { value: 'cash', label: 'Cash in Hand (Physical Cash)' },
+    ...bankAccounts.map((a) => ({
+      value: a.id,
+      label: `${a.accountName} (${a.bankName || a.accountType})`,
+    })),
+  ];
+
+  const dueBalance = record.balance ?? (record.totalAmount - (record.payments?.reduce((s, p) => s + (p.amount || 0), 0) || 0));
 
   return (
     <Modal
@@ -77,6 +95,18 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
       }
     >
       <form id={FORM_ID} className="space-y-4" onSubmit={handleSubmit}>
+        <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/80 p-3">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Lender</span>
+            <div className="font-bold text-slate-900">{record.lenderName}</div>
+          </div>
+          <div className="text-right">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Balance Due</span>
+            <div className="font-display font-extrabold text-rose-700">
+              Rs. {formatCurrency(Math.max(0, dueBalance))}
+            </div>
+          </div>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <DateField 
             label="Payment Date" 
@@ -94,14 +124,21 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
         <SelectField 
           label="Payment Mode" 
           value={form.mode} 
-          onChange={v => setForm({ ...form, mode: v })}
+          onChange={v => setForm({ ...form, mode: v, sourceAccount: v === 'Cash' ? 'cash' : (bankAccounts[0]?.id || 'cash') })}
           options={[
             { label: 'Cash', value: 'Cash' },
             { label: 'UPI', value: 'UPI' },
             { label: 'Account Transfer', value: 'Account' }
           ]}
         />
+        <SelectField 
+          label="Deduct / Pay From" 
+          value={form.sourceAccount} 
+          onChange={v => setForm({ ...form, sourceAccount: v })}
+          options={accountOptions}
+        />
       </form>
     </Modal>
   );
 }
+

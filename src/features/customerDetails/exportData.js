@@ -44,8 +44,8 @@ export function buildJson(customers, columns) {
       totalAmount: customer.totalCurrentBillAmount,
       amountPaid: customer.amountPaid,
       balanceDue: customerBalance(customer),
-      lastInvoiceNo: customer.lastInvoiceNo,
-      lastInvoiceDate: customer.lastInvoiceDate,
+      ...(customer.lastInvoiceNo ? { lastInvoiceNo: customer.lastInvoiceNo } : {}),
+      ...(customer.lastInvoiceDate ? { lastInvoiceDate: customer.lastInvoiceDate } : {}),
     };
     if (columns.includes('phone')) entry.phone = customer.phone;
     if (columns.includes('address')) entry.address = customer.address;

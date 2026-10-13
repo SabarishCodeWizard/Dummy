@@ -17,6 +17,7 @@ export function CalculationSection({ form, totals, onChange }) {
   return (
     <BillTotalsPanel
       title="Calculation"
+      mode="sales"
       balanceLabel="New Balance Due"
       form={form}
       totals={totals}

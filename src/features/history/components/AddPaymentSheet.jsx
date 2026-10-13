@@ -6,17 +6,19 @@
  *   open (bool) · invoiceNo · balanceDue? (number, shows "Current Balance Due") · onClose()
  *   title?                 default `Add Payment - Invoice #<no>`
  *   invalidAmountMessage?  shown when no amount was entered (default: the sales wording)
- *   onSubmit({ cash, upi, account, paymentDate }) => Promise<string | null>
+ *   mode?                  'sales' | 'purchase' (default: 'sales')
+ *   onSubmit({ cash, upi, account, bankAccountId, paymentDate }) => Promise<string | null>
  *                          string = inline error, null = saved (the caller closes the sheet)
  */
-import { Banknote, Check, Landmark, Smartphone } from 'lucide-react';
+import { AlertTriangle, Banknote, Check, Landmark, Smartphone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { formatCurrency, todayISO } from '@/core/format';
-import { Button, DateField, NumberField } from '@/ui';
+import { Button, DateField, NumberField, SelectField } from '@/ui';
+import { loadLiveAccountBalances } from '@/features/finance/accountsLogic';
 import { parsePaymentAmounts, totalOf, validatePaymentInput } from '../lib/payments';
 import { HistorySheet } from './HistorySheet';
 
-const EMPTY = { cash: '0', upi: '0', account: '0' };
+const EMPTY = { cash: '0', upi: '0', account: '0', bankAccountId: '' };
 
 export function AddPaymentSheet({
   open,
@@ -24,11 +26,13 @@ export function AddPaymentSheet({
   balanceDue,
   title,
   invalidAmountMessage,
+  mode = 'sales',
   onClose,
   onSubmit,
 }) {
   const [values, setValues] = useState(EMPTY);
   const [paymentDate, setPaymentDate] = useState(todayISO());
+  const [liveBalances, setLiveBalances] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -38,10 +42,27 @@ export function AddPaymentSheet({
       setPaymentDate(todayISO());
       setError(null);
       setBusy(false);
+      loadLiveAccountBalances()
+        .then((b) => setLiveBalances(b))
+        .catch(console.error);
     }
   }, [open]);
 
+  const bankAccounts = liveBalances?.bankAccounts || [];
+  const cashBalance = liveBalances?.cashBalance ?? 0;
+
   const amounts = parsePaymentAmounts(values);
+  const cashAmount = parseFloat(values.cash) || 0;
+  const upiAmount = parseFloat(values.upi) || 0;
+  const accountAmount = parseFloat(values.account) || 0;
+  const bankAmount = upiAmount + accountAmount;
+
+  const selectedBankId = values.bankAccountId || bankAccounts[0]?.id || '';
+  const selectedBank = bankAccounts.find((b) => b.id === selectedBankId);
+
+  const isCashOverdraft = mode === 'purchase' && cashAmount > cashBalance;
+  const isBankOverdraft = mode === 'purchase' && selectedBank && bankAmount > selectedBank.currentBalance;
+
   const set = (key) => (v) => setValues((cur) => ({ ...cur, [key]: v }));
 
   const submit = async () => {
@@ -54,18 +75,24 @@ export function AddPaymentSheet({
     setError(null);
     setBusy(true);
     try {
-      const failure = await onSubmit({ ...amounts, paymentDate });
+      const finalBankId = selectedBankId || null;
+      const failure = await onSubmit({ ...amounts, bankAccountId: finalBankId, paymentDate });
       if (failure) setError(failure);
     } finally {
       setBusy(false);
     }
   };
 
+  const defaultTitle =
+    mode === 'purchase'
+      ? `Pay Supplier - Invoice #${invoiceNo}`
+      : `Add Payment - Invoice #${invoiceNo}`;
+
   return (
     <HistorySheet
       open={open}
       onClose={onClose}
-      title={title ?? `Add Payment - Invoice #${invoiceNo}`}
+      title={title ?? defaultTitle}
       size="sm"
       actions={
         <>
@@ -79,7 +106,7 @@ export function AddPaymentSheet({
             loading={busy}
             className="flex-1 sm:flex-none"
           >
-            Add Payment
+            {mode === 'purchase' ? 'Pay Supplier' : 'Add Payment'}
           </Button>
         </>
       }
@@ -99,6 +126,7 @@ export function AddPaymentSheet({
             </span>
           </div>
         ) : null}
+
         <div className="grid grid-cols-3 gap-3 rounded-2xl border border-line bg-slate-50/70 p-3">
           <NumberField
             label={
@@ -140,6 +168,75 @@ export function AddPaymentSheet({
             </span>
           </div>
         </div>
+
+        {/* Live Cash Drawer indicator */}
+        {liveBalances && (
+          <div
+            className={`flex items-center justify-between rounded-xl px-3 py-1.5 text-xs transition border ${
+              isCashOverdraft
+                ? 'border-amber-300 bg-amber-50 text-amber-900 shadow-xs'
+                : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-900 shadow-xs'
+            }`}
+          >
+            <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+              <span
+                className={`size-2 rounded-full ${
+                  isCashOverdraft ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+                }`}
+              />
+              {mode === 'purchase' ? 'Available Cash in Drawer' : 'Current Cash in Drawer'}
+            </span>
+            <span className="font-display font-extrabold text-[13px] tabular-nums">
+              ₹{formatCurrency(cashBalance)}
+            </span>
+          </div>
+        )}
+
+        {isCashOverdraft && (
+          <div className="flex items-center gap-1.5 px-2 text-[11px] font-semibold text-amber-700">
+            <AlertTriangle className="size-3.5 shrink-0" />
+            <span>
+              Cash payment exceeds drawer balance by ₹{formatCurrency(cashAmount - cashBalance)}.
+            </span>
+          </div>
+        )}
+
+        {/* Bank Account Selection for UPI / Account */}
+        {(upiAmount > 0 || accountAmount > 0) && bankAccounts.length > 0 && (
+          <div className="space-y-1.5 rounded-xl border border-line bg-brand-50/50 p-2.5">
+            <SelectField
+              label={
+                mode === 'purchase'
+                  ? 'Deduct payment from Bank Account'
+                  : 'Deposit received payment to Bank Account'
+              }
+              value={selectedBankId}
+              onChange={(bankAccountId) => setValues((cur) => ({ ...cur, bankAccountId }))}
+              options={bankAccounts.map((a) => ({
+                value: a.id,
+                label: `${a.accountName} (${a.bankName || a.accountType}) • Balance: ₹${formatCurrency(a.currentBalance)}`,
+              }))}
+            />
+            {selectedBank && (
+              <div className="flex items-center justify-between rounded-lg bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-600 border border-slate-200/60">
+                <span>Account Available:</span>
+                <span className="font-bold font-display text-slate-800 tabular-nums">
+                  ₹{formatCurrency(selectedBank.currentBalance)}
+                </span>
+              </div>
+            )}
+            {isBankOverdraft && (
+              <div className="flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-amber-700">
+                <AlertTriangle className="size-3.5 shrink-0" />
+                <span>
+                  Bank payment (₹{formatCurrency(bankAmount)}) exceeds available balance (₹
+                  {formatCurrency(selectedBank.currentBalance)}).
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         <DateField label="Payment Date" value={paymentDate} onChange={setPaymentDate} />
         {error ? (
           <p

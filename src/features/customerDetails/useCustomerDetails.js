@@ -12,7 +12,7 @@ export function useCustomerDetails() {
   const { toast } = useFeedback();
   const [customers, setCustomers] = useState([]);
   const { loading, refreshing, error, refresh } = useFocusLoad(async () => {
-    setCustomers(await loadCustomerSummaries());
+    setCustomers(await loadCustomerSummaries(true));
   });
   const [term, setTerm] = useState('');
   const visible = useMemo(() => filterCustomers(customers, term), [customers, term]);

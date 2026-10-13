@@ -61,7 +61,7 @@ describe('reminder text', () => {
   test('standard template', () => {
     expect(generateReminderMessage(customer(), 'standard')).toBe(
       [
-        'BRIGHTLIGHT SOLUTIONS - Payment Reminder',
+        'SANTHAMANI TEXTILES - Payment Reminder',
         '',
         'Dear Ravi,',
         '',
@@ -76,7 +76,7 @@ describe('reminder text', () => {
   test('urgent template', () => {
     expect(generateReminderMessage(customer(), 'urgent')).toBe(
       [
-        'BRIGHTLIGHT SOLUTIONS - URGENT: Payment Required',
+        'SANTHAMANI TEXTILES - URGENT: Payment Required',
         '',
         'Dear Ravi,',
         '',
@@ -91,7 +91,7 @@ describe('reminder text', () => {
   test('friendly template', () => {
     expect(generateReminderMessage(customer(), 'friendly')).toBe(
       [
-        'BRIGHTLIGHT SOLUTIONS - Friendly Payment Follow-up',
+        'SANTHAMANI TEXTILES - Friendly Payment Follow-up',
         '',
         'Hi Ravi,',
         '',
@@ -100,7 +100,7 @@ describe('reminder text', () => {
         'Please let us know if you have any questions or need more time.',
         '',
         'Best regards,',
-        'BRIGHTLIGHT SOLUTIONS Team',
+        'SANTHAMANI TEXTILES Team',
       ].join('\n'),
     );
   });

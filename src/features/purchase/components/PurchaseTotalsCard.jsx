@@ -18,6 +18,7 @@ export function PurchaseTotalsCard({ form, totals, onChange, additionalPaid }) {
   return (
     <BillTotalsPanel
       title="Bill Summary"
+      mode="purchase"
       balanceLabel="Balance Due"
       form={form}
       totals={totals}

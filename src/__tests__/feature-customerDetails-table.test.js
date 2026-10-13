@@ -43,6 +43,7 @@ describe('buildRowModel (cells shared by the cards and the table)', () => {
   test('owing customer with returns and discount', () => {
     expect(buildRowModel(customer())).toEqual({
       invoices: '2',
+      openingBalance: '₹0.00',
       amount: '₹1,500.00',
       paid: '₹400.00',
       discount: '₹50.00',
@@ -51,6 +52,7 @@ describe('buildRowModel (cells shared by the cards and the table)', () => {
       hasReturns: true,
       canRemind: true,
       tones: {
+        openingBalance: 'neutral',
         amount: 'positive',
         paid: 'positive',
         discount: 'negative',

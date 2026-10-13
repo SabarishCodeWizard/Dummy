@@ -23,6 +23,8 @@ import ShowMore from '../overview/components/ShowMore';
 import FloatingAddButton from '../overview/components/FloatingAddButton';
 import { usePagedRows } from '../overview/components/paging';
 import { updateLenderWithReferences } from './financeLogic';
+import FinanceNavTabs from './FinanceNavTabs';
+
 
 export default function FinanceLendersPage() {
   const { toast, confirm } = useFeedback();
@@ -124,9 +126,9 @@ export default function FinanceLendersPage() {
   };
 
   const columns = [
-    { key: 'name', header: 'Name', value: (e) => e.name, className: 'font-semibold' },
-    { key: 'phone', header: 'Phone', value: (e) => e.phone },
-    { key: 'address', header: 'Address', value: (e) => e.address || '-' },
+    { key: 'name', header: 'Name', value: (e) => e.name, className: 'font-bold text-slate-900' },
+    { key: 'phone', header: 'Phone', value: (e) => e.phone, className: 'text-slate-600 font-mono text-xs' },
+    { key: 'address', header: 'Address', value: (e) => e.address || '-', className: 'text-slate-600' },
     { 
       key: 'actions', 
       header: 'Actions', 
@@ -154,15 +156,15 @@ export default function FinanceLendersPage() {
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="font-semibold text-brand-900">{e.name}</div>
-                  <div className="text-xs text-slate-500">{e.phone}</div>
+                  <div className="font-bold text-slate-900">{e.name}</div>
+                  <div className="text-xs text-slate-600 font-mono flex items-center gap-1 mt-0.5"><Phone className="size-3 text-slate-400"/>{e.phone}</div>
                 </div>
                 <div className="flex gap-1">
                   <IconButton icon={Edit} onClick={() => openEdit(e)} label="Edit" />
                   <IconButton icon={Trash2} onClick={() => void remove(e)} label="Delete" className="text-red-500 hover:text-red-700" />
                 </div>
               </div>
-              {e.address && <div className="text-sm text-slate-600 mt-1">{e.address}</div>}
+              {e.address && <div className="text-xs text-slate-600 mt-1 bg-slate-50/80 p-2 rounded-lg border border-line">{e.address}</div>}
             </div>
           )}
           empty={
@@ -212,7 +214,10 @@ export default function FinanceLendersPage() {
         </>
       }
     >
+      <FinanceNavTabs />
       <FilterBar
+
+
         text={searchTerm}
         onTextChange={setSearchTerm}
         textPlaceholder="Search by Name or Phone..."

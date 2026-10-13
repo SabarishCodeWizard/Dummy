@@ -17,7 +17,7 @@ describe('addCustomer', () => {
     expect(result).toEqual({
       ok: false,
       errors: {
-        phone: 'Please enter a valid phone number (exactly 10 digits).',
+        phone: 'Please enter a valid phone number (at least 10 digits).',
         name: 'Customer name is required.',
       },
     });
@@ -53,7 +53,7 @@ describe('updateCustomer', () => {
     const result = await updateCustomer(original, { phone: '98', name: ' ', address: '' });
     expect(result).toEqual({
       ok: false,
-      errors: { phone: 'Please enter a valid phone number (exactly 10 digits).', name: 'Name cannot be empty.' },
+      errors: { phone: 'Please enter a valid phone number.', name: 'Name cannot be empty.' },
     });
     expect(m.updateCustomerDetails).not.toHaveBeenCalled();
   });

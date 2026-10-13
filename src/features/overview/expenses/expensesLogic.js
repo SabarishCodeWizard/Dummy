@@ -2,10 +2,16 @@
 import { toNum } from '@/core/format';
 export const EXPENSE_INVALID_MESSAGE = 'Please fill all fields with valid data.';
 export function emptyExpenseForm(today) {
-  return { id: '', date: today, amount: '', reason: '' };
+  return { id: '', date: today, amount: '', reason: '', paymentSource: 'cash' };
 }
 export function expenseToForm(expense) {
-  return { id: expense.id, date: expense.date, amount: String(expense.amount), reason: expense.reason };
+  return {
+    id: expense.id,
+    date: expense.date,
+    amount: String(expense.amount),
+    reason: expense.reason,
+    paymentSource: expense.paymentSource || 'cash',
+  };
 }
 /** Date, a positive number and a non-blank reason are required. Returns the message to show, or null when valid. */
 export function validateExpense(form) {
@@ -21,6 +27,7 @@ export function buildExpense(form, now = new Date()) {
     date: form.date,
     amount: parseFloat(form.amount),
     reason: form.reason.trim(),
+    paymentSource: form.paymentSource || 'cash',
     updatedAt: now.toISOString(),
   };
 }

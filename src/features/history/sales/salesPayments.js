@@ -17,7 +17,7 @@ import { userError } from '../lib/types';
 export function applyAdditionalPayment(invoice, amounts) {
   const current = invoice.paymentBreakdown ?? { cash: 0, upi: 0, account: 0 };
   const newAmountPaid = invoice.amountPaid + totalOf(amounts);
-  return {
+  const updated = {
     ...invoice,
     amountPaid: newAmountPaid,
     balanceDue: invoice.grandTotal - newAmountPaid,
@@ -27,18 +27,28 @@ export function applyAdditionalPayment(invoice, amounts) {
       account: (current.account || 0) + amounts.account,
     },
   };
+  if (amounts.bankAccountId) {
+    updated.bankAccountId = amounts.bankAccountId;
+  }
+  return updated;
 }
 /** One payment document per method with an amount (order cash, upi, account), paymentType 'additional'. */
 export function buildAdditionalPaymentRecords(invoiceNo, amounts, paymentDate) {
   return ['cash', 'upi', 'account']
     .filter((method) => amounts[method] > 0)
-    .map((method) => ({
-      invoiceNo,
-      paymentDate,
-      amount: amounts[method],
-      paymentMethod: method,
-      paymentType: 'additional',
-    }));
+    .map((method) => {
+      const rec = {
+        invoiceNo,
+        paymentDate,
+        amount: amounts[method],
+        paymentMethod: method,
+        paymentType: 'additional',
+      };
+      if (amounts.bankAccountId) {
+        rec.bankAccountId = amounts.bankAccountId;
+      }
+      return rec;
+    });
 }
 /**
  * The invoice after "undo all payments": nothing paid, balance = grandTotal, breakdown zeroed.

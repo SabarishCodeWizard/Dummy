@@ -108,6 +108,35 @@ export function buildInvoiceColumns(labels, actions) {
         </span>
       ),
     },
+    ...(actions
+      ? [
+          {
+            key: 'actions',
+            header: '',
+            align: 'right',
+            render: (i) => (
+              <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                {actions.edit ? (
+                  <IconAction
+                    icon={SquarePen}
+                    label={`Edit invoice ${displayInvoiceNo(labels, i.invoiceNo)}`}
+                    tone="text-slate-600 hover:text-brand-800"
+                    onClick={() => actions.edit(i.invoiceNo)}
+                  />
+                ) : null}
+                {actions.remove ? (
+                  <IconAction
+                    icon={Trash2}
+                    label={`Delete invoice ${displayInvoiceNo(labels, i.invoiceNo)}`}
+                    tone="text-red-500 hover:text-red-700"
+                    onClick={() => actions.remove(i.invoiceNo)}
+                  />
+                ) : null}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 }
 

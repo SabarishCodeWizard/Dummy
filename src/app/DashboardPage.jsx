@@ -47,13 +47,14 @@ const MODULE_CARDS = [
     points: ['Revenue & profit', 'Live stock levels', 'Expense tracking'],
   },
   {
-    to: '/finance/records',
+    to: '/finance/accounts',
     title: 'Finance',
-    text: 'Manage money borrowings and automatic interest tracking.',
+    text: 'Manage money borrowings, bank accounts and cash in hand.',
     icon: Landmark,
-    points: ['Ongoing & settled loans', 'Auto-calculated interest', 'Total payable tracking'],
+    points: ['Bank & Cash balances', 'Loans & borrowings', 'Auto-calculated interest'],
   },
 ];
+
 
 function greeting() {
   const h = new Date().getHours();

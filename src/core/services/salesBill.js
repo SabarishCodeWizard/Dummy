@@ -95,12 +95,14 @@ export function buildSalesInvoice(form) {
     discountAmount: toNum(form.discountAmount),
     grandTotal,
     paymentBreakdown,
+    bankAccountId: form.bankAccountId || null,
     amountPaid: totalPaid,
     balanceDue,
     manualBillImage: form.manualBillImage || null,
     createdAt: new Date().toISOString(),
   };
 }
+
 /** True when a *different* bill already uses this number (saving would silently overwrite it). */
 export async function invoiceNoExists(invoiceNo) {
   const existing = await db.getInvoice(invoiceNo.trim());
@@ -139,16 +141,18 @@ export async function saveSalesBill(form) {
   const paymentDate = todayISO();
   ['cash', 'upi', 'account'].forEach((method) => {
     if (breakdown[method] > 0) {
-      saves.push(
-        db.savePayment({
-          id: `payment_${invoice.invoiceNo}_initial_${method}`,
-          invoiceNo: invoice.invoiceNo,
-          paymentDate,
-          amount: breakdown[method],
-          paymentMethod: method,
-          paymentType: 'initial',
-        }),
-      );
+      const paymentDoc = {
+        id: `payment_${invoice.invoiceNo}_initial_${method}`,
+        invoiceNo: invoice.invoiceNo,
+        paymentDate,
+        amount: breakdown[method],
+        paymentMethod: method,
+        paymentType: 'initial',
+      };
+      if (invoice.bankAccountId) {
+        paymentDoc.bankAccountId = invoice.bankAccountId;
+      }
+      saves.push(db.savePayment(paymentDoc));
     }
   });
   await Promise.all(saves);

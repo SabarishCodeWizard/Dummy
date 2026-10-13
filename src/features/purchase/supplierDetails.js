@@ -80,56 +80,60 @@ export function aggregateSuppliers(bills, returns = [], directorySuppliers = [])
       }
       if (!s.phone && bill.supplierPhone) s.phone = bill.supplierPhone;
       if (!s.address && bill.supplierAddress) s.address = bill.supplierAddress;
-    s.totalBills++;
-    const billSubtotal = bill.subtotal !== undefined 
-      ? toNum(bill.subtotal) 
-      : toNum(bill.grandTotal) - toNum(bill.previousBalance) - toNum(bill.manualPreviousBalance) + toNum(bill.discountAmount || bill.discount);
-    s.totalAmount += billSubtotal;
-    s.totalPaid += toNum(bill.payment?.totalPaid || bill.amountPaid);
-    s.totalDiscount += toNum(bill.discountAmount || bill.discount);
-    s.totalManualAdjustments += toNum(bill.manualPreviousBalance);
-    
-    if (bill.invoiceNo) {
-      s.allInvoiceNumbers.push(cleanInvoiceNo(bill.invoiceNo));
-      const numVal = parseInt(cleanInvoiceNo(bill.invoiceNo), 10);
-      if (s.firstBillNo === undefined || numVal < s.firstBillNo) {
-        s.firstBillNo = numVal;
-        s.firstBillPreviousBalance = toNum(bill.previousBalance);
+      s.totalBills++;
+      s.totalAmount += toNum(bill.grandTotal);
+      s.totalPaid += toNum(bill.payment?.totalPaid || bill.amountPaid);
+      s.totalDiscount += toNum(bill.discount !== undefined ? bill.discount : (bill.discountAmount || 0));
+      s.balanceDue += toNum(bill.payment?.balanceDue || bill.balanceDue);
+      s.totalManualAdjustments += toNum(bill.manualPreviousBalance);
+      
+      if (bill.invoiceNo) {
+        const cleanNo = cleanInvoiceNo(bill.invoiceNo);
+        s.allInvoiceNumbers.push(cleanNo);
+        s.invoiceNos.push(cleanNo);
+        const numVal = parseInt(cleanNo, 10);
+        if (s.firstBillNo === undefined || numVal < s.firstBillNo) {
+          s.firstBillNo = numVal;
+          s.firstBillPreviousBalance = toNum(bill.previousBalance);
+        }
       }
-    }
-    if (bill.invoiceDate) {
-      const dVal = new Date(bill.invoiceDate).getTime();
-      if (!s.lastInvoiceDate || dVal > new Date(s.lastInvoiceDate).getTime()) {
-        s.lastInvoiceDate = bill.invoiceDate;
-        s.latestBalanceDue = toNum(bill.payment?.balanceDue || bill.balanceDue);
+      if (bill.invoiceDate) {
+        const dVal = new Date(bill.invoiceDate).getTime();
+        if (!s.lastInvoiceDate || dVal > new Date(s.lastInvoiceDate).getTime()) {
+          s.lastInvoiceDate = bill.invoiceDate;
+          s.latestBalanceDue = toNum(bill.payment?.balanceDue || bill.balanceDue);
+        }
       }
-    }
-  });
+    });
   }
 
   const suppliers = Array.from(bySupplier.values());
   for (const s of suppliers) {
     s.allInvoiceNumbers.sort((a, b) => parseInt(b) - parseInt(a));
-    s.invoiceNos = s.allInvoiceNumbers;
+    s.invoiceNos.sort((a, b) => parseInt(b) - parseInt(a));
     s.totalReturns = 0;
     for (const invoiceNo of s.allInvoiceNumbers) {
       s.totalReturns += returnedByInvoice.get(String(invoiceNo)) ?? 0;
     }
-    s.balanceDue = s.latestBalanceDue - s.totalReturns;
+    s.balanceDue = Math.max(0, s.balanceDue - s.totalReturns);
   }
   return suppliers.sort((a, b) => a.name.localeCompare(b.name));
 }
 export function supplierStats(suppliers) {
   const sum = (pick) => suppliers.reduce((total, s) => total + pick(s), 0);
-  return {
+  const totalReturns = sum((s) => s.totalReturns || 0);
+  const stats = {
     totalSuppliers: suppliers.length,
     totalBills: sum((s) => s.totalBills),
     totalAmount: sum((s) => s.totalAmount),
     totalPaid: sum((s) => s.totalPaid),
     totalDiscount: sum((s) => s.totalDiscount),
-    totalReturns: sum((s) => s.totalReturns),
     totalBalance: sum((s) => s.balanceDue),
   };
+  if (totalReturns > 0) {
+    stats.totalReturns = totalReturns;
+  }
+  return stats;
 }
 /** doSearch: case-insensitive substring match on name, phone or address. */
 export function filterSuppliers(suppliers, query) {
@@ -155,29 +159,25 @@ const CSV_HEADERS = [
   'Supplier Name',
   'Phone',
   'Address',
-  'Opening Balance',
   'Total Bills',
   'Total Amount',
   'Amount Paid',
   'Discount',
-  'Returns',
   'Balance Due',
   'Invoice Numbers',
 ];
 /** exportCSV */
 export function buildSuppliersCsv(suppliers) {
   const rows = suppliers.map((s) => [
-    s.name,
-    s.phone,
-    s.address,
-    (s.firstBillPreviousBalance + s.totalManualAdjustments).toFixed(2),
-    s.totalBills,
-    s.totalAmount.toFixed(2),
-    s.totalPaid.toFixed(2),
-    s.totalDiscount.toFixed(2),
-    s.totalReturns.toFixed(2),
-    s.balanceDue.toFixed(2),
-    s.allInvoiceNumbers.join('; '),
+    s.name || '',
+    s.phone || '',
+    s.address || '',
+    s.totalBills || 0,
+    (s.totalAmount || 0).toFixed(2),
+    (s.totalPaid || 0).toFixed(2),
+    (s.totalDiscount || 0).toFixed(2),
+    (s.balanceDue || 0).toFixed(2),
+    (s.invoiceNos || s.allInvoiceNumbers || []).join('; '),
   ]);
   return [CSV_HEADERS, ...rows]
     .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))

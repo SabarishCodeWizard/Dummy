@@ -33,6 +33,7 @@ const ShortcutsPage = lazy(() => import('@/features/overview/shortcuts/Shortcuts
 const FinanceRecordsPage = lazy(() => import('@/features/finance/FinanceRecordsPage'));
 const FinanceSettledRecordsPage = lazy(() => import('@/features/finance/FinanceSettledRecordsPage'));
 const FinanceLendersPage = lazy(() => import('@/features/finance/FinanceLendersPage'));
+const BankAccountsPage = lazy(() => import('@/features/finance/BankAccountsPage'));
 
 function RequireAuth() {
   const { signedIn } = useAuth();
@@ -80,7 +81,8 @@ export function AppRoutes() {
             </Route>
 
             <Route path="finance" element={<ModuleLayout module="finance" />}>
-              <Route index element={<Navigate to="records" replace />} />
+              <Route index element={<Navigate to="accounts" replace />} />
+              <Route path="accounts" element={<BankAccountsPage />} />
               <Route path="records" element={<FinanceRecordsPage />} />
               <Route path="settled" element={<FinanceSettledRecordsPage />} />
               <Route path="lenders" element={<FinanceLendersPage />} />

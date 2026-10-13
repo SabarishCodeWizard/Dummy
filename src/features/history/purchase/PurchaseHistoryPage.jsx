@@ -119,6 +119,7 @@ export default function PurchaseHistoryPage() {
           title={`Add Payment - Purchase Invoice #${shownNo(sheet.invoiceNo)}`}
           invalidAmountMessage="Please enter a valid payment amount."
           balanceDue={sheet.balanceDue}
+          mode="purchase"
           onClose={h.closeSheet}
           onSubmit={(submission) => h.submitPayment(sheet.invoiceNo, submission)}
         />

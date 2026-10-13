@@ -38,8 +38,8 @@ export function buildCustomerSummaries(invoices, returns, directoryCustomers = [
         firstInvoiceNo: undefined,
         allInvoiceNumbers: [],
         latestBalanceDue: openingBal,
-        lastInvoiceDate: null,
-        lastInvoiceNo: null,
+        lastInvoiceDate: undefined,
+        lastInvoiceNo: undefined,
       });
     }
   }
@@ -66,8 +66,8 @@ export function buildCustomerSummaries(invoices, returns, directoryCustomers = [
           firstInvoiceNo: undefined,
           allInvoiceNumbers: [],
           latestBalanceDue: 0,
-          lastInvoiceDate: null,
-          lastInvoiceNo: null,
+          lastInvoiceDate: undefined,
+          lastInvoiceNo: undefined,
         };
         byName.set(key, customer);
       }
@@ -76,8 +76,7 @@ export function buildCustomerSummaries(invoices, returns, directoryCustomers = [
       customer.totalInvoices += 1;
       customer.totalCurrentBillAmount += toNum(invoice.subtotal);
       customer.amountPaid += toNum(invoice.amountPaid);
-      // PARITY NOTE: read both `discountAmount` and legacy `discount`
-      customer.totalDiscountAmount += toNum(invoice.discountAmount || invoice.discount);
+      customer.totalDiscountAmount += toNum(invoice.discountAmount);
       customer.totalManualAdjustments += toNum(invoice.manualPreviousBalance);
       
       if (invoice.invoiceNo) {
@@ -120,7 +119,17 @@ export function buildCustomerSummaries(invoices, returns, directoryCustomers = [
  * (see reminder.ts).
  */
 export function customerBalance(customer) {
-  return customer.latestBalanceDue - customer.totalReturns;
+  if (customer.latestBalanceDue !== undefined && (customer.firstInvoicePreviousBalance || customer.totalManualAdjustments)) {
+    return customer.latestBalanceDue - (customer.totalReturns || 0);
+  }
+  return (
+    (customer.totalCurrentBillAmount || 0) +
+    (customer.firstInvoicePreviousBalance || 0) +
+    (customer.totalManualAdjustments || 0) -
+    (customer.amountPaid || 0) -
+    (customer.totalReturns || 0) -
+    (customer.totalDiscountAmount || 0)
+  );
 }
 /** The six stat cards (+ the dynamic "Total Returns" card) computed over whatever list is currently shown. */
 export function computeStats(customers) {

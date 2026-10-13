@@ -67,7 +67,8 @@ export function applyAdditionalPurchasePayment(bill, amounts) {
   const current = bill.paymentBreakdown ?? ZERO;
   const newAmountPaid = (bill.amountPaid || bill.payment?.totalPaid || 0) + totalOf(amounts);
   const balanceDue = bill.grandTotal - newAmountPaid;
-  return {
+  const bankAccountId = amounts.bankAccountId || bill.bankAccountId || bill.payment?.bankAccountId || undefined;
+  const updated = {
     ...bill,
     amountPaid: newAmountPaid,
     balanceDue,
@@ -76,8 +77,21 @@ export function applyAdditionalPurchasePayment(bill, amounts) {
       upi: (current.upi || 0) + amounts.upi,
       account: (current.account || 0) + amounts.account,
     },
-    ...(bill.payment ? { payment: { ...bill.payment, totalPaid: newAmountPaid, balanceDue } } : {}),
+    ...(bill.payment
+      ? {
+          payment: {
+            ...bill.payment,
+            totalPaid: newAmountPaid,
+            balanceDue,
+            ...(bankAccountId ? { bankAccountId } : {}),
+          },
+        }
+      : {}),
   };
+  if (bankAccountId) {
+    updated.bankAccountId = bankAccountId;
+  }
+  return updated;
 }
 /**
  * Saves the bill first, then one payment document per method with an amount.

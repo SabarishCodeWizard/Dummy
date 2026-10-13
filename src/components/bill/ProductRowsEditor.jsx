@@ -12,9 +12,11 @@
  * Removing the last row leaves one blank row. `EMPTY_ROW`, `matchShortcuts`, `isKnownProduct` are re-exported.
  */
 import { Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { rowAmount } from '@/core/billing';
 import { formatCurrency } from '@/core/format';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { getStockQuantityMap } from '@/features/overview/stocks/stocksService';
 import { Button, IconButton, NumberField } from '@/ui';
 import { cn } from '@/ui/cn';
 import { ProductDescriptionInput } from './ProductDescriptionInput';
@@ -26,6 +28,19 @@ const rupees = (n) => `₹${formatCurrency(n)}`;
 
 export function ProductRowsEditor({ rows, onChange, shortcuts, readOnly, addLabel = 'Add Product' }) {
   const { isCompact } = useBreakpoint();
+  const [stockMap, setStockMap] = useState(new Map());
+
+  useEffect(() => {
+    getStockQuantityMap()
+      .then(setStockMap)
+      .catch((err) => console.error('Failed to load stock quantities:', err));
+  }, []);
+
+  const getStock = (desc) => {
+    if (!desc || typeof desc !== 'string' || !desc.trim() || !stockMap) return null;
+    return stockMap.get(desc.trim()) || stockMap.get(desc.trim().toLowerCase()) || null;
+  };
+
   const update = (index, patch) => onChange(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
   const remove = (index) => onChange(removeRowAt(rows, index));
   const add = () => onChange([...rows, { ...EMPTY_ROW }]);
@@ -60,21 +75,46 @@ export function ProductRowsEditor({ rows, onChange, shortcuts, readOnly, addLabe
                 value={row.description}
                 onChange={(description) => update(i, { description })}
                 shortcuts={shortcuts}
+                stockMap={stockMap}
                 readOnly={readOnly}
               />
               <div className="mt-2.5 grid grid-cols-[1fr_1fr] gap-2.5">
-                <NumberField
-                  label="Qty"
-                  value={row.qty}
-                  readOnly={readOnly}
-                  onChange={(qty) => update(i, { qty })}
-                />
-                <NumberField
-                  label="Rate"
-                  value={row.rate}
-                  readOnly={readOnly}
-                  onChange={(rate) => update(i, { rate })}
-                />
+                <div>
+                  <div className="flex items-center justify-between pb-1">
+                    <span className="text-xs font-semibold text-slate-600">Qty</span>
+                    {(() => {
+                      const st = getStock(row.description);
+                      if (!st || typeof st.available !== 'number') return null;
+                      return (
+                        <span
+                          className={cn(
+                            'rounded px-1.5 py-0.2 text-[10px] font-bold tabular-nums',
+                            st.available > 0
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : st.available === 0
+                                ? 'bg-amber-50 text-amber-700'
+                                : 'bg-red-50 text-red-700',
+                          )}
+                        >
+                          Stock: {st.available}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  <NumberField
+                    value={row.qty}
+                    readOnly={readOnly}
+                    onChange={(qty) => update(i, { qty })}
+                  />
+                </div>
+                <div>
+                  <div className="pb-1 text-xs font-semibold text-slate-600">Rate</div>
+                  <NumberField
+                    value={row.rate}
+                    readOnly={readOnly}
+                    onChange={(rate) => update(i, { rate })}
+                  />
+                </div>
               </div>
               <div className="mt-3 flex items-baseline justify-between gap-3 rounded-xl bg-gold-50/70 px-3 py-2 ring-1 ring-gold-200/70">
                 <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Amount</span>
@@ -126,6 +166,7 @@ export function ProductRowsEditor({ rows, onChange, shortcuts, readOnly, addLabe
                       value={row.description}
                       onChange={(description) => update(i, { description })}
                       shortcuts={shortcuts}
+                      stockMap={stockMap}
                       readOnly={readOnly}
                     />
                   </td>
@@ -136,6 +177,26 @@ export function ProductRowsEditor({ rows, onChange, shortcuts, readOnly, addLabe
                       readOnly={readOnly}
                       onChange={(qty) => update(i, { qty })}
                     />
+                    {(() => {
+                      const st = getStock(row.description);
+                      if (!st || typeof st.available !== 'number') return null;
+                      return (
+                        <div className="mt-1 text-right">
+                          <span
+                            className={cn(
+                              'inline-block rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                              st.available > 0
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : st.available === 0
+                                  ? 'bg-amber-50 text-amber-700'
+                                  : 'bg-red-50 text-red-700',
+                            )}
+                          >
+                            Stock: {st.available}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="border-b border-line px-1.5 py-2">
                     <NumberField

@@ -90,15 +90,18 @@ export function buildPurchaseBill(form) {
     manualPreviousBalance: toNum(form.manualPreviousBalance),
     discount: toNum(form.discountAmount),
     grandTotal,
+    ...(form.bankAccountId ? { bankAccountId: form.bankAccountId } : {}),
     payment: {
       cash: toNum(form.cash),
       upi: toNum(form.upi),
       account: toNum(form.account),
+      bankAccountId: form.bankAccountId || null,
       totalPaid,
       balanceDue,
     },
   };
 }
+
 export async function loadPurchaseSuggestion() {
   try {
     return suggestPurchaseInvoiceNumber(await db.getAllPurchaseBills());
@@ -114,20 +117,23 @@ export async function purchaseNoExists(invoiceNo) {
 export async function savePurchaseBillWithPayments(form) {
   const bill = buildPurchaseBill(form);
   await db.savePurchaseBill(bill);
+  const pay = bill.payment || {};
+  const bId = bill.bankAccountId || pay.bankAccountId;
   const saves = [];
-  const pay = bill.payment;
   ['cash', 'upi', 'account'].forEach((method) => {
     if (pay.totalPaid > 0 && pay[method] > 0) {
-      saves.push(
-        db.savePurchasePayment({
-          id: `purchase_payment_${bill.invoiceNo}_initial_${method}`,
-          invoiceNo: bill.invoiceNo,
-          paymentDate: bill.invoiceDate,
-          amount: pay[method],
-          paymentMethod: method,
-          paymentType: 'initial',
-        }),
-      );
+      const paymentDoc = {
+        id: `purchase_payment_${bill.invoiceNo}_initial_${method}`,
+        invoiceNo: bill.invoiceNo,
+        paymentDate: bill.invoiceDate,
+        amount: pay[method],
+        paymentMethod: method,
+        paymentType: 'initial',
+      };
+      if (bId) {
+        paymentDoc.bankAccountId = bId;
+      }
+      saves.push(db.savePurchasePayment(paymentDoc));
     }
   });
   if (bill.supplierPhone) {

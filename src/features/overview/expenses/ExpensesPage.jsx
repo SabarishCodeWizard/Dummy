@@ -9,7 +9,8 @@ import { useMemo, useState } from 'react';
 import { db } from '@/core/db';
 import { formatCurrency, formatDateShort, toNum, todayISO } from '@/core/format';
 import { useFocusLoad } from '@/hooks/useFocusLoad';
-import { Button, DataTable, EmptyState, ErrorState, Page, StatCard, cn, useFeedback } from '@/ui';
+import { loadLiveAccountBalances } from '@/features/finance/accountsLogic';
+import { Badge, Button, DataTable, EmptyState, ErrorState, Page, StatCard, cn, useFeedback } from '@/ui';
 
 import FilterBar from '../components/FilterBar';
 import FloatingAddButton from '../components/FloatingAddButton';
@@ -40,7 +41,7 @@ function ReasonChip({ expense, className }) {
   return (
     <span
       className={cn(
-        'inline-block rounded-lg bg-gold-50 px-2.5 py-1 text-[13px] leading-snug font-medium break-words text-brand-800 ring-1 ring-gold-200 ring-inset',
+        'inline-block rounded-lg bg-amber-50/80 px-2.5 py-1 text-[13px] leading-snug font-medium break-words text-amber-900 ring-1 ring-amber-200/70 ring-inset',
         className,
       )}
     >
@@ -52,6 +53,7 @@ function ReasonChip({ expense, className }) {
 export default function ExpensesPage() {
   const { toast, confirm } = useFeedback();
   const [expenses, setExpenses] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
   const [dateTerm, setDateTerm] = useState('');
   const [reasonTerm, setReasonTerm] = useState('');
   const [form, setForm] = useState(null); // null = sheet closed
@@ -59,7 +61,12 @@ export default function ExpensesPage() {
 
   const { loading, refreshing, error, refresh, reload } = useFocusLoad(async () => {
     try {
-      setExpenses(await db.getAllExpenses());
+      const [expList, banks] = await Promise.all([
+        db.getAllExpenses(),
+        db.getAllBankAccounts().catch(() => []),
+      ]);
+      setExpenses(expList);
+      setBankAccounts(banks || []);
     } catch (e) {
       console.error('Error loading expenses:', e);
       toast('Error', 'Failed to load expenses', 'error');
@@ -81,6 +88,38 @@ export default function ExpensesPage() {
       toast('Warning', invalid, 'warning');
       return;
     }
+
+    // Overdraft check for expense payment
+    const source = form.paymentSource || 'cash';
+    const amt = parseFloat(form.amount) || 0;
+    try {
+      const balances = await loadLiveAccountBalances();
+      if (source === 'cash' && amt > balances.cashBalance) {
+        const ok = await confirm({
+          title: 'Insufficient Cash in Hand',
+          message: `Paying ₹${formatCurrency(amt)} in Cash exceeds available cash balance (₹${formatCurrency(balances.cashBalance)}). This will make your cash balance negative. Do you want to proceed anyway?`,
+          tone: 'warning',
+          confirmText: 'Proceed Anyway',
+          cancelText: 'Cancel & Adjust',
+        });
+        if (!ok) return;
+      } else if (source !== 'cash') {
+        const bank = balances.bankAccounts.find((b) => b.id === source);
+        if (bank && amt > bank.currentBalance) {
+          const ok = await confirm({
+            title: `Insufficient Balance in ${bank.accountName}`,
+            message: `Paying ₹${formatCurrency(amt)} exceeds available balance in ${bank.accountName} (₹${formatCurrency(bank.currentBalance)}). Do you want to proceed anyway?`,
+            tone: 'warning',
+            confirmText: 'Proceed Anyway',
+            cancelText: 'Cancel & Adjust',
+          });
+          if (!ok) return;
+        }
+      }
+    } catch (err) {
+      console.error('Error verifying expense balance:', err);
+    }
+
     setSaving(true);
     try {
       await db.saveExpense(buildExpense(form));
@@ -124,13 +163,36 @@ export default function ExpensesPage() {
   );
 
   const columns = [
-    { key: 'date', header: 'Date', className: 'whitespace-nowrap', value: (e) => formatDateShort(e.date) },
+    { key: 'date', header: 'Date', className: 'whitespace-nowrap font-medium text-slate-700', value: (e) => formatDateShort(e.date) },
     { key: 'reason', header: 'Reason', className: 'min-w-48', render: (e) => <ReasonChip expense={e} /> },
+    {
+      key: 'paymentSource',
+      header: 'Paid Via',
+      className: 'whitespace-nowrap',
+      render: (e) => {
+        const source = e.paymentSource || 'cash';
+        if (source === 'cash') {
+          return (
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/70">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Cash in Hand
+            </span>
+          );
+        }
+        const bank = bankAccounts.find((b) => b.id === source);
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-800 ring-1 ring-blue-200/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+            {bank ? bank.accountName : 'Bank Account'}
+          </span>
+        );
+      },
+    },
     {
       key: 'amount',
       header: 'Amount (Rs.)',
       align: 'right',
-      className: 'font-display font-bold text-brand-800 tabular-nums whitespace-nowrap',
+      className: 'font-display font-bold text-rose-700 tabular-nums whitespace-nowrap',
       value: (e) => rs(toNum(e.amount)),
     },
     { key: 'actions', header: 'Actions', align: 'center', render: actions },
@@ -149,13 +211,26 @@ export default function ExpensesPage() {
           renderCard={(e) => (
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1 space-y-1.5">
-                <div className="text-xs font-semibold tracking-wide text-slate-500">
-                  {formatDateShort(e.date)}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-semibold tracking-wide text-slate-500">
+                    {formatDateShort(e.date)}
+                  </span>
+                  {e.paymentSource && e.paymentSource !== 'cash' ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-800 ring-1 ring-blue-200/70">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      {bankAccounts.find((b) => b.id === e.paymentSource)?.accountName || 'Bank'}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200/70">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Cash
+                    </span>
+                  )}
                 </div>
                 <div>
                   <ReasonChip expense={e} />
                 </div>
-                <div className="font-display text-lg font-extrabold text-brand-800 tabular-nums">
+                <div className="font-display text-lg font-extrabold text-rose-700 tabular-nums">
                   {rs(toNum(e.amount))}
                 </div>
               </div>
