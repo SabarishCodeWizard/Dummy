@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo } from 'react';
 import { Receipt, X, Banknote, Landmark, Smartphone, CheckCircle2 } from 'lucide-react';
 import { db } from '@/core/db';
 import { Modal, Button, EmptyState, IconButton, useFeedback } from '@/ui';
@@ -12,6 +13,19 @@ const ICONS = {
 
 export default function FinancePaymentHistoryModal({ record, onClose, onUpdate }) {
   const { confirm, toast } = useFeedback();
+  const [bankAccounts, setBankAccounts] = useState([]);
+
+  useEffect(() => {
+    db.getAllBankAccounts().then(setBankAccounts).catch(console.error);
+  }, []);
+
+  const bankMap = useMemo(() => {
+    const map = {};
+    bankAccounts.forEach((b) => {
+      map[b.id] = b;
+    });
+    return map;
+  }, [bankAccounts]);
 
   if (!record) return null;
 
@@ -113,8 +127,17 @@ export default function FinancePaymentHistoryModal({ record, onClose, onUpdate }
                     <Icon className="size-5" />
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900">{p.mode} Payment</div>
-                    <div className="text-xs text-slate-500 font-medium">{formatDateShort(p.date)}</div>
+                    <div className="font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                      <span>{p.mode} Payment</span>
+                      <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                        {!p.sourceAccount || p.sourceAccount === 'cash'
+                          ? 'Cash in Hand'
+                          : bankMap[p.sourceAccount]
+                          ? `${bankMap[p.sourceAccount].accountName} (${bankMap[p.sourceAccount].bankName || bankMap[p.sourceAccount].accountType || 'Bank'})`
+                          : 'Bank Account'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 font-medium mt-0.5">{formatDateShort(p.date)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">

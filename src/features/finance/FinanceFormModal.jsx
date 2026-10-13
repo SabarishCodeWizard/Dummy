@@ -4,18 +4,22 @@ import { db } from '@/core/db';
 import { PartyNotFoundHint, PartyPicker } from '@/components/bill';
 import { differenceInMonths, differenceInDays } from 'date-fns';
 import { Button, Grid, Modal, NumberField, DateField, TextArea, SelectField } from '@/ui';
+import { formatCurrency } from '@/core/format';
+import { loadLiveAccountBalances } from './accountsLogic';
 
 const FORM_ID = 'finance-record-form';
 
 export default function FinanceFormModal({ form, onChange, saving, onClose, onSave }) {
   const editing = !!form?.id;
   const [lenders, setLenders] = useState([]);
-  const [bankAccounts, setBankAccounts] = useState([]);
+  const [liveBalances, setLiveBalances] = useState(null);
 
   useEffect(() => {
-    db.getAllLenders().then(setLenders).catch(console.error);
-    db.getAllBankAccounts().then(setBankAccounts).catch(console.error);
-  }, []);
+    if (form) {
+      db.getAllLenders().then(setLenders).catch(console.error);
+      loadLiveAccountBalances().then(setLiveBalances).catch(console.error);
+    }
+  }, [form !== null]);
 
 
   const handlePhoneChange = (v) => {
@@ -141,10 +145,13 @@ export default function FinanceFormModal({ form, onChange, saving, onClose, onSa
                 value={form.depositAccount || 'cash'}
                 onChange={(v) => onChange({ ...form, depositAccount: v })}
                 options={[
-                  { value: 'cash', label: 'Cash in Hand (Physical Cash)' },
-                  ...bankAccounts.map((a) => ({
+                  {
+                    value: 'cash',
+                    label: `Cash in Hand (Physical Cash) • Available: ₹${formatCurrency(liveBalances?.cashBalance ?? 0)}`,
+                  },
+                  ...(liveBalances?.bankAccounts || []).map((a) => ({
                     value: a.id,
-                    label: `${a.accountName} (${a.bankName || a.accountType})`,
+                    label: `${a.accountName} (${a.bankName || a.accountType}) • Balance: ₹${formatCurrency(a.currentBalance)}`,
                   })),
                 ]}
               />
