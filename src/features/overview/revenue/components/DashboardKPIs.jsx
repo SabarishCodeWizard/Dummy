@@ -2,7 +2,11 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 import { formatCurrency } from '@/core/format';
 import { StatCard, cn } from '@/ui';
 
-const rupees = (n) => `₹${formatCurrency(n).replace(/\.00$/, '')}`;
+const rupees = (n) => {
+  const num = typeof n === 'number' ? n : parseFloat(String(n || 0));
+  const safe = Number.isFinite(num) ? num : 0;
+  return `${safe < 0 ? '-' : ''}₹${formatCurrency(Math.abs(safe)).replace(/\.00$/, '')}`;
+};
 
 function KpiTrend({ current, previous, inverse = false }) {
   if (!previous || previous === 0) return null;
@@ -25,6 +29,7 @@ export function DashboardKPIs({ data }) {
   const { current, previous, customerOutstanding, customersWithDues, suppliersOutstanding, suppliersWithDues } = data;
 
   const profitMargin = current.salesAmount > 0 ? ((current.profitAmount / current.salesAmount) * 100).toFixed(1) : 0;
+  const netProfit = current.profitAmount - current.expensesAmount;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
@@ -55,7 +60,12 @@ export function DashboardKPIs({ data }) {
           <p className={cn("mt-1 text-xl sm:text-2xl font-bold truncate tracking-tight", current.profitAmount >= 0 ? "text-emerald-600" : "text-red-600")} title={rupees(current.profitAmount)}>{rupees(current.profitAmount)}</p>
         </div>
         <div>
-          <p className="text-xs text-emerald-700 font-medium mt-2">{profitMargin}% Margin</p>
+          <div className="flex items-center justify-between text-xs mt-2">
+            <span className="text-emerald-700 font-semibold">{profitMargin}% Margin</span>
+            <span className={cn("font-medium", netProfit >= 0 ? "text-slate-600" : "text-red-600")} title={`Net Profit: Gross Profit minus Expenses`}>
+              Net: {rupees(netProfit)}
+            </span>
+          </div>
           <KpiTrend current={current.profitAmount} previous={previous?.profitAmount} />
         </div>
       </div>

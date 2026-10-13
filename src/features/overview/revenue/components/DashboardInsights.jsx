@@ -1,13 +1,11 @@
 import { useMemo } from 'react';
 import { formatCurrency, toNum } from '@/core/format';
-import { startOfDay, startOfWeek, startOfMonth, startOfQuarter, startOfYear, subDays, subMonths } from 'date-fns';
+import { isWithinRange } from '../dashboardAnalytics';
 
-const rupees = (n) => `₹${formatCurrency(n)}`;
-
-const isWithinRange = (dateString, start, end) => {
-  if (!dateString) return false;
-  const d = new Date(dateString).getTime();
-  return d >= start.getTime() && d <= end.getTime();
+const rupees = (n) => {
+  const num = typeof n === 'number' ? n : parseFloat(String(n || 0));
+  const safe = Number.isFinite(num) ? num : 0;
+  return `${safe < 0 ? '-' : ''}₹${formatCurrency(Math.abs(safe)).replace(/\.00$/, '')}`;
 };
 
 export function DashboardInsights({ data, rangeKey, dateRanges }) {
@@ -17,10 +15,11 @@ export function DashboardInsights({ data, rangeKey, dateRanges }) {
     const custMap = new Map();
     const supMap = new Map();
     const prodMap = new Map();
+    const avgCost = data.avgCostLookup || (() => 0);
 
-    data.salesBills.forEach(bill => {
+    (data.salesBills || []).forEach(bill => {
       const d = bill.invoiceDate || bill.date || bill.timestamp;
-      if (isWithinRange(d, range.start, range.end)) {
+      if (isWithinRange(d, range)) {
         // Customer aggregation
         if (bill.customerName) {
           const c = custMap.get(bill.customerName) || { name: bill.customerName, sales: 0, paid: 0, invoices: 0 };
@@ -35,18 +34,22 @@ export function DashboardInsights({ data, rangeKey, dateRanges }) {
           bill.products.forEach(p => {
             if (!p.description) return;
             const pd = prodMap.get(p.description) || { name: p.description, qty: 0, revenue: 0, profit: 0 };
-            pd.qty += toNum(p.qty);
-            pd.revenue += toNum(p.amount);
-            pd.profit += toNum(p.totalProfit || 0); // Assuming line items have totalProfit
+            const qty = toNum(p.qty);
+            const rate = toNum(p.rate);
+            const cost = avgCost(p.description);
+            const itemProfit = (rate - cost) * qty;
+            pd.qty += qty;
+            pd.revenue += toNum(p.amount) || (rate * qty);
+            pd.profit += toNum(p.totalProfit ?? itemProfit);
             prodMap.set(p.description, pd);
           });
         }
       }
     });
 
-    data.purchaseBills.forEach(bill => {
+    (data.purchaseBills || []).forEach(bill => {
       const d = bill.invoiceDate || bill.date || bill.timestamp;
-      if (isWithinRange(d, range.start, range.end)) {
+      if (isWithinRange(d, range)) {
         // Supplier aggregation
         if (bill.supplierName) {
           const s = supMap.get(bill.supplierName) || { name: bill.supplierName, purchases: 0, paid: 0, bills: 0 };
@@ -63,7 +66,7 @@ export function DashboardInsights({ data, rangeKey, dateRanges }) {
       topSuppliers: Array.from(supMap.values()).sort((a, b) => b.purchases - a.purchases).slice(0, 5),
       topProducts: Array.from(prodMap.values()).sort((a, b) => b.qty - a.qty).slice(0, 5),
     };
-  }, [data, range.start, range.end]);
+  }, [data, range]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -130,16 +133,20 @@ export function DashboardInsights({ data, rangeKey, dateRanges }) {
           ) : (
             <table className="w-full text-sm text-left">
               <thead>
-                <tr className="text-slate-500 border-b border-line">
+                <tr className="text-slate-500 border-b border-line text-xs">
                   <th className="pb-2 font-medium">Product</th>
-                  <th className="pb-2 font-medium text-right">Qty</th>
+                  <th className="pb-2 font-medium text-center">Qty</th>
+                  <th className="pb-2 font-medium text-right">Profit</th>
                 </tr>
               </thead>
               <tbody>
                 {topProducts.map(p => (
-                  <tr key={p.name} className="border-b border-slate-100 last:border-0">
-                    <td className="py-2 text-slate-700 font-medium truncate max-w-[120px]">{p.name}</td>
-                    <td className="py-2 text-slate-800 font-bold text-right">{p.qty}</td>
+                  <tr key={p.name} className="border-b border-slate-100 last:border-0 text-xs sm:text-sm">
+                    <td className="py-2 text-slate-700 font-medium truncate max-w-[120px]" title={p.name}>{p.name}</td>
+                    <td className="py-2 text-slate-600 font-semibold text-center tabular-nums">{p.qty}</td>
+                    <td className={`py-2 font-bold text-right tabular-nums ${p.profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {rupees(p.profit)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -1,6 +1,22 @@
 import { db } from '@/core/db';
-import { toNum } from '@/core/format';
+import { toNum, parseISODate } from '@/core/format';
 import { isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subDays, subMonths } from 'date-fns';
+import { buildAvgCostLookup, invoiceDiscount } from './revenueLogic';
+
+/**
+ * Robust date parser: Handles pure YYYY-MM-DD dates at local noon, full timestamps, and numbers
+ */
+export function parseAnyDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  if (typeof val === 'number') return new Date(val);
+  const str = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return parseISODate(str);
+  }
+  const d = new Date(str);
+  return Number.isNaN(d.getTime()) ? parseISODate(str) : d;
+}
 
 /**
  * Filter data by date range
@@ -57,11 +73,35 @@ export const getPreviousPeriod = (rangeKey) => {
   }
 };
 
-const isWithinRange = (dateString, { start, end }) => {
+export const isWithinRange = (dateString, { start, end }) => {
   if (!dateString) return false;
-  const d = new Date(dateString).getTime();
-  return d >= start.getTime() && d <= end.getTime();
+  const d = parseAnyDate(dateString);
+  if (!d) return false;
+  const time = d.getTime();
+  return time >= start.getTime() && time <= end.getTime();
 };
+
+/**
+ * Computes profit for a sales bill by matching products with average purchase costs
+ */
+export function getBillProfit(bill, avgCostLookup) {
+  if (bill.computedProfit !== undefined) return toNum(bill.computedProfit);
+  if (bill.profit !== undefined && bill.profit !== null && bill.profit !== '') return toNum(bill.profit);
+
+  let totalBillProfit = 0;
+  if (bill.products && Array.isArray(bill.products)) {
+    bill.products.forEach((p) => {
+      const description = p.description || '';
+      const qty = toNum(p.qty);
+      const sellingRate = toNum(p.rate);
+      const costRate = avgCostLookup ? avgCostLookup(description) : toNum(p.purchaseRate || p.costRate || 0);
+      const profitPerUnit = sellingRate - costRate;
+      totalBillProfit += profitPerUnit * qty;
+    });
+  }
+  const discount = invoiceDiscount(bill);
+  return totalBillProfit - discount;
+}
 
 export async function fetchDashboardData() {
   const [
@@ -82,23 +122,37 @@ export async function fetchDashboardData() {
     db.getAllPurchaseReturns(),
   ]);
 
+  const pBills = purchaseBills || [];
+  const avgCostLookup = buildAvgCostLookup(pBills);
+
+  // Pre-calculate accurate profit for each bill using purchase cost history
+  const enrichedSalesBills = (salesBills || []).map((bill) => {
+    const computedProfit = getBillProfit(bill, avgCostLookup);
+    return {
+      ...bill,
+      computedProfit,
+    };
+  });
+
   return {
-    salesBills: salesBills || [],
-    purchaseBills: purchaseBills || [],
+    salesBills: enrichedSalesBills,
+    purchaseBills: pBills,
     expenses: expenses || [],
     customers: customers || [],
     suppliers: suppliers || [],
     salesReturns: salesReturns || [],
     purchaseReturns: purchaseReturns || [],
+    avgCostLookup,
   };
 }
 
 export function computeAnalytics(data, rangeKey) {
   const range = dateRanges[rangeKey] ? dateRanges[rangeKey]() : null;
   const previousRange = getPreviousPeriod(rangeKey);
+  const avgCostLookup = data.avgCostLookup || buildAvgCostLookup(data.purchaseBills || []);
   
-  const current = range ? aggregatePeriod(data, range) : aggregatePeriod(data, { start: new Date(0), end: new Date(2100, 1, 1) });
-  const previous = previousRange ? aggregatePeriod(data, previousRange) : null;
+  const current = range ? aggregatePeriod(data, range, avgCostLookup) : aggregatePeriod(data, { start: new Date(0), end: new Date(2100, 1, 1) }, avgCostLookup);
+  const previous = previousRange ? aggregatePeriod(data, previousRange, avgCostLookup) : null;
   
   // Outstanding logic is cumulative, not bound to the date filter.
   // It uses the ledger balances.
@@ -175,31 +229,30 @@ export function computeAnalytics(data, rangeKey) {
   };
 }
 
-function aggregatePeriod(data, range) {
+function aggregatePeriod(data, range, avgCostLookup) {
   let salesAmount = 0;
   let salesCount = 0;
   let profitAmount = 0;
   let purchasesAmount = 0;
   let expensesAmount = 0;
 
-  for (const bill of data.salesBills) {
+  for (const bill of data.salesBills || []) {
     const date = bill.invoiceDate || bill.date || bill.timestamp;
     if (isWithinRange(date, range)) {
       salesAmount += toNum(bill.grandTotal);
       salesCount++;
-      // If the app computes profit per bill and stores it as profit:
-      profitAmount += toNum(bill.profit || 0);
+      profitAmount += getBillProfit(bill, avgCostLookup);
     }
   }
 
-  for (const bill of data.purchaseBills) {
+  for (const bill of data.purchaseBills || []) {
     const date = bill.invoiceDate || bill.date || bill.timestamp;
     if (isWithinRange(date, range)) {
       purchasesAmount += toNum(bill.grandTotal);
     }
   }
 
-  for (const exp of data.expenses) {
+  for (const exp of data.expenses || []) {
     const date = exp.date || exp.timestamp;
     if (isWithinRange(date, range)) {
       expensesAmount += toNum(exp.amount);

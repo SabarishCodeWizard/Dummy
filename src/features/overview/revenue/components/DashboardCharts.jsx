@@ -9,23 +9,58 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
 } from 'recharts';
 import { formatCurrency, toNum } from '@/core/format';
-import { isSameDay, format, startOfWeek, startOfMonth, startOfYear, parseISO, startOfDay } from 'date-fns';
+import {
+  format,
+  eachDayOfInterval,
+  eachMonthOfInterval,
+} from 'date-fns';
+import { dateRanges, isWithinRange, parseAnyDate } from '../dashboardAnalytics';
 
-const rupees = (n) => `₹${formatCurrency(n)}`;
+const rupees = (n) => {
+  const num = toNum(n);
+  return `${num < 0 ? '-' : ''}₹${formatCurrency(Math.abs(num))}`;
+};
+
+const formatYAxis = (val) => {
+  if (!val || val === 0) return '₹0';
+  const abs = Math.abs(val);
+  const sign = val < 0 ? '-' : '';
+  if (abs >= 100000) return `${sign}₹${(abs / 100000).toFixed(1)}L`;
+  if (abs >= 1000) return `${sign}₹${Math.round(abs / 1000)}k`;
+  return `${sign}₹${abs}`;
+};
+
+const RANGE_LABELS = {
+  today: 'Today',
+  yesterday: 'Yesterday',
+  thisWeek: 'This Week',
+  thisMonth: 'This Month',
+  lastMonth: 'Last Month',
+  thisQuarter: 'This Quarter',
+  thisYear: 'This Year',
+};
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white border border-slate-200 p-3 rounded-lg shadow-lg">
-        <p className="font-bold text-slate-700 mb-2">{label}</p>
-        {payload.map((entry, index) => (
-          <p key={index} className="text-sm font-medium" style={{ color: entry.color }}>
-            {entry.name}: {rupees(entry.value)}
-          </p>
-        ))}
+      <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-lg">
+        <p className="font-bold text-slate-800 mb-2 text-xs sm:text-sm">{label}</p>
+        <div className="space-y-1">
+          {payload.map((entry, index) => (
+            <div key={index} className="flex items-center justify-between gap-4 text-xs font-semibold">
+              <span className="flex items-center gap-1.5" style={{ color: entry.color }}>
+                <span className="size-2 rounded-full inline-block" style={{ backgroundColor: entry.color }} />
+                {entry.name}:
+              </span>
+              <span className="text-slate-900 font-bold tabular-nums">
+                {rupees(entry.value)}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -34,51 +69,151 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export function DashboardCharts({ data, rangeKey }) {
   const chartData = useMemo(() => {
-    // Group data by date depending on rangeKey
-    const map = new Map();
-    
-    let formatStr = 'dd MMM yyyy';
-    let getGroupingKey = (d) => startOfDay(d).toISOString();
-    
-    if (rangeKey === 'thisYear' || rangeKey === 'lastMonth' || rangeKey === 'thisQuarter') {
-      formatStr = 'MMM yyyy';
-      getGroupingKey = (d) => startOfMonth(d).toISOString();
-    } else if (rangeKey === 'today' || rangeKey === 'yesterday' || rangeKey === 'thisWeek' || rangeKey === 'thisMonth') {
-      formatStr = 'dd MMM';
-      getGroupingKey = (d) => startOfDay(d).toISOString();
-    }
+    if (!data) return [];
 
-    const addData = (type, list, dateField, amountField) => {
-      list.forEach(item => {
-        const d = new Date(item[dateField] || item.date || item.timestamp || 0);
-        const groupKey = getGroupingKey(d);
-        if (!map.has(groupKey)) {
-          map.set(groupKey, { groupKey, dateObj: d, Sales: 0, Purchases: 0, Profit: 0, Expenses: 0 });
-        }
-        const obj = map.get(groupKey);
-        obj[type] += toNum(item[amountField]);
-        if (type === 'Sales') {
-           obj.Profit += toNum(item.profit || 0);
-        }
-      });
+    const range = dateRanges[rangeKey] ? dateRanges[rangeKey]() : null;
+
+    // Initialize time-interval buckets for the selected rangeKey
+    const buckets = [];
+    const bucketMap = new Map();
+
+    const addBucket = (key, label, dateObj) => {
+      const b = { key, name: label, dateObj, Sales: 0, Purchases: 0, Profit: 0, Expenses: 0 };
+      buckets.push(b);
+      bucketMap.set(key, b);
+      return b;
     };
 
-    addData('Sales', data.salesBills, 'invoiceDate', 'grandTotal');
-    addData('Purchases', data.purchaseBills, 'invoiceDate', 'grandTotal');
-    addData('Expenses', data.expenses, 'date', 'amount');
+    if ((rangeKey === 'today' || rangeKey === 'yesterday') && range) {
+      const baseDate = range.start;
+      const slots = [
+        { key: '06', label: '6 AM', hStart: 0, hEnd: 8 },
+        { key: '09', label: '9 AM', hStart: 8, hEnd: 11 },
+        { key: '12', label: '12 PM', hStart: 11, hEnd: 14 },
+        { key: '15', label: '3 PM', hStart: 14, hEnd: 17 },
+        { key: '18', label: '6 PM', hStart: 17, hEnd: 20 },
+        { key: '21', label: '9 PM', hStart: 20, hEnd: 24 },
+      ];
+      slots.forEach((s) => {
+        const d = new Date(baseDate);
+        d.setHours(s.hStart, 0, 0, 0);
+        addBucket(s.key, s.label, d);
+      });
+    } else if (rangeKey === 'thisWeek' && range) {
+      const days = eachDayOfInterval({ start: range.start, end: range.end });
+      days.forEach((d) => {
+        const key = format(d, 'yyyy-MM-dd');
+        const label = format(d, 'EEE');
+        addBucket(key, label, d);
+      });
+    } else if ((rangeKey === 'thisMonth' || rangeKey === 'lastMonth') && range) {
+      const days = eachDayOfInterval({ start: range.start, end: range.end });
+      days.forEach((d) => {
+        const key = format(d, 'yyyy-MM-dd');
+        const label = format(d, 'd MMM');
+        addBucket(key, label, d);
+      });
+    } else if (rangeKey === 'thisQuarter' && range) {
+      const months = eachMonthOfInterval({ start: range.start, end: range.end });
+      months.forEach((d) => {
+        const key = format(d, 'yyyy-MM');
+        const label = format(d, 'MMM yyyy');
+        addBucket(key, label, d);
+      });
+    } else if (rangeKey === 'thisYear' && range) {
+      const months = eachMonthOfInterval({ start: range.start, end: range.end });
+      months.forEach((d) => {
+        const key = format(d, 'yyyy-MM');
+        const label = format(d, 'MMM');
+        addBucket(key, label, d);
+      });
+    } else {
+      addBucket('all', 'Period', new Date());
+    }
 
-    const result = Array.from(map.values()).sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
-    return result.map(r => ({
-      ...r,
-      name: format(r.dateObj, formatStr)
-    }));
+    const findBucket = (dateVal) => {
+      const d = parseAnyDate(dateVal);
+      if (!d) return null;
+
+      if (range && !isWithinRange(d, range)) {
+        return null;
+      }
+
+      if (rangeKey === 'today' || rangeKey === 'yesterday') {
+        const h = d.getHours();
+        // If exact midnight from pure date string, place into midday slot
+        if (h === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+          return bucketMap.get('12') || buckets[0];
+        }
+        if (h < 8) return bucketMap.get('06');
+        if (h < 11) return bucketMap.get('09');
+        if (h < 14) return bucketMap.get('12');
+        if (h < 17) return bucketMap.get('15');
+        if (h < 20) return bucketMap.get('18');
+        return bucketMap.get('21');
+      }
+
+      if (rangeKey === 'thisWeek' || rangeKey === 'thisMonth' || rangeKey === 'lastMonth') {
+        const key = format(d, 'yyyy-MM-dd');
+        return bucketMap.get(key);
+      }
+
+      if (rangeKey === 'thisQuarter' || rangeKey === 'thisYear') {
+        const key = format(d, 'yyyy-MM');
+        return bucketMap.get(key);
+      }
+
+      return buckets[0];
+    };
+
+    // 1. Accumulate Sales & Profit strictly within the active date range
+    (data.salesBills || []).forEach((bill) => {
+      const dVal = bill.invoiceDate || bill.date || bill.timestamp;
+      const b = findBucket(dVal);
+      if (b) {
+        b.Sales += toNum(bill.grandTotal);
+        const p = bill.computedProfit !== undefined ? toNum(bill.computedProfit) : toNum(bill.profit || 0);
+        b.Profit += p;
+      }
+    });
+
+    // 2. Accumulate Purchases strictly within the active date range
+    (data.purchaseBills || []).forEach((bill) => {
+      const dVal = bill.invoiceDate || bill.date || bill.timestamp;
+      const b = findBucket(dVal);
+      if (b) {
+        b.Purchases += toNum(bill.grandTotal);
+      }
+    });
+
+    // 3. Accumulate Expenses strictly within the active date range
+    (data.expenses || []).forEach((exp) => {
+      const dVal = exp.date || exp.timestamp;
+      const b = findBucket(dVal);
+      if (b) {
+        b.Expenses += toNum(exp.amount);
+      }
+    });
+
+    return buckets;
   }, [data, rangeKey]);
+
+  const rangeTitle = RANGE_LABELS[rangeKey] || rangeKey;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       {/* Area Chart: Sales vs Purchases vs Profit */}
-      <div className="rounded-xl border border-line bg-surface p-4 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-800 mb-4">Sales Performance</h3>
+      <div className="rounded-xl border border-line bg-surface p-4 sm:p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">
+              Sales Performance
+            </h3>
+            <p className="text-xs text-slate-500">
+              Sales, purchases & gross profit for {rangeTitle}
+            </p>
+          </div>
+        </div>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -97,27 +232,36 @@ export function DashboardCharts({ data, rangeKey }) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickMargin={10} />
-              <YAxis stroke="#64748b" fontSize={12} tickFormatter={(val) => `₹${val/1000}k`} />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickMargin={8} />
+              <YAxis stroke="#64748b" fontSize={11} tickFormatter={formatYAxis} />
               <Tooltip content={<CustomTooltip />} />
               <Legend verticalAlign="top" height={36}/>
-              <Area type="monotone" dataKey="Sales" stroke="#0ea5e9" fillOpacity={1} fill="url(#colorSales)" />
-              <Area type="monotone" dataKey="Purchases" stroke="#f59e0b" fillOpacity={1} fill="url(#colorPurchases)" />
-              <Area type="monotone" dataKey="Profit" stroke="#10b981" fillOpacity={1} fill="url(#colorProfit)" />
+              <Area type="monotone" dataKey="Sales" stroke="#0ea5e9" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" />
+              <Area type="monotone" dataKey="Purchases" stroke="#f59e0b" strokeWidth={2} fillOpacity={1} fill="url(#colorPurchases)" />
+              <Area type="monotone" dataKey="Profit" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorProfit)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Bar Chart: Revenue vs Expenses */}
-      <div className="rounded-xl border border-line bg-surface p-4 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-800 mb-4">Revenue vs Expenses</h3>
+      <div className="rounded-xl border border-line bg-surface p-4 sm:p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">
+              Revenue vs Expenses
+            </h3>
+            <p className="text-xs text-slate-500">
+              Operating income, expenses & profit for {rangeTitle}
+            </p>
+          </div>
+        </div>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickMargin={10} />
-              <YAxis stroke="#64748b" fontSize={12} tickFormatter={(val) => `₹${val/1000}k`} />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickMargin={8} />
+              <YAxis stroke="#64748b" fontSize={11} tickFormatter={formatYAxis} />
               <Tooltip content={<CustomTooltip />} />
               <Legend verticalAlign="top" height={36}/>
               <Bar dataKey="Sales" fill="#0ea5e9" radius={[4, 4, 0, 0]} name="Revenue" />
