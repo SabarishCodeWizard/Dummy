@@ -74,11 +74,14 @@ export function invoiceBody(input) {
     totalReturns = 0,
     adjustedBalanceDue = 0,
     returns = [],
+    payments = [],
+    accountBankName = '',
     copyType = 'BOTH',
     logoSrc = '',
   } = input;
   const pb = invoice.paymentBreakdown;
   const showReturns = totalReturns > 0 && returns.length > 0;
+  const showPayments = payments && payments.length > 0;
   const productRows = invoice.products
     .map(
       (p, i) => `
@@ -103,6 +106,26 @@ export function invoiceBody(input) {
         </tr>`,
     )
     .join('');
+  const paymentRows = (payments || [])
+    .map((p, i) => {
+      const rawMethod = (p.paymentMethod || 'cash').toLowerCase();
+      let methodText = 'Cash in Hand';
+      if (rawMethod === 'account') {
+        methodText = p.bankAccountName ? `Account: ${esc(p.bankAccountName)}` : 'Bank Account';
+      } else if (rawMethod === 'upi') {
+        methodText = p.bankAccountName ? `UPI (${esc(p.bankAccountName)})` : 'UPI';
+      }
+      const typeBadge = p.paymentType === 'additional' ? ' (Additional)' : '';
+      return `
+        <tr>
+          <td style="text-align: center;">${i + 1}</td>
+          <td style="text-align: center;">${formatDateIN(p.paymentDate)}</td>
+          <td>${methodText}${typeBadge}</td>
+          <td style="text-align: right;">Rs. ${formatCurrency(p.amount)}</td>
+        </tr>`;
+    })
+    .join('');
+  const accountLabel = accountBankName ? `Account Paid (${esc(accountBankName)}):` : 'Account Paid:';
   const legacyMethod =
     invoice.paymentMethod === 'cash' ? 'CASH' : invoice.paymentMethod === 'upi' ? 'UPI' : 'ACCOUNT';
   return `
@@ -174,6 +197,28 @@ export function invoiceBody(input) {
         : ''
     }
 
+    ${
+      showPayments
+        ? `
+    <div class="product-section" style="margin-top: 15px;">
+      <div class="section-title">PAYMENT DETAILS</div>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width: 8%; text-align: center;">#</th>
+            <th style="width: 24%; text-align: center;">Date</th>
+            <th style="width: 43%;">Payment Method</th>
+            <th style="width: 25%; text-align: right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${paymentRows}
+        </tbody>
+      </table>
+    </div>`
+        : ''
+    }
+
     <div class="calculation-section">
       <div class="amount-in-words">
         <p><strong>Amount in words:</strong></p>
@@ -195,7 +240,7 @@ export function invoiceBody(input) {
             ? `
         <div class="payment-row"><span>Cash Paid:</span><span>Rs. ${formatCurrency(pb.cash || 0)}</span></div>
         <div class="payment-row"><span>UPI Paid:</span><span>Rs. ${formatCurrency(pb.upi || 0)}</span></div>
-        <div class="payment-row"><span>Account Paid:</span><span>Rs. ${formatCurrency(pb.account || 0)}</span></div>
+        <div class="payment-row"><span>${accountLabel}</span><span>Rs. ${formatCurrency(pb.account || 0)}</span></div>
         <div class="payment-row total-paid"><span>Total Amount Paid:</span><span>Rs. ${formatCurrency(invoice.amountPaid)}</span></div>`
             : `
         <div class="payment-row"><span>Amount Paid:</span><span>Rs. ${formatCurrency(invoice.amountPaid)}</span></div>

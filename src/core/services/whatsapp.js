@@ -59,7 +59,10 @@ export function buildStatementMessage(args) {
   if (pb) {
     if (pb.cash > 0) m += `│   💵 Cash:   Rs. ${fmt(pb.cash)}\n`;
     if (pb.upi > 0) m += `│   📱 UPI:    Rs. ${fmt(pb.upi)}\n`;
-    if (pb.account > 0) m += `│   🏦 Acct:   Rs. ${fmt(pb.account)}\n`;
+    if (pb.account > 0) {
+      const acctLabel = invoice.bankAccountName ? `Acct (${invoice.bankAccountName})` : 'Acct';
+      m += `│   🏦 ${acctLabel}:   Rs. ${fmt(pb.account)}\n`;
+    }
   }
   m += `│ ${LINE}\n│ *DUE:       Rs. ${fmt(totalReturns > 0 ? adjustedBalanceDue : invoice.balanceDue)}*\n+${LINE}\n`;
   m += `\n━━━━━━━━━━━━━━━━━━━━━━\n*CONTACT INFORMATION*\n🏪 *${COMPANY.name}*${COMPANY.whatsappLocation ? `\n📍 ${COMPANY.whatsappLocation}` : ''}${COMPANY.whatsappPhones ? `\n📞 ${COMPANY.whatsappPhones}` : ''}\n\n_Automated invoice statement._`;
@@ -70,13 +73,56 @@ export function buildStatementMessage(args) {
 export async function shareStatementOnWhatsApp(invoiceNo) {
   const invoice = await db.getInvoice(invoiceNo);
   if (!invoice) throw new Error('Invoice not found!');
-  const totalReturns = await calculateTotalReturns(invoiceNo);
-  const returns = await db.getReturnsByInvoice(invoiceNo);
+  const [totalReturns, returns, rawPayments, bankAccounts] = await Promise.all([
+    calculateTotalReturns(invoiceNo),
+    db.getReturnsByInvoice(invoiceNo),
+    db.getPaymentsByInvoice(invoiceNo).catch(() => []),
+    db.getAllBankAccounts().catch(() => []),
+  ]);
+  const bankMap = new Map((bankAccounts || []).map((b) => [b.id, b]));
+  const defaultBank = bankAccounts?.[0];
+
+  let pb = invoice.paymentBreakdown ? { ...invoice.paymentBreakdown } : null;
+  let totalPaid = invoice.amountPaid || 0;
+
+  if (rawPayments.length > 0) {
+    let cash = 0, upi = 0, account = 0;
+    rawPayments.forEach((p) => {
+      const m = (p.paymentMethod || 'cash').toLowerCase();
+      if (m === 'cash') cash += p.amount || 0;
+      else if (m === 'upi') upi += p.amount || 0;
+      else if (m === 'account') account += p.amount || 0;
+    });
+    pb = { cash, upi, account };
+    totalPaid = cash + upi + account;
+  }
+
+  let bankAccountName = '';
+  const bankForInvoice = invoice.bankAccountId ? bankMap.get(invoice.bankAccountId) : null;
+  if (bankForInvoice) {
+    bankAccountName = bankForInvoice.accountName;
+  } else {
+    const accPayment = rawPayments.find((p) => (p.paymentMethod || '').toLowerCase() === 'account');
+    if (accPayment && accPayment.bankAccountId && bankMap.get(accPayment.bankAccountId)) {
+      bankAccountName = bankMap.get(accPayment.bankAccountId).accountName;
+    } else if (defaultBank && (pb?.account > 0 || invoice.paymentMethod === 'account')) {
+      bankAccountName = defaultBank.accountName;
+    }
+  }
+
+  const resolvedInvoice = {
+    ...invoice,
+    paymentBreakdown: pb,
+    amountPaid: totalPaid,
+    balanceDue: invoice.grandTotal - totalPaid,
+    bankAccountName,
+  };
+
   const message = buildStatementMessage({
-    invoice,
+    invoice: resolvedInvoice,
     returns,
     totalReturns,
-    adjustedBalanceDue: invoice.balanceDue - totalReturns,
+    adjustedBalanceDue: resolvedInvoice.balanceDue - totalReturns,
   });
   const copied = await copyText(message);
   await openWhatsApp(invoice.customerPhone, message);

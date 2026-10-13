@@ -27,7 +27,9 @@ export function emptySalesForm() {
     cash: '0',
     upi: '0',
     account: '0',
+    bankAccountId: null,
     additionalPaymentsTotal: 0,
+    additionalPaymentsBreakdown: { cash: 0, upi: 0, account: 0 },
     manualBillImage: null,
   };
 }
@@ -77,10 +79,16 @@ export function validateSalesBill(form, shortcuts) {
 export function buildSalesInvoice(form) {
   const products = buildProductLines(form.rows);
   const { subtotal, grandTotal, totalPaid, balanceDue } = salesFormTotals(form);
-  const paymentBreakdown = {
+  const initialPb = {
     cash: toNum(form.cash),
     upi: toNum(form.upi),
     account: toNum(form.account),
+  };
+  const addPb = form.additionalPaymentsBreakdown || { cash: 0, upi: 0, account: 0 };
+  const paymentBreakdown = {
+    cash: initialPb.cash + toNum(addPb.cash),
+    upi: initialPb.upi + toNum(addPb.upi),
+    account: initialPb.account + toNum(addPb.account),
   };
   return {
     invoiceNo: form.invoiceNo.trim(),
@@ -124,7 +132,11 @@ export async function loadInvoiceSuggestion(invoiceDate) {
  */
 export async function saveSalesBill(form) {
   const invoice = buildSalesInvoice(form);
-  const breakdown = invoice.paymentBreakdown;
+  const initialBreakdown = {
+    cash: toNum(form.cash),
+    upi: toNum(form.upi),
+    account: toNum(form.account),
+  };
   const saves = [db.saveInvoice(invoice)];
   const phone = form.customerPhone.trim();
   if (phone && phone.length >= 10) {
@@ -140,12 +152,12 @@ export async function saveSalesBill(form) {
   }
   const paymentDate = todayISO();
   ['cash', 'upi', 'account'].forEach((method) => {
-    if (breakdown[method] > 0) {
+    if (initialBreakdown[method] > 0) {
       const paymentDoc = {
         id: `payment_${invoice.invoiceNo}_initial_${method}`,
         invoiceNo: invoice.invoiceNo,
         paymentDate,
-        amount: breakdown[method],
+        amount: initialBreakdown[method],
         paymentMethod: method,
         paymentType: 'initial',
       };
@@ -164,12 +176,14 @@ export async function loadSalesBillForEditing(invoiceNo) {
   const invoice = await db.getInvoice(invoiceNo);
   if (!invoice) return null;
   let additionalPaymentsTotal = 0;
+  let additionalPaymentsBreakdown = { cash: 0, upi: 0, account: 0 };
   let paymentBreakdown = invoice.paymentBreakdown;
   try {
     const payments = await db.getPaymentsByInvoice(invoiceNo);
     const initial = payments.filter((p) => p.paymentType === 'initial');
     const additional = payments.filter((p) => p.paymentType !== 'initial');
     additionalPaymentsTotal = additional.reduce((sum, p) => sum + p.amount, 0);
+    additionalPaymentsBreakdown = breakdownFromPayments(additional);
     paymentBreakdown = breakdownFromPayments(initial);
   } catch (e) {
     console.error('Error loading true payment history', e);
@@ -197,6 +211,8 @@ export async function loadSalesBillForEditing(invoiceNo) {
     upi: String(pb.upi || 0),
     account: String(pb.account || 0),
     additionalPaymentsTotal,
+    additionalPaymentsBreakdown,
+    bankAccountId: invoice.bankAccountId || null,
     manualBillImage: invoice.manualBillImage || null,
   };
   return { form, invoice };

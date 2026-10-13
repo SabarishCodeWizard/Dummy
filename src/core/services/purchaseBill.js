@@ -164,19 +164,71 @@ export async function buildAcknowledgementMessage(form) {
   const invoiceNo = form.invoiceNo.trim();
   if (invoiceNo) {
     try {
-      const payments = await db.getPurchasePaymentsByInvoice(invoiceNo);
+      const [payments, returns, bankAccounts] = await Promise.all([
+        db.getPurchasePaymentsByInvoice(invoiceNo).catch(() => []),
+        db.getPurchaseReturnsByInvoice(invoiceNo).catch(() => []),
+        db.getAllBankAccounts().catch(() => []),
+      ]);
+
+      const bankMap = new Map((bankAccounts || []).map((b) => [b.id, b]));
+      const defaultBank = bankAccounts?.[0];
+
+      let cashPaid = 0;
+      let upiPaid = 0;
+      let accountPaid = 0;
+
+      if (payments.length > 0) {
+        payments.forEach((p) => {
+          const m = (p.paymentMethod || 'cash').toLowerCase();
+          if (m === 'cash') cashPaid += p.amount || 0;
+          else if (m === 'upi') upiPaid += p.amount || 0;
+          else if (m === 'account') accountPaid += p.amount || 0;
+        });
+      } else {
+        cashPaid = toNum(form.cash);
+        upiPaid = toNum(form.upi);
+        accountPaid = toNum(form.account);
+      }
+
+      let accountBankName = '';
+      const activeBankId = form.bankAccountId || payments.find((p) => p.bankAccountId)?.bankAccountId;
+      const bank = activeBankId ? bankMap.get(activeBankId) : defaultBank;
+      if (bank && (accountPaid > 0 || upiPaid > 0)) {
+        accountBankName = bank.accountName;
+      }
+
+      const totalPaidAmount = cashPaid + upiPaid + accountPaid;
+      const calcBalanceDue = grandTotal - totalPaidAmount;
+
+      if (totalPaidAmount > 0 || cashPaid > 0 || upiPaid > 0 || accountPaid > 0) {
+        message += '\nPayment Summary:\n';
+        if (cashPaid > 0) message += `- Cash Paid: ₹${cashPaid.toFixed(2)}\n`;
+        if (upiPaid > 0) message += `- UPI Paid${accountBankName ? ` (${accountBankName})` : ''}: ₹${upiPaid.toFixed(2)}\n`;
+        if (accountPaid > 0) message += `- Account Paid${accountBankName ? ` (${accountBankName})` : ''}: ₹${accountPaid.toFixed(2)}\n`;
+        message += `- Total Amount Paid: ₹${totalPaidAmount.toFixed(2)}\n`;
+        message += `- Balance Due: ₹${calcBalanceDue.toFixed(2)}\n`;
+      }
+
       if (payments.length > 0) {
         message += '\nPayment History:\n';
-        payments.forEach(p => {
+        payments.forEach((p) => {
           const date = new Date(p.paymentDate).toLocaleDateString('en-IN');
-          message += `- ${date}: ₹${p.amount.toFixed(2)} (${p.paymentMethod.toUpperCase()})\n`;
+          const rawMethod = (p.paymentMethod || 'cash').toLowerCase();
+          const pBank = p.bankAccountId ? bankMap.get(p.bankAccountId) : (rawMethod === 'account' ? defaultBank : null);
+          let methodLabel = 'Cash in Hand';
+          if (rawMethod === 'account') {
+            methodLabel = pBank ? `Account: ${pBank.accountName}${pBank.bankName ? ` (${pBank.bankName})` : ''}` : 'Bank Account';
+          } else if (rawMethod === 'upi') {
+            methodLabel = pBank ? `UPI (${pBank.accountName})` : 'UPI';
+          }
+          const typeSuffix = p.paymentType === 'additional' ? ' - Additional Payment' : '';
+          message += `- ${date}: ₹${p.amount.toFixed(2)} (${methodLabel}${typeSuffix})\n`;
         });
       }
 
-      const returns = await db.getPurchaseReturnsByInvoice(invoiceNo);
       if (returns.length > 0) {
         message += '\nReturn History:\n';
-        returns.forEach(r => {
+        returns.forEach((r) => {
           const date = new Date(r.returnDate).toLocaleDateString('en-IN');
           message += `- ${date}: ${r.description} (Qty: ${r.qty}) - ₹${r.returnAmount.toFixed(2)}\n`;
         });
