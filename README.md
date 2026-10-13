@@ -3,8 +3,6 @@
 A premium billing suite by **Brightlight Solutions** — sales & purchase billing, customer / supplier ledgers, stock,
 revenue and expenses, delivered as an installable **PWA** that feels the same on desktop, tablet and phone.
 
-> *Technology That Moves Business Forward.*
-
 | | |
 | --- | --- |
 | UI | React 19 (JSX), React Router, Tailwind CSS 4, lucide-react icons, Inter + Plus Jakarta Sans (self-hosted) |
