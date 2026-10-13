@@ -10,6 +10,7 @@ import {
   CreditCard,
   Edit,
   Landmark,
+  PlusCircle,
   Receipt,
   Search,
   ShoppingCart,
@@ -85,6 +86,7 @@ export default function BankAccountDetailModal({
   onClose,
   onEdit,
   onTransfer,
+  onAddAmount,
 }) {
   const [filterType, setFilterType] = useState('all'); // 'all' | 'in' | 'out'
   const [searchQuery, setSearchQuery] = useState('');
@@ -225,6 +227,17 @@ export default function BankAccountDetailModal({
       footer={
         <div className="flex w-full items-center justify-between gap-2">
           <div className="flex items-center gap-2">
+            {onAddAmount && (
+              <Button
+                variant="primary"
+                size="sm"
+                icon={PlusCircle}
+                onClick={onAddAmount}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs"
+              >
+                + Add Amount
+              </Button>
+            )}
             {onTransfer && (
               <Button
                 variant="outline"

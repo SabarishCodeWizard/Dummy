@@ -75,7 +75,7 @@ export function computeAccountBalances({
         cashOutflows += pAmt;
       } else if (bankMap[source]) {
         bankMap[source].currentBalance -= pAmt;
-        bankMap[source].outflows -= pAmt;
+        bankMap[source].outflows += pAmt;
       } else {
         cashBalance -= pAmt;
         cashOutflows += pAmt;
@@ -152,7 +152,7 @@ export function computeAccountBalances({
           const targetBankId = p.bankAccountId || bill.bankAccountId || Object.keys(bankMap)[0];
           if (targetBankId && bankMap[targetBankId]) {
             bankMap[targetBankId].currentBalance -= amt;
-            bankMap[targetBankId].outflows -= amt;
+            bankMap[targetBankId].outflows += amt;
           }
         }
       });
@@ -171,7 +171,7 @@ export function computeAccountBalances({
       const bankOutflow = upiPaid + accPaid;
       if (bankOutflow > 0 && targetBankId && bankMap[targetBankId]) {
         bankMap[targetBankId].currentBalance -= bankOutflow;
-        bankMap[targetBankId].outflows -= bankOutflow;
+        bankMap[targetBankId].outflows += bankOutflow;
       }
     }
   });
@@ -185,7 +185,7 @@ export function computeAccountBalances({
       cashOutflows += amt;
     } else if (bankMap[source]) {
       bankMap[source].currentBalance -= amt;
-      bankMap[source].outflows -= amt;
+      bankMap[source].outflows += amt;
     } else {
       cashBalance -= amt;
       cashOutflows += amt;
@@ -204,7 +204,7 @@ export function computeAccountBalances({
       cashOutflows += amt;
     } else if (bankMap[from]) {
       bankMap[from].currentBalance -= amt;
-      bankMap[from].outflows -= amt;
+      bankMap[from].outflows += amt;
     }
 
     // Credit 'to'
@@ -229,7 +229,7 @@ export function computeAccountBalances({
         const targetBankId = r.bankAccountId || Object.keys(bankMap)[0];
         if (targetBankId && bankMap[targetBankId]) {
           bankMap[targetBankId].currentBalance -= amt;
-          bankMap[targetBankId].outflows -= amt;
+          bankMap[targetBankId].outflows += amt;
         }
       }
     }
@@ -676,34 +676,44 @@ export function getAccountActivity({
 
     // Outflow from this account
     if (from === accountId) {
-      const destName = bankNameMap[to] || (to === 'cash' ? 'Cash in Hand' : 'Bank Account');
+      const isManualDebit = !to || to === 'external' || to === 'manual';
+      const destName = isManualDebit
+        ? (tx.category || tx.type || 'Manual Outflow')
+        : (bankNameMap[to] || (to === 'cash' ? 'Cash in Hand' : 'Bank Account'));
       items.push({
         id: `tx-out-${tx.id}`,
         date: txDate,
         timestamp: txTs,
-        type: tx.type || 'Internal Transfer Out',
+        type: tx.type || (isManualDebit ? 'Manual Deduction' : 'Internal Transfer Out'),
         direction: 'out',
-        category: 'Transfer',
+        category: tx.category || 'Transfer',
         amount: amt,
-        title: `Transferred to ${destName}`,
-        subtitle: tx.notes || 'Internal fund transfer',
+        title: isManualDebit
+          ? `Deduction: ${tx.category || 'Manual Outflow'}`
+          : `Transferred to ${destName}`,
+        subtitle: tx.notes || (isManualDebit ? 'Manual deduction from account' : 'Internal fund transfer'),
         sourceRef: tx,
       });
     }
 
     // Inflow to this account
     if (to === accountId) {
-      const srcName = bankNameMap[from] || (from === 'cash' ? 'Cash in Hand' : 'Bank Account');
+      const isManualCredit = !from || from === 'external' || from === 'manual';
+      const srcName = isManualCredit
+        ? (tx.category || tx.type || 'Additional Amount')
+        : (bankNameMap[from] || (from === 'cash' ? 'Cash in Hand' : 'Bank Account'));
       items.push({
         id: `tx-in-${tx.id}`,
         date: txDate,
         timestamp: txTs,
-        type: tx.type || 'Internal Transfer In',
+        type: tx.type || (isManualCredit ? 'Additional Amount' : 'Internal Transfer In'),
         direction: 'in',
-        category: 'Transfer',
+        category: tx.category || 'Transfer',
         amount: amt,
-        title: `Received from ${srcName}`,
-        subtitle: tx.notes || 'Internal fund transfer',
+        title: isManualCredit
+          ? `Additional Amount: ${tx.category || 'Manual Inflow'}`
+          : `Received from ${srcName}`,
+        subtitle: tx.notes || (isManualCredit ? 'Manual amount added to account' : 'Internal fund transfer'),
         sourceRef: tx,
       });
     }

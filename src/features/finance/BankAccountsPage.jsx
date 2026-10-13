@@ -11,6 +11,7 @@ import {
   History,
   Landmark,
   Plus,
+  PlusCircle,
   RefreshCw,
   Sigma,
   Trash2,
@@ -31,6 +32,7 @@ import RefreshButton from '../overview/components/RefreshButton';
 import SkeletonRows from '../overview/components/SkeletonRows';
 
 import { computeAccountBalances, getRecordTimestamp, toDateKey } from './accountsLogic';
+import AddAdditionalAmountModal from './AddAdditionalAmountModal';
 import BankAccountModal from './BankAccountModal';
 import BankAccountDetailModal from './BankAccountDetailModal';
 import CashOpeningModal from './CashOpeningModal';
@@ -59,6 +61,7 @@ export default function BankAccountsPage() {
   const [viewingAccount, setViewingAccount] = useState(null);
   const [editingCash, setEditingCash] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [additionalAmountTarget, setAdditionalAmountTarget] = useState(null); // null | { accountId, mode }
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('accounts'); // 'accounts' | 'transactions'
   const [txDateFilter, setTxDateFilter] = useState('');
@@ -206,14 +209,37 @@ export default function BankAccountsPage() {
     }
   };
 
+  // Handle Save Additional Amount or Manual Deduction
+  const handleSaveAdditionalAmount = async (txData) => {
+    setSaving(true);
+    try {
+      await db.saveAccountTransaction(txData);
+      setAdditionalAmountTarget(null);
+      toast(
+        'Success',
+        txData.type === 'Manual Deduction'
+          ? 'Manual deduction recorded'
+          : 'Additional amount added successfully',
+        'success',
+      );
+      refresh();
+    } catch (err) {
+      console.error(err);
+      toast('Error', 'Failed to save transaction', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Account lookup helper
   const getAccountLabel = (id) => {
+    if (!id || id === 'external' || id === 'manual') return 'External / Self';
     if (id === 'cash') return 'Cash in Hand';
     const acc = bankAccounts.find((a) => a.id === id);
     return acc ? acc.accountName : id;
   };
 
-  // Filtered internal transfers (datewise + keyword search)
+  // Filtered internal transfers and entries (datewise + keyword search)
   const filteredAccountTransactions = useMemo(() => {
     const q = txSearchFilter.trim().toLowerCase();
     return sortedAccountTransactions.filter((t) => {
@@ -225,6 +251,7 @@ export default function BankAccountsPage() {
         const fromLabel = getAccountLabel(t.fromAccount).toLowerCase();
         const toLabel = getAccountLabel(t.toAccount).toLowerCase();
         const type = (t.type || '').toLowerCase();
+        const category = (t.category || '').toLowerCase();
         const notes = (t.notes || '').toLowerCase();
         const amt = String(t.amount || '');
         const dateShort = formatDateShort(t.date || t.createdAt).toLowerCase();
@@ -232,6 +259,7 @@ export default function BankAccountsPage() {
           fromLabel.includes(q) ||
           toLabel.includes(q) ||
           type.includes(q) ||
+          category.includes(q) ||
           notes.includes(q) ||
           amt.includes(q) ||
           dateShort.includes(q);
@@ -248,13 +276,41 @@ export default function BankAccountsPage() {
       key: 'type',
       header: 'Type',
       render: (t) => (
-        <Badge tone={t.type === 'Deposit' ? 'success' : t.type === 'Withdrawal' ? 'warning' : 'purple'}>
+        <Badge
+          tone={
+            t.type === 'Deposit' || t.type === 'Additional Amount'
+              ? 'success'
+              : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
+              ? 'warning'
+              : 'purple'
+          }
+        >
           {t.type}
         </Badge>
       ),
     },
-    { key: 'from', header: 'From Account', render: (t) => <span className="font-medium text-slate-700">{getAccountLabel(t.fromAccount)}</span> },
-    { key: 'to', header: 'To Account', render: (t) => <span className="font-bold text-slate-900">{getAccountLabel(t.toAccount)}</span> },
+    {
+      key: 'from',
+      header: 'From',
+      render: (t) => (
+        <span className="font-medium text-slate-700">
+          {!t.fromAccount || t.fromAccount === 'external'
+            ? (t.category ? `Self / ${t.category}` : 'External / Self')
+            : getAccountLabel(t.fromAccount)}
+        </span>
+      ),
+    },
+    {
+      key: 'to',
+      header: 'To',
+      render: (t) => (
+        <span className="font-bold text-slate-900">
+          {!t.toAccount || t.toAccount === 'external'
+            ? (t.category ? `Deduction (${t.category})` : 'External / Self')
+            : getAccountLabel(t.toAccount)}
+        </span>
+      ),
+    },
     {
       key: 'amount',
       header: 'Amount',
@@ -262,13 +318,18 @@ export default function BankAccountsPage() {
       render: (t) => (
         <span
           className={`font-bold tabular-nums ${
-            t.type === 'Deposit'
+            t.type === 'Deposit' || t.type === 'Additional Amount'
               ? 'text-emerald-700'
-              : t.type === 'Withdrawal'
-              ? 'text-amber-700'
+              : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
+              ? 'text-rose-700'
               : 'text-indigo-700'
           }`}
         >
+          {t.type === 'Deposit' || t.type === 'Additional Amount'
+            ? '+'
+            : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
+            ? '-'
+            : ''}
           {rs(t.amount)}
         </span>
       ),
@@ -282,10 +343,10 @@ export default function BankAccountsPage() {
         <IconButton
           icon={Trash2}
           tone="danger"
-          title="Delete transfer"
+          title="Delete entry"
           onClick={async () => {
             const ok = await confirm({
-              title: 'Delete Transfer?',
+              title: 'Delete Entry?',
               message: 'This will reverse the effect on balances.',
               tone: 'danger',
             });
@@ -310,6 +371,16 @@ export default function BankAccountsPage() {
       icon={Landmark}
       actions={
         <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={PlusCircle}
+            onClick={() => setAdditionalAmountTarget({ accountId: 'cash', mode: 'in' })}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs sm:text-sm shadow-sm"
+          >
+            <span className="hidden sm:inline">+ Add Amount</span>
+            <span className="sm:hidden">+ Add</span>
+          </Button>
           <Button
             variant="secondary"
             size="sm"
@@ -399,7 +470,7 @@ export default function BankAccountsPage() {
           }`}
         >
           <History className="size-3.5 sm:size-4" />
-          Internal Transfers ({accountTransactions.length})
+          Transfers & Entries ({accountTransactions.length})
         </button>
       </div>
 
@@ -447,6 +518,15 @@ export default function BankAccountsPage() {
                 </div>
 
                 <div className="mt-3.5 flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 pt-3 sm:mt-4 sm:gap-2">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    icon={PlusCircle}
+                    onClick={() => setAdditionalAmountTarget({ accountId: account.id, mode: 'in' })}
+                    className="rounded-lg border-0 shadow-none text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 font-semibold px-2.5 py-1 text-xs"
+                  >
+                    + Add Amount
+                  </Button>
                   <Button
                     variant="ghost"
                     size="xs"
@@ -536,6 +616,15 @@ export default function BankAccountsPage() {
               <Button
                 variant="ghost"
                 size="xs"
+                icon={PlusCircle}
+                onClick={() => setAdditionalAmountTarget({ accountId: 'cash', mode: 'in' })}
+                className="rounded-lg border-0 shadow-none text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 font-semibold px-2.5 py-1 text-xs"
+              >
+                + Add Cash
+              </Button>
+              <Button
+                variant="ghost"
+                size="xs"
                 icon={Eye}
                 onClick={() => setViewingAccount(balances.cashAccount)}
                 className="rounded-lg border-0 shadow-none text-slate-700 hover:text-brand-900 hover:bg-slate-100 font-semibold px-2.5 py-1 text-xs"
@@ -613,28 +702,52 @@ export default function BankAccountsPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <Badge tone="brand">{t.type}</Badge>
+                        <Badge
+                          tone={
+                            t.type === 'Deposit' || t.type === 'Additional Amount'
+                              ? 'success'
+                              : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
+                              ? 'warning'
+                              : 'purple'
+                          }
+                        >
+                          {t.type}
+                        </Badge>
                         <span className="text-xs text-slate-500">
                           {formatDateShort(t.date || t.createdAt)}
                         </span>
                       </div>
                       <div className="mt-2 text-xs font-semibold text-slate-700">
-                        {getAccountLabel(t.fromAccount)} → {getAccountLabel(t.toAccount)}
+                        {t.fromAccount ? getAccountLabel(t.fromAccount) : `Self / ${t.category || 'Addition'}`} →{' '}
+                        {t.toAccount ? getAccountLabel(t.toAccount) : `Self / ${t.category || 'Deduction'}`}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-display text-base font-extrabold text-emerald-600">
+                      <div
+                        className={`font-display text-base font-extrabold ${
+                          t.type === 'Deposit' || t.type === 'Additional Amount'
+                            ? 'text-emerald-600'
+                            : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
+                            ? 'text-rose-600'
+                            : 'text-indigo-600'
+                        }`}
+                      >
+                        {t.type === 'Deposit' || t.type === 'Additional Amount'
+                          ? '+'
+                          : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
+                          ? '-'
+                          : ''}
                         {rs(t.amount)}
                       </div>
                       <IconButton
                         icon={Trash2}
                         tone="danger"
-                        title="Delete transfer"
+                        title="Delete entry"
                         size="xs"
                         className="mt-1 ml-auto"
                         onClick={async () => {
                           const ok = await confirm({
-                            title: 'Delete Transfer?',
+                            title: 'Delete Entry?',
                             message: 'This will reverse the effect on balances.',
                             tone: 'danger',
                           });
@@ -686,6 +799,11 @@ export default function BankAccountsPage() {
             setViewingAccount(null);
             setShowTransfer(true);
           }}
+          onAddAmount={() => {
+            const accId = viewingAccount.id;
+            setViewingAccount(null);
+            setAdditionalAmountTarget({ accountId: accId, mode: 'in' });
+          }}
         />
       )}
 
@@ -713,6 +831,17 @@ export default function BankAccountsPage() {
           saving={saving}
           onClose={() => setShowTransfer(false)}
           onSave={handleSaveTransfer}
+        />
+      )}
+
+      {additionalAmountTarget && (
+        <AddAdditionalAmountModal
+          accounts={bankAccounts}
+          initialAccountId={additionalAmountTarget.accountId}
+          initialMode={additionalAmountTarget.mode || 'in'}
+          saving={saving}
+          onClose={() => setAdditionalAmountTarget(null)}
+          onSave={handleSaveAdditionalAmount}
         />
       )}
     </Page>
