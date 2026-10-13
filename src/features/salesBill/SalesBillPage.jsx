@@ -63,9 +63,11 @@ export default function SalesBillPage() {
     <BillActionBar
       layout={layout}
       saveLabel={bill.saveLabel}
+      saved={session.saved}
       onSave={bill.save}
       onGenerate={bill.generate}
       onShare={bill.share}
+      onReset={() => bill.reset(!session.saved)}
     />
   );
 

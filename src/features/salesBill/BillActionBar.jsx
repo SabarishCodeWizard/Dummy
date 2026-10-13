@@ -6,14 +6,22 @@
  *  - saveLabel: string          "Save Bill" or "Update Bill" (edit mode)
  *  - onSave / onGenerate / onShare: () => void
  */
-import { FileText, Save, Share2 } from 'lucide-react';
+import { FileText, RotateCcw, Save, Share2 } from 'lucide-react';
 import { Button } from '@/ui';
 import { cn } from '@/ui/cn';
 
 // Colour = purpose: Save green · Generate gold · Share purple (see Button.jsx)
 const barBtn = 'min-h-14! flex-col! gap-0.5! rounded-xl! px-1! text-xs!';
 
-export function BillActionBar({ layout = 'bar', saveLabel, onSave, onGenerate, onShare }) {
+export function BillActionBar({
+  layout = 'bar',
+  saveLabel,
+  saved = false,
+  onSave,
+  onGenerate,
+  onShare,
+  onReset,
+}) {
   const saveA11y = `${saveLabel.split(' ')[0]} BILL`;
   if (layout === 'panel') {
     return (
@@ -29,6 +37,11 @@ export function BillActionBar({ layout = 'bar', saveLabel, onSave, onGenerate, o
             Share BILL
           </Button>
         </div>
+        {onReset && (
+          <Button fullWidth variant="outline" icon={RotateCcw} onClick={onReset}>
+            {saved ? 'New Bill' : 'Clear Form'}
+          </Button>
+        )}
         <p className="pt-0.5 text-center text-xs text-slate-400">
           Shortcut:{' '}
           <kbd className="rounded-md bg-slate-100 px-1.5 py-0.5 font-sans font-semibold text-slate-600">
@@ -71,6 +84,17 @@ export function BillActionBar({ layout = 'bar', saveLabel, onSave, onGenerate, o
       >
         Share
       </Button>
+      {onReset && (
+        <Button
+          className={cn(barBtn, 'flex-1')}
+          variant="outline"
+          icon={RotateCcw}
+          aria-label={saved ? 'New Bill' : 'Clear Form'}
+          onClick={onReset}
+        >
+          {saved ? 'New' : 'Clear'}
+        </Button>
+      )}
     </div>
   );
 }

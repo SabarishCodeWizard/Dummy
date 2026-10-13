@@ -1,4 +1,4 @@
-import { useAppNavigate, useRouteParams } from '@/hooks/useRouteParams';
+import { useRouteParams } from '@/hooks/useRouteParams';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFeedback } from '@/ui';
 import { useFocusLoad } from '@/hooks/useFocusLoad';
@@ -13,7 +13,6 @@ import {
   editParamAction,
   markSaved,
   newBillSession,
-  outputGuard,
   planSave,
   saveButtonLabel,
   savedBillMessage,
@@ -28,7 +27,6 @@ import { useInvoiceSuggestion } from './useInvoiceSuggestion';
  */
 export function useSalesBill() {
   const { toast, confirm, loading } = useFeedback();
-  const nav = useAppNavigate();
   const { params, setParams } = useRouteParams();
   const editParam = Array.isArray(params.edit) ? params.edit[0] : params.edit;
   const editParamRef = useRef(editParam);
@@ -161,55 +159,66 @@ export function useSalesBill() {
     toast('Applied!', `Invoice number set to ${next}`, 'success');
   }, [patch, suggestion, toast]);
   // ------------------------------------------------------------ actions
+  const performSave = useCallback(async () => {
+    const snapshot = sessionRef.current;
+    const shortcutsList = shortcutsRef.current ?? (await db.getAllShortcuts());
+    const plan = await planSave(snapshot, shortcutsList);
+    if (plan.kind === 'invalid') {
+      toast(plan.error.title, plan.error.message, 'error');
+      return null;
+    }
+    if (plan.kind === 'confirm-overwrite') {
+      const proceed = await confirm({
+        title: 'Invoice Already Exists',
+        message: `Invoice #${plan.invoiceNo} already exists. Saving will overwrite it. Continue?`,
+        tone: 'warning',
+        confirmText: 'Overwrite',
+      });
+      if (!proceed) return null;
+    }
+    const invoice = await loading.run(
+      'Saving Bill',
+      () => saveSalesBill(snapshot.form),
+      'Please wait while we save your invoice...',
+    );
+    setSession((s) => markSaved(s, snapshot.form));
+    void refreshSuggestion(snapshot.form.invoiceDate);
+    toast('Bill Saved', savedBillMessage(invoice), 'success');
+    return invoice;
+  }, [confirm, loading, refreshSuggestion, toast]);
+
   const save = useCallback(async () => {
     if (busy.current) return;
     busy.current = true;
     try {
-      const snapshot = sessionRef.current;
-      const shortcutsList = shortcutsRef.current ?? (await db.getAllShortcuts());
-      const plan = await planSave(snapshot, shortcutsList);
-      if (plan.kind === 'invalid') {
-        toast(plan.error.title, plan.error.message, 'error');
-        return;
-      }
-      if (plan.kind === 'confirm-overwrite') {
-        const proceed = await confirm({
-          title: 'Invoice Already Exists',
-          message: `Invoice #${plan.invoiceNo} already exists. Saving will overwrite it. Continue?`,
-          tone: 'warning',
-          confirmText: 'Overwrite',
-        });
-        if (!proceed) return;
-      }
-      const invoice = await loading.run(
-        'Saving Bill',
-        () => saveSalesBill(snapshot.form),
-        'Please wait while we save your invoice...',
-      );
-      setSession((s) => markSaved(s, snapshot.form));
-      void refreshSuggestion(snapshot.form.invoiceDate);
-      toast('Bill Saved', savedBillMessage(invoice), 'success');
-      nav.replace('/sales/history');
+      await performSave();
     } catch (error) {
       console.error('Error saving bill:', error);
       toast('Error', 'Error saving bill. Please try again.', 'error');
     } finally {
       busy.current = false;
     }
-  }, [confirm, loading, refreshSuggestion, toast]);
+  }, [performSave, toast]);
+
   const output = useCallback(
     async (kind) => {
       if (busy.current) return;
-      const snapshot = sessionRef.current;
-      const blocked = outputGuard(snapshot, shortcutsRef.current, kind);
-      if (blocked) {
-        toast(blocked.title, blocked.message, 'error');
-        return;
-      }
       busy.current = true;
       try {
-        // A saved, unchanged form is exactly the stored invoice, so it is printed straight from the form like the web page.
-        const invoice = buildSalesInvoice(snapshot.form);
+        const snapshot = sessionRef.current;
+        let invoice;
+        if (!snapshot.saved) {
+          try {
+            invoice = await performSave();
+          } catch (error) {
+            console.error('Error saving bill before output:', error);
+            toast('Error', 'Error saving bill. Please try again.', 'error');
+            return;
+          }
+          if (!invoice) return;
+        } else {
+          invoice = buildSalesInvoice(snapshot.form);
+        }
         if (kind === 'pdf') {
           await loading.run(
             'Generating PDF',
@@ -243,7 +252,7 @@ export function useSalesBill() {
         busy.current = false;
       }
     },
-    [loading, toast],
+    [loading, performSave, toast],
   );
   /** Reset BILL (always asks) or the edit banner's "New bill" (asks only when something would be lost). */
   const reset = useCallback(
