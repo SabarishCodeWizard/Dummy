@@ -13,16 +13,19 @@ import {
   ShoppingCart,
   Sparkles,
   Landmark,
+  ChevronDown,
 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 
 import { COMPANY, PRODUCT, SERVICES } from '@/core/branding';
 import { formatDateShort, todayISO } from '@/core/format';
-import { Button, useFeedback } from '@/ui';
+import { Button, cn, useFeedback } from '@/ui';
 import { useAuth } from './AuthProvider';
 import { BrandLockup } from './Brand';
 import { GoldWaves, Sparkle } from './Decor';
 import { InstallButton, OfflineBanner, useInstallPrompt } from './pwa';
+import { NAV_CATEGORIES } from './ModuleLayout';
 
 const MODULE_CARDS = [
   {
@@ -61,6 +64,64 @@ function greeting() {
   return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 }
 
+function HeaderDropdown({ category }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    window.addEventListener('pointerdown', handleDown);
+    return () => window.removeEventListener('pointerdown', handleDown);
+  }, [open]);
+
+  const Icon = category.icon;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-brand-200 transition hover:bg-white/10 hover:text-white"
+      >
+        <Icon className="size-3.5 text-gold-300" />
+        <span>{category.title}</span>
+        <ChevronDown
+          className={cn(
+            'size-3 text-brand-300 transition-transform duration-150',
+            open && 'rotate-180 text-gold-300',
+          )}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 z-50 mt-2 w-56 rounded-2xl border border-white/15 bg-brand-900/95 p-1.5 shadow-pop backdrop-blur-md animate-fade-in">
+          <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-gold-400 uppercase">
+            {category.title}
+          </div>
+          <div className="space-y-0.5">
+            {category.items.map(({ to, label, icon: SubIcon }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-medium text-brand-200 transition hover:bg-white/10 hover:text-white"
+              >
+                <SubIcon className="size-3.5 text-gold-300" />
+                <span className="truncate">{label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { logout, username } = useAuth();
   const { confirm } = useFeedback();
@@ -87,6 +148,11 @@ export default function DashboardPage() {
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-3 py-5">
             <BrandLockup />
+            <div className="hidden lg:flex items-center gap-1 rounded-full bg-white/5 px-2 py-1 ring-1 ring-white/10 backdrop-blur">
+              {NAV_CATEGORIES.filter((c) => !c.isDirect).map((category) => (
+                <HeaderDropdown key={category.id} category={category} />
+              ))}
+            </div>
             <div className="flex items-center gap-2">
               <InstallButton className="hidden sm:inline-flex" />
               <Button

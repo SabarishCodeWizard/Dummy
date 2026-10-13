@@ -2,11 +2,15 @@ import {
   ArrowLeft,
   Boxes,
   CalendarDays,
+  CheckCircle2,
+  ChevronDown,
   ChevronRight,
   FilePlus2,
   History,
+  Landmark,
   LayoutDashboard,
   LogOut,
+  Menu,
   PieChart,
   Receipt,
   ShoppingCart,
@@ -15,10 +19,10 @@ import {
   UserPlus,
   Users,
   Wallet,
-  Landmark,
+  X,
   Zap,
-  CheckCircle2,
 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 
 import { useAuth } from '@/app/AuthProvider';
@@ -28,23 +32,27 @@ import { cn, useFeedback } from '@/ui';
 import { BrandLockup, BrandMark } from './Brand';
 import { OfflineBanner } from './pwa';
 
-/** The three modules of the app. `items` drive the sidebar (desktop) and bottom tab bar (phones / tablets). */
-export const MODULES = {
-  sales: {
-    title: 'Sales',
-    icon: Receipt,
-    home: '/sales/bill',
-    items: [
-      { to: '/sales/bill', label: 'Sales Bill', short: 'Bill', icon: FilePlus2 },
-      { to: '/sales/history', label: 'Sales History', short: 'History', icon: History },
-      { to: '/sales/add-customer', label: 'Add Customer', short: 'Add', icon: UserPlus },
-      { to: '/sales/customers', label: 'Customer Details', short: 'Customers', icon: Users },
-      { to: '/sales/bin', label: 'Recycle Bin', short: 'Bin', icon: Trash2 },
-    ],
+/**
+ * Navigation categories configured in the user-requested order:
+ * 1. Dashboard
+ * 2. Purchase (Collapsible dropdown)
+ * 3. Sales (Collapsible dropdown)
+ * 4. Finance (Collapsible dropdown)
+ * 5. Overview (Collapsible dropdown)
+ */
+export const NAV_CATEGORIES = [
+  {
+    id: 'dashboard',
+    title: 'Dashboard',
+    icon: LayoutDashboard,
+    to: '/',
+    isDirect: true,
   },
-  purchase: {
+  {
+    id: 'purchase',
     title: 'Purchase',
     icon: ShoppingCart,
+    basePath: '/purchase',
     home: '/purchase/bill',
     items: [
       { to: '/purchase/bill', label: 'Purchase Bill', short: 'Bill', icon: FilePlus2 },
@@ -54,9 +62,38 @@ export const MODULES = {
       { to: '/purchase/bin', label: 'Recycle Bin', short: 'Bin', icon: Trash2 },
     ],
   },
-  overview: {
+  {
+    id: 'sales',
+    title: 'Sales',
+    icon: Receipt,
+    basePath: '/sales',
+    home: '/sales/bill',
+    items: [
+      { to: '/sales/bill', label: 'Sales Bill', short: 'Bill', icon: FilePlus2 },
+      { to: '/sales/history', label: 'Sales History', short: 'History', icon: History },
+      { to: '/sales/add-customer', label: 'Add Customer', short: 'Add', icon: UserPlus },
+      { to: '/sales/customers', label: 'Customer Details', short: 'Customers', icon: Users },
+      { to: '/sales/bin', label: 'Recycle Bin', short: 'Bin', icon: Trash2 },
+    ],
+  },
+  {
+    id: 'finance',
+    title: 'Finance',
+    icon: Landmark,
+    basePath: '/finance',
+    home: '/finance/accounts',
+    items: [
+      { to: '/finance/accounts', label: 'Bank & Cash Balances', short: 'Accounts', icon: Landmark },
+      { to: '/finance/records', label: 'Ongoing Records', short: 'Ongoing', icon: FilePlus2 },
+      { to: '/finance/settled', label: 'Settled Records', short: 'Settled', icon: CheckCircle2 },
+      { to: '/finance/lenders', label: 'Lender Details', short: 'Lenders', icon: Users },
+    ],
+  },
+  {
+    id: 'overview',
     title: 'Overview',
     icon: PieChart,
+    basePath: '/overview',
     home: '/overview/revenue',
     items: [
       { to: '/overview/revenue', label: 'Revenue', short: 'Revenue', icon: TrendingUp },
@@ -66,19 +103,14 @@ export const MODULES = {
       { to: '/overview/shortcuts', label: 'Shortcuts', short: 'Shortcuts', icon: Zap },
     ],
   },
-  finance: {
-    title: 'Finance',
-    icon: Landmark,
-    home: '/finance/accounts',
-    items: [
-      { to: '/finance/accounts', label: 'Bank & Cash Balances', short: 'Accounts', icon: Landmark },
-      { to: '/finance/records', label: 'Ongoing Records', short: 'Ongoing', icon: FilePlus2 },
-      { to: '/finance/settled', label: 'Settled Records', short: 'Settled', icon: CheckCircle2 },
-      { to: '/finance/lenders', label: 'Lender Details', short: 'Lenders', icon: Users },
-    ],
-  },
-};
+];
 
+export const MODULES = {
+  purchase: NAV_CATEGORIES[1],
+  sales: NAV_CATEGORIES[2],
+  finance: NAV_CATEGORIES[3],
+  overview: NAV_CATEGORIES[4],
+};
 
 function useLogout() {
   const { logout } = useAuth();
@@ -120,41 +152,189 @@ function UserCard({ onLogout }) {
   );
 }
 
-function SideLink({ to, icon: Icon, children, end }) {
+/**
+ * Accordion Navigation Menu:
+ * Displays all 5 categories. Collapsible categories expand/collapse smoothly when clicked.
+ * Automatically keeps the active module's category open by default while other categories stay collapsed.
+ */
+function NavAccordion({ onItemClick }) {
+  const { pathname } = useLocation();
+
+  const activeCategoryId = useMemo(() => {
+    if (pathname === '/') return 'dashboard';
+    return NAV_CATEGORIES.find(
+      (cat) => !cat.isDirect && pathname.startsWith(cat.basePath),
+    )?.id;
+  }, [pathname]);
+
+  const [openCategories, setOpenCategories] = useState(() => {
+    if (activeCategoryId && activeCategoryId !== 'dashboard') {
+      return { [activeCategoryId]: true };
+    }
+    return {};
+  });
+
+  useEffect(() => {
+    if (activeCategoryId && activeCategoryId !== 'dashboard') {
+      setOpenCategories((prev) => {
+        if (!prev[activeCategoryId]) {
+          return { ...prev, [activeCategoryId]: true };
+        }
+        return prev;
+      });
+    }
+  }, [activeCategoryId]);
+
+  const toggleCategory = (catId) => {
+    setOpenCategories((prev) => ({
+      ...prev,
+      [catId]: !prev[catId],
+    }));
+  };
+
   return (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) =>
-        cn(
-          'group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition duration-150',
-          isActive ? 'bg-white/10 text-white' : 'text-brand-200 hover:bg-white/5 hover:text-white',
-        )
-      }
-    >
-      {({ isActive }) => (
-        <>
-          <span
-            className={cn(
-              'absolute top-1/2 left-0 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-gold-gradient transition',
-              isActive ? 'opacity-100' : 'opacity-0',
-            )}
-          />
-          <Icon
-            className={cn(
-              'size-[18px] transition',
-              isActive ? 'text-gold-300' : 'text-brand-300 group-hover:text-gold-300',
-            )}
-            aria-hidden
-          />
-          {children}
-        </>
-      )}
-    </NavLink>
+    <nav className="flex-1 scrollbar-thin space-y-1 overflow-y-auto px-3 py-4" aria-label="Main navigation">
+      <div className="mb-2 px-3.5 text-[11px] font-bold tracking-[0.18em] text-brand-400 uppercase">
+        Navigation
+      </div>
+
+      {NAV_CATEGORIES.map((category) => {
+        if (category.isDirect) {
+          return (
+            <NavLink
+              key={category.id}
+              to={category.to}
+              end
+              onClick={onItemClick}
+              className={({ isActive: linkActive }) =>
+                cn(
+                  'group relative flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition duration-150',
+                  linkActive
+                    ? 'bg-white/10 text-white font-semibold'
+                    : 'text-brand-200 hover:bg-white/5 hover:text-white',
+                )
+              }
+            >
+              {({ isActive: linkActive }) => (
+                <>
+                  <span
+                    className={cn(
+                      'absolute top-1/2 left-0 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-gold-gradient transition',
+                      linkActive ? 'opacity-100' : 'opacity-0',
+                    )}
+                  />
+                  <category.icon
+                    className={cn(
+                      'size-[18px] transition',
+                      linkActive ? 'text-gold-300' : 'text-brand-300 group-hover:text-gold-300',
+                    )}
+                    aria-hidden
+                  />
+                  <span className="flex-1 text-left">{category.title}</span>
+                </>
+              )}
+            </NavLink>
+          );
+        }
+
+        const isOpen = !!openCategories[category.id];
+        const isActiveCategory = activeCategoryId === category.id;
+        const Icon = category.icon;
+
+        return (
+          <div key={category.id} className="space-y-0.5">
+            <button
+              type="button"
+              onClick={() => toggleCategory(category.id)}
+              aria-expanded={isOpen}
+              className={cn(
+                'group relative flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition duration-150',
+                isActiveCategory
+                  ? 'bg-white/10 text-white font-semibold'
+                  : 'text-brand-200 hover:bg-white/5 hover:text-white',
+              )}
+            >
+              <span
+                className={cn(
+                  'absolute top-1/2 left-0 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-gold-gradient transition',
+                  isActiveCategory ? 'opacity-100' : 'opacity-0',
+                )}
+              />
+              <div className="flex items-center gap-3 min-w-0">
+                <Icon
+                  className={cn(
+                    'size-[18px] shrink-0 transition',
+                    isActiveCategory ? 'text-gold-300' : 'text-brand-300 group-hover:text-gold-300',
+                  )}
+                  aria-hidden
+                />
+                <span className="truncate">{category.title}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-brand-300 ring-1 ring-white/10">
+                  {category.items.length}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    'size-4 text-brand-400 transition-transform duration-200 ease-in-out group-hover:text-gold-300',
+                    isOpen && 'rotate-180 text-gold-300',
+                  )}
+                  aria-hidden
+                />
+              </div>
+            </button>
+
+            {/* Smooth Collapsible Submenu */}
+            <div
+              className={cn(
+                'grid transition-all duration-200 ease-in-out',
+                isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none',
+              )}
+            >
+              <div className="overflow-hidden">
+                <div className="my-1 space-y-0.5 pl-3 border-l border-white/10 ml-5 py-0.5">
+                  {category.items.map(({ to, label, icon: SubIcon }) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      onClick={onItemClick}
+                      className={({ isActive: itemActive }) =>
+                        cn(
+                          'group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition duration-150',
+                          itemActive
+                            ? 'bg-gold-500/15 text-gold-200 font-semibold shadow-sm ring-1 ring-gold-400/20'
+                            : 'text-brand-300 hover:bg-white/5 hover:text-white',
+                        )
+                      }
+                    >
+                      {({ isActive: itemActive }) => (
+                        <>
+                          <SubIcon
+                            className={cn(
+                              'size-4 transition shrink-0',
+                              itemActive ? 'text-gold-400' : 'text-brand-400 group-hover:text-gold-300',
+                            )}
+                            aria-hidden
+                          />
+                          <span className="truncate">{label}</span>
+                          {itemActive && (
+                            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-gold-400 shrink-0" />
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </nav>
   );
 }
 
-function Sidebar({ module }) {
+function Sidebar() {
   const onLogout = useLogout();
   return (
     <aside className="no-print sticky top-0 hidden h-dvh w-72 shrink-0 flex-col border-r border-white/5 surface-ink lg:flex">
@@ -163,40 +343,9 @@ function Sidebar({ module }) {
       </div>
       <div className="mx-5 h-px hairline-gold opacity-60" />
 
-      <nav className="flex-1 scrollbar-thin space-y-6 overflow-y-auto px-3 py-5" aria-label="Main navigation">
-        <div>
-          <div className="mb-2 flex items-center gap-2 px-3.5 text-[11px] font-bold tracking-[0.18em] text-gold-400/90 uppercase">
-            <module.icon className="size-3.5" aria-hidden /> {module.title}
-          </div>
-          <div className="space-y-0.5">
-            {module.items.map(({ to, label, icon }) => (
-              <SideLink key={to} to={to} icon={icon}>
-                {label}
-              </SideLink>
-            ))}
-          </div>
-        </div>
+      <NavAccordion />
 
-        <div>
-          <div className="mb-2 px-3.5 text-[11px] font-bold tracking-[0.18em] text-brand-400 uppercase">
-            Workspace
-          </div>
-          <div className="space-y-0.5">
-            <SideLink to="/" end icon={LayoutDashboard}>
-              Dashboard
-            </SideLink>
-            {Object.entries(MODULES)
-              .filter(([, m]) => m !== module)
-              .map(([key, m]) => (
-                <SideLink key={key} to={m.home} icon={m.icon}>
-                  {m.title}
-                </SideLink>
-              ))}
-          </div>
-        </div>
-      </nav>
-
-      <div className="space-y-3 p-3">
+      <div className="space-y-3 p-3 border-t border-white/5">
         <UserCard onLogout={onLogout} />
         <p className="px-2 pb-1 text-center text-[10px] tracking-wide text-brand-400">
           Powered by {COMPANY.displayName}
@@ -206,20 +355,133 @@ function Sidebar({ module }) {
   );
 }
 
-/** Desktop top bar: breadcrumb, today's date, online dot. */
+function TopBarCategoryDropdown({ category, isActiveCategory, currentPath }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    window.addEventListener('pointerdown', handleDown);
+    return () => window.removeEventListener('pointerdown', handleDown);
+  }, [open]);
+
+  const Icon = category.icon;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className={cn(
+          'flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition',
+          isActiveCategory
+            ? 'bg-brand-900 text-white shadow-sm ring-1 ring-white/10'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+        )}
+      >
+        <Icon className={cn('size-3.5', isActiveCategory ? 'text-gold-400' : 'text-slate-500')} />
+        <span>{category.title}</span>
+        <ChevronDown
+          className={cn(
+            'size-3 text-slate-400 transition-transform duration-150',
+            open && 'rotate-180 text-slate-700',
+          )}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 z-50 mt-1.5 w-56 rounded-2xl border border-line bg-white/95 p-1.5 shadow-pop backdrop-blur-md animate-fade-in">
+          <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+            {category.title}
+          </div>
+          <div className="space-y-0.5">
+            {category.items.map(({ to, label, icon: SubIcon }) => {
+              const isItemActive = currentPath.startsWith(to);
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    'flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-medium transition',
+                    isItemActive
+                      ? 'bg-gold-50 text-brand-950 font-bold ring-1 ring-gold-200/80'
+                      : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900',
+                  )}
+                >
+                  <SubIcon
+                    className={cn('size-3.5', isItemActive ? 'text-gold-600' : 'text-slate-400')}
+                  />
+                  <span className="truncate">{label}</span>
+                  {isItemActive && (
+                    <span className="ml-auto size-1.5 rounded-full bg-gold-500" />
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Desktop top bar: breadcrumb, quick category dropdowns, today's date. */
 function TopBar({ module }) {
   const { pathname } = useLocation();
-  const page = module.items.find((i) => pathname.startsWith(i.to));
-  const label = page?.label ?? (pathname.includes('/edit/') ? 'Edit Purchase Bill' : module.title);
+  const page = module?.items?.find((i) => pathname.startsWith(i.to));
+  const label = page?.label ?? (pathname.includes('/edit/') ? 'Edit Purchase Bill' : module?.title);
+
   return (
-    <div className="no-print sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-line glass px-8 lg:flex">
-      <nav className="flex items-center gap-2 text-sm" aria-label="Breadcrumb">
+    <div className="no-print sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-line glass px-6 lg:flex">
+      <nav className="flex items-center gap-2 text-sm shrink-0" aria-label="Breadcrumb">
         <module.icon className="size-4 text-gold-600" aria-hidden />
         <span className="font-medium text-slate-500">{module.title}</span>
         <ChevronRight className="size-3.5 text-slate-300" aria-hidden />
         <span className="font-semibold text-brand-800">{label}</span>
       </nav>
-      <div className="flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
+
+      {/* Quick Category Dropdown navigation */}
+      <div className="hidden xl:flex items-center gap-1" aria-label="Quick Category Navigation">
+        {NAV_CATEGORIES.map((category) => {
+          if (category.isDirect) {
+            const isActive = pathname === '/';
+            return (
+              <NavLink
+                key={category.id}
+                to={category.to}
+                end
+                className={cn(
+                  'flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition',
+                  isActive
+                    ? 'bg-brand-900 text-white shadow-sm ring-1 ring-white/10'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                )}
+              >
+                <category.icon className={cn('size-3.5', isActive ? 'text-gold-400' : 'text-slate-500')} />
+                <span>{category.title}</span>
+              </NavLink>
+            );
+          }
+
+          const isActiveCategory = pathname.startsWith(category.basePath);
+          return (
+            <TopBarCategoryDropdown
+              key={category.id}
+              category={category}
+              isActiveCategory={isActiveCategory}
+              currentPath={pathname}
+            />
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm shrink-0">
         <CalendarDays className="size-3.5 text-gold-600" aria-hidden />
         {formatDateShort(todayISO())}
       </div>
@@ -227,18 +489,63 @@ function TopBar({ module }) {
   );
 }
 
-function MobileHeader({ module }) {
+function MobileDrawer({ open, onClose }) {
+  const onLogout = useLogout();
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 lg:hidden">
+      <div
+        className="fixed inset-0 bg-brand-950/70 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="relative flex h-full w-80 max-w-[85vw] flex-col surface-ink text-white shadow-2xl ring-1 ring-white/10 animate-sheet-in">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <BrandLockup />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close menu"
+            className="rounded-xl p-2 text-brand-300 hover:bg-white/10 hover:text-white"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <NavAccordion onItemClick={onClose} />
+        </div>
+
+        <div className="border-t border-white/10 p-3">
+          <UserCard onLogout={onLogout} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileHeader({ module, onOpenMenu }) {
   const navigate = useNavigate();
   const onLogout = useLogout();
   return (
-    <header className="no-print pt-safe h-app-header fixed inset-x-0 top-0 z-40 flex items-center gap-2.5 surface-ink px-3 text-white shadow-lift lg:hidden">
+    <header className="no-print pt-safe h-app-header fixed inset-x-0 top-0 z-40 flex items-center gap-2 surface-ink px-3 text-white shadow-lift lg:hidden">
+      <button
+        type="button"
+        onClick={onOpenMenu}
+        aria-label="Open navigation menu"
+        className="rounded-xl p-2 text-brand-200 hover:bg-white/10 active:scale-95 transition"
+      >
+        <Menu className="size-5" />
+      </button>
       <button
         type="button"
         onClick={() => navigate('/')}
         aria-label="Back to dashboard"
-        className="rounded-xl p-2 text-brand-200 hover:bg-white/10"
+        className="rounded-xl p-2 text-brand-200 hover:bg-white/10 active:scale-95 transition"
       >
-        <ArrowLeft className="size-5" />
+        <ArrowLeft className="size-4.5" />
       </button>
       <BrandMark size="sm" />
       <div className="min-w-0 flex-1 leading-tight">
@@ -298,16 +605,24 @@ function BottomTabs({ module }) {
   );
 }
 
-/** Shell of the Sales / Purchase / Overview modules: sidebar on desktop, header + bottom tabs on phones & tablets. */
+/** Shell of the Sales / Purchase / Overview / Finance modules: sidebar on desktop, header + bottom tabs on phones & tablets. */
 export function ModuleLayout({ module: key }) {
   const module = MODULES[key];
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    setMobileDrawerOpen(false);
+  }, [pathname]);
+
   return (
     <div className="flex min-h-dvh">
-      <Sidebar module={module} />
+      <Sidebar />
+      <MobileDrawer open={mobileDrawerOpen} onClose={() => setMobileDrawerOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         {/* the phone header is fixed: this spacer keeps the content below it */}
         <div className="h-app-header lg:hidden" aria-hidden />
-        <MobileHeader module={module} />
+        <MobileHeader module={module} onOpenMenu={() => setMobileDrawerOpen(true)} />
         <OfflineBanner />
         <TopBar module={module} />
         <main className="flex-1 pb-40 lg:pb-10">
