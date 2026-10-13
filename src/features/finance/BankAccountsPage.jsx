@@ -13,6 +13,7 @@ import {
   Plus,
   PlusCircle,
   RefreshCw,
+  RotateCcw,
   Sigma,
   Trash2,
   Wallet,
@@ -134,6 +135,13 @@ export default function BankAccountsPage() {
     salesReturns,
     purchaseReturns,
   ]);
+
+  // Derived current viewing account that stays synchronized with recomputed balances
+  const activeViewingAccount = useMemo(() => {
+    if (!viewingAccount) return null;
+    if (viewingAccount.id === 'cash') return balances.cashAccount;
+    return balances.bankAccounts.find((b) => b.id === viewingAccount.id) || viewingAccount;
+  }, [viewingAccount, balances]);
 
   // Sort internal transfers descending (most recent first at top)
   const sortedAccountTransactions = useMemo(() => {
@@ -343,25 +351,32 @@ export default function BankAccountsPage() {
     { key: 'notes', header: 'Notes', render: (t) => t.notes || '-' },
     {
       key: 'actions',
-      header: 'Actions',
+      header: 'Undo / Revert',
       align: 'center',
       render: (t) => (
-        <IconButton
-          icon={Trash2}
-          tone="danger"
-          title="Delete entry"
+        <button
+          type="button"
           onClick={async () => {
             const ok = await confirm({
-              title: 'Delete Entry?',
-              message: 'This will reverse the effect on balances.',
+              title: 'Undo Entry?',
+              message: `Undo this ${t.type || 'entry'} of ${rs(
+                t.amount,
+              )}? This will reverse the effect and restore your balances.`,
               tone: 'danger',
+              confirmText: 'Undo Entry',
             });
             if (ok) {
               await db.deleteAccountTransaction(t.id);
+              toast('Undone!', 'Entry reversed and balances restored successfully.', 'success');
               refresh();
             }
           }}
-        />
+          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-semibold text-rose-600 shadow-2xs transition hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300"
+          title="Undo this transaction and restore balances"
+        >
+          <RotateCcw className="size-3 text-rose-500" />
+          <span>Undo</span>
+        </button>
       ),
     },
   ];
@@ -745,24 +760,29 @@ export default function BankAccountsPage() {
                           : ''}
                         {rs(t.amount)}
                       </div>
-                      <IconButton
-                        icon={Trash2}
-                        tone="danger"
-                        title="Delete entry"
-                        size="xs"
-                        className="mt-1 ml-auto"
+                      <button
+                        type="button"
                         onClick={async () => {
                           const ok = await confirm({
-                            title: 'Delete Entry?',
-                            message: 'This will reverse the effect on balances.',
+                            title: 'Undo Entry?',
+                            message: `Undo this ${t.type || 'entry'} of ${rs(
+                              t.amount,
+                            )}? This will reverse the effect and restore your balances.`,
                             tone: 'danger',
+                            confirmText: 'Undo Entry',
                           });
                           if (ok) {
                             await db.deleteAccountTransaction(t.id);
+                            toast('Undone!', 'Entry reversed and balances restored successfully.', 'success');
                             refresh();
                           }
                         }}
-                      />
+                        className="mt-1 ml-auto inline-flex items-center gap-1 rounded-md border border-rose-200 bg-white px-2 py-0.5 text-xs font-semibold text-rose-600 shadow-2xs transition hover:bg-rose-50 hover:text-rose-700"
+                        title="Undo this entry and restore balances"
+                      >
+                        <RotateCcw className="size-3 text-rose-500" />
+                        <span>Undo</span>
+                      </button>
                     </div>
                   </div>
                   {t.notes && <div className="text-xs text-slate-500 italic mt-0.5">{t.notes}</div>}
@@ -780,9 +800,9 @@ export default function BankAccountsPage() {
       />
 
       {/* MODALS */}
-      {viewingAccount && (
+      {viewingAccount && activeViewingAccount && (
         <BankAccountDetailModal
-          account={viewingAccount}
+          account={activeViewingAccount}
           allData={{
             salesInvoices,
             purchaseBills,
@@ -797,7 +817,7 @@ export default function BankAccountsPage() {
           }}
           onClose={() => setViewingAccount(null)}
           onEdit={() => {
-            const acc = viewingAccount;
+            const acc = activeViewingAccount;
             setViewingAccount(null);
             setEditingAccount(acc);
           }}
@@ -806,10 +826,11 @@ export default function BankAccountsPage() {
             setShowTransfer(true);
           }}
           onAddAmount={() => {
-            const accId = viewingAccount.id;
+            const accId = activeViewingAccount.id;
             setViewingAccount(null);
             setAdditionalAmountTarget({ accountId: accId, mode: 'in' });
           }}
+          onRefresh={refresh}
         />
       )}
 

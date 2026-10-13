@@ -12,6 +12,7 @@ import {
   Landmark,
   PlusCircle,
   Receipt,
+  RotateCcw,
   Search,
   ShoppingCart,
   TrendingDown,
@@ -21,8 +22,9 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+import { db } from '@/core/db';
 import { formatCurrency, formatDateShort, formatDateIN, toNum } from '@/core/format';
-import { Badge, Button, EmptyState, IconButton, Modal } from '@/ui';
+import { Badge, Button, EmptyState, IconButton, Modal, useFeedback } from '@/ui';
 import { getAccountActivity, toDateKey } from './accountsLogic';
 
 const rs = (n) => {
@@ -97,7 +99,9 @@ export default function BankAccountDetailModal({
   onEdit,
   onTransfer,
   onAddAmount,
+  onRefresh,
 }) {
+  const { toast, confirm } = useFeedback();
   const [filterType, setFilterType] = useState('all'); // 'all' | 'in' | 'out'
   const [searchQuery, setSearchQuery] = useState('');
   const [searchDate, setSearchDate] = useState(''); // 'YYYY-MM-DD' or ''
@@ -126,6 +130,63 @@ export default function BankAccountDetailModal({
     navigator.clipboard?.writeText?.(account.accountNumber);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const canUndo = (item) => {
+    if (!item) return false;
+    if (item.id?.startsWith('tx-in-') || item.id?.startsWith('tx-out-')) return true;
+    if (item.type === 'Additional Amount' || item.type === 'Manual Deduction') return true;
+    if (item.id?.startsWith('fin-pay-') || item.type === 'Loan Repayment') return true;
+    if (item.id?.startsWith('exp-') || item.category === 'Expense') return true;
+    return false;
+  };
+
+  const handleUndo = async (item) => {
+    const isTx =
+      item.id?.startsWith('tx-in-') ||
+      item.id?.startsWith('tx-out-') ||
+      item.category === 'Transfer' ||
+      item.type === 'Additional Amount' ||
+      item.type === 'Manual Deduction';
+    const isLoanPay = item.id?.startsWith('fin-pay-') || item.type === 'Loan Repayment';
+    const isExp = item.id?.startsWith('exp-') || item.category === 'Expense';
+
+    const ok = await confirm({
+      title: 'Undo Transaction?',
+      message: `Are you sure you want to undo this ${item.type || 'entry'} of ${rs(
+        item.amount,
+      )}? This will reverse the effect on ${isCash ? 'Cash in Hand' : account.accountName || 'this account'}.`,
+      tone: 'danger',
+      confirmText: 'Undo Entry',
+    });
+    if (!ok) return;
+
+    try {
+      if (isTx) {
+        const txId = item.sourceRef?.id || item.id.replace(/^tx-(?:in|out)-/, '');
+        await db.deleteAccountTransaction(txId);
+      } else if (isLoanPay) {
+        const payId = item.sourceRef?.id;
+        const allRecords = allData?.financeRecords || [];
+        const record = allRecords.find((r) => (r.payments || []).some((p) => p.id === payId));
+        if (record && payId) {
+          const updated = {
+            ...record,
+            payments: (record.payments || []).filter((p) => p.id !== payId),
+          };
+          await db.saveFinanceRecord(updated);
+        }
+      } else if (isExp) {
+        const expId = item.sourceRef?.id || item.id.replace(/^exp-/, '');
+        await db.deleteExpense(expId);
+      }
+
+      toast('Undone!', 'Transaction reversed and balance updated successfully.', 'success');
+      onRefresh?.();
+    } catch (err) {
+      console.error('Failed to undo transaction:', err);
+      toast('Error', 'Failed to undo transaction. Please try again.', 'error');
+    }
   };
 
   const todayKey = useMemo(() => toDateKey(new Date()), []);
@@ -285,7 +346,7 @@ export default function BankAccountDetailModal({
               Current Balance
             </div>
             <div className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">
-              {rs(account.currentBalance ?? activity.computedCurrentBalance)}
+              {rs(activity.computedCurrentBalance)}
             </div>
             <div className="mt-2 text-[11px] text-brand-200 flex items-center justify-between">
               <span>Opening:</span>
@@ -794,7 +855,7 @@ export default function BankAccountDetailModal({
                               </div>
                             </div>
 
-                            <div className="text-right">
+                            <div className="text-right flex flex-col items-end">
                               <div
                                 className={`font-display text-sm font-extrabold tabular-nums sm:text-base ${
                                   isIn ? 'text-emerald-700' : 'text-rose-700'
@@ -803,6 +864,20 @@ export default function BankAccountDetailModal({
                                 {isIn ? '+' : '-'}
                                 {rs(item.amount)}
                               </div>
+                              {canUndo(item) && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUndo(item);
+                                  }}
+                                  className="mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-800 transition border border-transparent hover:border-rose-200"
+                                  title="Undo this transaction"
+                                >
+                                  <RotateCcw className="size-3" />
+                                  <span>Undo</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         );

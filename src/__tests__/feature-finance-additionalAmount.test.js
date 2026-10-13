@@ -159,3 +159,98 @@ describe('getAccountActivity with manual additions and deductions', () => {
     expect(activity.breakdown.manualDeductionOutflow).toBe(250);
   });
 });
+
+describe('undo and reversal of transactions', () => {
+  const bankAccounts = [
+    { id: 'sbi', accountName: 'SBI Current', openingBalance: 10000 },
+    { id: 'hdfc', accountName: 'HDFC Savings', openingBalance: 5000 },
+  ];
+
+  test('undoing an accidental additional amount restores original balance', () => {
+    // 1. User unknowingly adds Rs. 5000 to SBI
+    const accidentalTx = {
+      id: 'tx_accidental',
+      date: '2026-10-13',
+      fromAccount: null,
+      toAccount: 'sbi',
+      amount: 5000,
+      type: 'Additional Amount',
+      category: 'Owner Capital / Personal Funds',
+    };
+
+    let result = computeAccountBalances({
+      bankAccounts,
+      cashOpening: 2000,
+      accountTransactions: [accidentalTx],
+    });
+    expect(result.bankAccounts.find((b) => b.id === 'sbi').currentBalance).toBe(15000);
+
+    // 2. User clicks Undo -> transaction removed
+    result = computeAccountBalances({
+      bankAccounts,
+      cashOpening: 2000,
+      accountTransactions: [], // undo removes it
+    });
+    expect(result.bankAccounts.find((b) => b.id === 'sbi').currentBalance).toBe(10000);
+    expect(result.totalAvailableFunds).toBe(17000);
+  });
+
+  test('undoing an accidental manual deduction restores the balance', () => {
+    // 1. Accidental deduction from cash
+    const accidentalDeduction = {
+      id: 'tx_deduct',
+      date: '2026-10-13',
+      fromAccount: 'cash',
+      toAccount: null,
+      amount: 1500,
+      type: 'Manual Deduction',
+      category: 'Owner Drawings',
+    };
+
+    let result = computeAccountBalances({
+      bankAccounts,
+      cashOpening: 5000,
+      accountTransactions: [accidentalDeduction],
+    });
+    expect(result.cashBalance).toBe(3500);
+
+    // 2. User clicks Undo
+    result = computeAccountBalances({
+      bankAccounts,
+      cashOpening: 5000,
+      accountTransactions: [],
+    });
+    expect(result.cashBalance).toBe(5000);
+  });
+
+  test('undoing a fund transfer restores both source and target balances', () => {
+    // 1. Accidental transfer from Cash to HDFC of Rs. 2000
+    const accidentalTransfer = {
+      id: 'tx_transfer',
+      date: '2026-10-13',
+      fromAccount: 'cash',
+      toAccount: 'hdfc',
+      amount: 2000,
+      type: 'Deposit',
+      notes: 'Accidental transfer',
+    };
+
+    let result = computeAccountBalances({
+      bankAccounts,
+      cashOpening: 5000,
+      accountTransactions: [accidentalTransfer],
+    });
+    expect(result.cashBalance).toBe(3000);
+    expect(result.bankAccounts.find((b) => b.id === 'hdfc').currentBalance).toBe(7000);
+
+    // 2. User clicks Undo
+    result = computeAccountBalances({
+      bankAccounts,
+      cashOpening: 5000,
+      accountTransactions: [],
+    });
+    expect(result.cashBalance).toBe(5000);
+    expect(result.bankAccounts.find((b) => b.id === 'hdfc').currentBalance).toBe(5000);
+  });
+});
+
