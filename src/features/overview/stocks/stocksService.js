@@ -10,6 +10,7 @@ export async function loadStocks() {
     salesReturns,
     purchaseReturns,
     dyeingBatches,
+    combingBatches,
   ] = await Promise.all([
     db.getAllPurchaseBills().catch(() => []),
     db.getAllInvoices().catch(() => []),
@@ -18,6 +19,7 @@ export async function loadStocks() {
     db.getAllReturns().catch(() => []),
     db.getAllPurchaseReturns().catch(() => []),
     db.getAllDyeingBatches ? db.getAllDyeingBatches().catch(() => []) : Promise.resolve([]),
+    db.getAllCombingBatches ? db.getAllCombingBatches().catch(() => []) : Promise.resolve([]),
   ]);
   return computeStocks(
     purchaseBills || [],
@@ -27,6 +29,7 @@ export async function loadStocks() {
     salesReturns || [],
     purchaseReturns || [],
     dyeingBatches || [],
+    combingBatches || [],
   );
 }
 

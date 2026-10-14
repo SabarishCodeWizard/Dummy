@@ -139,11 +139,13 @@ export async function fetchDashboardData() {
     db.getAllReturns(),
     db.getAllPurchaseReturns(),
     db.getAllDyeingBatches ? db.getAllDyeingBatches() : Promise.resolve([]),
+    db.getAllCombingBatches ? db.getAllCombingBatches() : Promise.resolve([]),
   ]);
 
   const pBills = purchaseBills || [];
   const batches = dyeingBatches || [];
-  const avgCostLookup = buildAvgCostLookup(pBills, batches);
+  const cBatches = combingBatches || [];
+  const avgCostLookup = buildAvgCostLookup(pBills, batches, cBatches);
 
   // Pre-calculate accurate profit for each bill using purchase cost history
   const enrichedSalesBills = (salesBills || []).map((bill) => {
@@ -158,6 +160,7 @@ export async function fetchDashboardData() {
     salesBills: enrichedSalesBills,
     purchaseBills: pBills,
     dyeingBatches: batches,
+    combingBatches: cBatches,
     expenses: expenses || [],
     customers: customers || [],
     suppliers: suppliers || [],

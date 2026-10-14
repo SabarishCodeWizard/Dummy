@@ -25,6 +25,8 @@ const SupplierDetailsPage = lazy(() => import('@/features/purchase/pages/Supplie
 const PurchaseBinPage = lazy(() => import('@/features/recycleBin/PurchaseBinPage'));
 const DyeingPage = lazy(() => import('@/features/dyeing/DyeingPage'));
 const DyeingDetailsPage = lazy(() => import('@/features/dyeing/DyeingDetailsPage'));
+const CombingPage = lazy(() => import('@/features/combing/CombingPage'));
+const CombingDetailsPage = lazy(() => import('@/features/combing/CombingDetailsPage'));
 
 const RevenuePage = lazy(() => import('@/features/overview/revenue/RevenuePage'));
 const StatisticsPage = lazy(() => import('@/features/overview/revenue/StatisticsPage'));
@@ -71,6 +73,13 @@ export function AppRoutes() {
               <Route path="details" element={<DyeingDetailsPage />} />
               <Route path="new" element={<DyeingPage openNew />} />
               <Route path="add-dyer" element={<Navigate to="/dyeing/details" replace />} />
+            </Route>
+
+            <Route path="combing" element={<ModuleLayout module="combing" />}>
+              <Route index element={<Navigate to="batches" replace />} />
+              <Route path="batches" element={<CombingPage />} />
+              <Route path="details" element={<CombingDetailsPage />} />
+              <Route path="new" element={<CombingPage openNew />} />
             </Route>
 
             <Route path="sales" element={<ModuleLayout module="sales" />}>

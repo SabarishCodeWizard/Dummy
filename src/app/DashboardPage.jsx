@@ -44,6 +44,13 @@ const MODULE_CARDS = [
     points: ['Processing batches', 'Dyeing details directory', 'Delivery challans'],
   },
   {
+    to: '/combing/batches',
+    title: 'Combing & Processing',
+    text: 'Send dyed fabric for combing, record actual shrinkage & yield, and update combed stock.',
+    icon: Sparkles,
+    points: ['Processing batches', 'Combing details directory', 'Finished combed yield'],
+  },
+  {
     to: '/sales/bill',
     title: 'Sales',
     text: 'Create invoices, collect payments and keep every customer ledger in order.',

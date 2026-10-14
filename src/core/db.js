@@ -937,5 +937,76 @@ export class Database {
     await deleteDoc(this.ref('dyers', id));
     this._cache.dyers = null;
   }
+
+  // ------------------------------------------------------------------ Combing & Processing Batches
+  async saveCombingBatch(batchData) {
+    const id = batchData.batchId || batchData.id || uid('combing_batch');
+    await setDoc(this.ref('combing_batches', id), {
+      ...batchData,
+      id,
+      batchId: id,
+      updatedAt: serverTimestamp(),
+      createdAt: batchData.createdAt || new Date().toISOString(),
+    });
+    this._cache.combing_batches = null;
+    return id;
+  }
+  async getAllCombingBatches() {
+    return this._load(
+      'combing_batches',
+      async () => {
+        const records = await this._all('combing_batches');
+        return records.sort(
+          (a, b) =>
+            new Date(b.batchDate || b.createdAt || 0).getTime() -
+            new Date(a.batchDate || a.createdAt || 0).getTime(),
+        );
+      },
+      { onError: 'empty' },
+    );
+  }
+  async getCombingBatch(id) {
+    const cached = this._cache.combing_batches?.find((b) => b.id === id || b.batchId === id);
+    if (cached) return cached;
+    const snap = await getDoc(this.ref('combing_batches', id));
+    return snap.exists() ? snap.data() : null;
+  }
+  async deleteCombingBatch(id) {
+    await deleteDoc(this.ref('combing_batches', id));
+    this._cache.combing_batches = null;
+  }
+
+  // ------------------------------------------------------------------ Processors Directory (Combing & Processing Units)
+  async saveProcessor(processorData) {
+    const id = processorData.id || (processorData.phone ? `proc_${processorData.phone.trim()}` : uid('proc'));
+    await setDoc(this.ref('processors', id), {
+      ...processorData,
+      id,
+      updatedAt: serverTimestamp(),
+      createdAt: processorData.createdAt || new Date().toISOString(),
+    });
+    this._cache.processors = null;
+    return id;
+  }
+  async getAllProcessors() {
+    return this._load(
+      'processors',
+      async () => {
+        const records = await this._all('processors');
+        return records.sort((a, b) => (a.processorName || a.name || '').localeCompare(b.processorName || b.name || ''));
+      },
+      { onError: 'empty' },
+    );
+  }
+  async getProcessor(id) {
+    const cached = this._cache.processors?.find((p) => p.id === id || p.phone === id);
+    if (cached) return cached;
+    const snap = await getDoc(this.ref('processors', id));
+    return snap.exists() ? snap.data() : null;
+  }
+  async deleteProcessor(id) {
+    await deleteDoc(this.ref('processors', id));
+    this._cache.processors = null;
+  }
 }
 export const db = new Database();

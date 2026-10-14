@@ -15,6 +15,7 @@ import {
   PieChart,
   Receipt,
   ShoppingCart,
+  Sparkles,
   Trash2,
   TrendingUp,
   UserPlus,
@@ -38,9 +39,10 @@ import { OfflineBanner } from './pwa';
  * 1. Dashboard
  * 2. Purchase (Inward Grey Rolls / Traded Colored Rolls)
  * 3. Dyeing & Processing (Convert Grey to Finished Dyed Rolls)
- * 4. Sales (Sell Finished Rolls)
- * 5. Finance (Bank, Cash, and Ledger Tracking)
- * 6. Overview (Stocks, Profit/Revenue, Analytics, Expenses)
+ * 4. Combing & Processing (Combing & Finishing)
+ * 5. Sales (Sell Finished Rolls)
+ * 6. Finance (Bank, Cash, and Ledger Tracking)
+ * 7. Overview (Stocks, Profit/Revenue, Analytics, Expenses)
  */
 export const NAV_CATEGORIES = [
   {
@@ -73,6 +75,17 @@ export const NAV_CATEGORIES = [
     items: [
       { to: '/dyeing/batches', label: 'Processing Batches', short: 'Batches', icon: Layers },
       { to: '/dyeing/details', label: 'Dyeing Details', short: 'Dyeing Details', icon: Users },
+    ],
+  },
+  {
+    id: 'combing',
+    title: 'Combing & Processing',
+    icon: Sparkles,
+    basePath: '/combing',
+    home: '/combing/batches',
+    items: [
+      { to: '/combing/batches', label: 'Processing Batches', short: 'Batches', icon: Layers },
+      { to: '/combing/details', label: 'Processing Details', short: 'Processing Details', icon: Users },
     ],
   },
   {
@@ -121,9 +134,10 @@ export const NAV_CATEGORIES = [
 export const MODULES = {
   purchase: NAV_CATEGORIES[1],
   dyeing: NAV_CATEGORIES[2],
-  sales: NAV_CATEGORIES[3],
-  finance: NAV_CATEGORIES[4],
-  overview: NAV_CATEGORIES[5],
+  combing: NAV_CATEGORIES[3],
+  sales: NAV_CATEGORIES[4],
+  finance: NAV_CATEGORIES[5],
+  overview: NAV_CATEGORIES[6],
 };
 
 function useLogout() {
