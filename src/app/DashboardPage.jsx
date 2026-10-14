@@ -43,18 +43,18 @@ const MODULE_CARDS = [
     points: ['Sales bills & printing', 'History & statements', 'Customer details'],
   },
   {
-    to: '/overview/revenue',
-    title: 'Overview',
-    text: 'Understand revenue, stock and expenses at a glance.',
-    icon: PieChart,
-    points: ['Revenue & profit', 'Live stock levels', 'Expense tracking'],
-  },
-  {
     to: '/finance/accounts',
     title: 'Finance',
     text: 'Manage money borrowings, bank accounts and cash in hand.',
     icon: Landmark,
     points: ['Bank & Cash balances', 'Loans & borrowings', 'Auto-calculated interest'],
+  },
+  {
+    to: '/overview/revenue',
+    title: 'Overview',
+    text: 'Understand revenue, stock and expenses at a glance.',
+    icon: PieChart,
+    points: ['Revenue & profit', 'Live stock levels', 'Expense tracking'],
   },
 ];
 
