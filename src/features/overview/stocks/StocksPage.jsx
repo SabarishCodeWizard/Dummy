@@ -211,7 +211,7 @@ export default function StocksPage() {
               </span>
               {[
                 { id: 'all', label: 'All Items' },
-                { id: 'finished', label: 'Finished Colored Rolls' },
+                { id: 'finished', label: 'Finished Fabric' },
                 { id: 'rawGrey', label: 'Raw Grey Fabric' },
               ].map((tab) => (
                 <button

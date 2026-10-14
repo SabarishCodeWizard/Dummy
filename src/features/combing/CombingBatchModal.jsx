@@ -309,7 +309,7 @@ export function CombingBatchModal({
                     matchedInputStock.available > 0 ? 'text-emerald-700' : 'text-rose-600',
                   )}
                 >
-                  {matchedInputStock.available} Units
+                  {matchedInputStock.available} Qty
                 </strong>
               </span>
             )}
@@ -339,7 +339,7 @@ export function CombingBatchModal({
                       <strong className="font-mono text-sm font-extrabold text-amber-950">
                         {rupees(fabricRateDetails.avgRate || form.input.avgRate || 0)}
                       </strong>
-                      <span className="text-slate-500"> / unit</span>
+                      <span className="text-slate-500"> / qty</span>
                       {fabricRateDetails.sourcesCount > 0 && (
                         <span className="ml-2 rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
                           From {fabricRateDetails.sourcesCount}{' '}
@@ -476,8 +476,8 @@ export function CombingBatchModal({
 
           <div className="space-y-3">
             {form.output.map((out, idx) => (
-              <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                <div className="sm:col-span-9">
+              <div key={idx} className="flex items-end gap-2">
+                <div className="flex-1">
                   <ProductDescriptionInput
                     label={idx === 0 ? 'Finished Combed Product Name *' : 'Additional Product'}
                     value={out.description}
@@ -487,26 +487,16 @@ export function CombingBatchModal({
                     placeholder="e.g. Cotton Combed Navy Blue"
                   />
                 </div>
-                <div className="sm:col-span-3 flex items-center gap-2">
-                  <div className="flex-1">
-                    <TextField
-                      label="Unit"
-                      value={out.unit || form.input.unit || 'Rolls'}
-                      onChange={(v) => updateOutput(idx, 'unit', v)}
-                      placeholder="Rolls"
-                    />
-                  </div>
-                  {form.output.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeOutputRow(idx)}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition mb-0.5"
-                      title="Remove product"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  )}
-                </div>
+                {form.output.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeOutputRow(idx)}
+                    className="rounded-lg p-2.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition mb-0.5"
+                    title="Remove product"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                )}
               </div>
             ))}
 

@@ -85,7 +85,7 @@ export function DyeingChallanModal({ open, onClose, batch }) {
             <tbody>
               <tr>
                 <td className="p-2 border-r border-slate-300 font-medium">{batch.input?.description}</td>
-                <td className="p-2 border-r border-slate-300 text-center">{batch.input?.unit || 'Rolls'}</td>
+                <td className="p-2 border-r border-slate-300 text-center">{batch.input?.unit && batch.input.unit !== 'Rolls' ? batch.input.unit : 'Qty'}</td>
                 <td className="p-2 border-r border-slate-300 text-right font-bold">{batch.input?.qty}</td>
                 <td className="p-2 border-r border-slate-300 text-right">{rupees(batch.input?.avgGreyRate || 0)}</td>
                 <td className="p-2 text-right font-bold">{rupees(batch.input?.totalGreyCost || 0)}</td>
@@ -99,7 +99,7 @@ export function DyeingChallanModal({ open, onClose, batch }) {
               <div>
                 <span className="font-semibold text-slate-600">Agreed Dyeing Rate: </span>
                 <span className="font-mono font-bold text-slate-900">
-                  {rupees(batch.dyeingRate || batch.input?.dyeingRate || 0)} / unit
+                  {rupees(batch.dyeingRate || batch.input?.dyeingRate || 0)} / qty
                 </span>
               </div>
               {(batch.weightLossPct || batch.input?.weightLossPct) ? (
@@ -132,14 +132,14 @@ export function DyeingChallanModal({ open, onClose, batch }) {
                   <th className="p-2 border-r border-slate-300 font-bold">Finished Product</th>
                   <th className="p-2 border-r border-slate-300 font-bold text-center">Unit</th>
                   <th className="p-2 border-r border-slate-300 font-bold text-right">Quantity</th>
-                  <th className="p-2 font-bold text-right">Unit Manufactured Cost</th>
+                  <th className="p-2 font-bold text-right">Cost / Qty</th>
                 </tr>
               </thead>
               <tbody>
                 {batch.output.map((out, idx) => (
                   <tr key={idx} className="border-b border-slate-200">
                     <td className="p-2 border-r border-slate-300 font-medium">{out.description}</td>
-                    <td className="p-2 border-r border-slate-300 text-center">{out.unit || 'Rolls'}</td>
+                    <td className="p-2 border-r border-slate-300 text-center">{out.unit && out.unit !== 'Rolls' ? out.unit : 'Qty'}</td>
                     <td className="p-2 border-r border-slate-300 text-right font-bold">{out.qty}</td>
                     <td className="p-2 text-right font-mono font-bold text-emerald-800">
                       {rupees(out.unitCost || 0)}

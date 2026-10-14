@@ -186,7 +186,7 @@ export default function DyeingPage({ openNew = false }) {
               </h1>
             </div>
             <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
-              Raw grey roll purchasing, dyeing expense allocation, finished stock conversion & true profit
+              Raw grey fabric purchasing, dyeing expense allocation, finished stock conversion & true profit
               calculation
             </p>
           </div>
@@ -217,14 +217,14 @@ export default function DyeingPage({ openNew = false }) {
           />
           <StatCard
             label="Raw Grey Processed"
-            value={`${kpis.totalGreyQty} Rolls`}
+            value={`${kpis.totalGreyQty} Qty`}
             icon={Package}
             tone="brand"
             subtext="Total input fabric"
           />
           <StatCard
             label="Finished Output"
-            value={`${kpis.totalOutputQty} Rolls`}
+            value={`${kpis.totalOutputQty} Qty`}
             icon={TrendingUp}
             tone="brand"
             subtext="Ready for sale"
@@ -375,7 +375,7 @@ export default function DyeingPage({ openNew = false }) {
                       </div>
                       <div className="mt-0.5 font-medium text-slate-800">{batch.input?.description}</div>
                       <div className="mt-0.5 font-semibold text-slate-600">
-                        {batch.input?.qty} Units @ {rupees(batch.input?.avgGreyRate || 0)} ={' '}
+                        {batch.input?.qty} Qty @ {rupees(batch.input?.avgGreyRate || 0)} ={' '}
                         <span className="text-amber-800">{rupees(batch.input?.totalGreyCost || 0)}</span>
                       </div>
                     </div>
@@ -390,7 +390,7 @@ export default function DyeingPage({ openNew = false }) {
                       <div className="mt-0.5 text-slate-500">
                         {batch.dyeingRate || batch.input?.dyeingRate ? (
                           <span>
-                            {rupees(batch.dyeingRate || batch.input?.dyeingRate)}/unit
+                            {rupees(batch.dyeingRate || batch.input?.dyeingRate)}/qty
                             {(batch.weightLossPct || batch.input?.weightLossPct) ? (
                               <span> • {batch.weightLossPct || batch.input?.weightLossPct}% loss</span>
                             ) : null}
@@ -412,7 +412,7 @@ export default function DyeingPage({ openNew = false }) {
                               {out.description}
                             </span>
                             <span className="shrink-0 font-mono font-bold text-emerald-800">
-                              {out.qty} Units ({rupees(out.unitCost || 0)}/u)
+                              {out.qty} Qty ({rupees(out.unitCost || 0)}/qty)
                             </span>
                           </div>
                         ))}

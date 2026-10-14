@@ -223,7 +223,7 @@ describe('Dyeing & Processing Batch Logic (Workflow 2: Manufacturing)', () => {
       }),
     ).toEqual({
       title: 'Missing Input Material',
-      message: 'Please select the raw grey roll to process.',
+      message: 'Please select the raw grey fabric to process.',
     });
 
     // Completed batch requires finished output
@@ -239,7 +239,7 @@ describe('Dyeing & Processing Batch Logic (Workflow 2: Manufacturing)', () => {
     ).toEqual({
       title: 'Missing Finished Goods',
       message:
-        'To mark the batch as Completed, please specify at least one finished colored roll with quantity.',
+        'To mark the batch as Completed, please specify at least one finished colored fabric with quantity.',
     });
 
     // Valid completed batch

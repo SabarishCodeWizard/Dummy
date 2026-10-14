@@ -216,14 +216,14 @@ export default function CombingPage({ openNew = false }) {
           />
           <StatCard
             label="Dyed Fabric Sent"
-            value={`${kpis.totalInputQty} Rolls`}
+            value={`${kpis.totalInputQty} Qty`}
             icon={Package}
             tone="brand"
             subtext="Dispatched for combing"
           />
           <StatCard
             label="Finished Combed Output"
-            value={`${kpis.totalOutputQty} Rolls`}
+            value={`${kpis.totalOutputQty} Qty`}
             icon={TrendingUp}
             tone="brand"
             subtext="Added to live stock"
@@ -285,7 +285,7 @@ export default function CombingPage({ openNew = false }) {
             description={
               searchTerm || statusFilter !== 'ALL'
                 ? 'Try adjusting your search keywords or filter.'
-                : 'Dispatch your dyed fabric for combing and processing to create finished combed rolls.'
+                : 'Dispatch your dyed fabric for combing and processing to create finished combed fabric.'
             }
             action={
               <Button variant="primary" icon={Plus} onClick={handleOpenNew}>
@@ -378,7 +378,7 @@ export default function CombingPage({ openNew = false }) {
                       </div>
                       <div className="mt-0.5 font-medium text-slate-800">{batch.input?.description}</div>
                       <div className="mt-0.5 font-semibold text-slate-600">
-                        {batch.input?.qty} Units @ {rupees(batch.input?.avgRate || batch.input?.rate || 0)} ={' '}
+                        {batch.input?.qty} Qty @ {rupees(batch.input?.avgRate || batch.input?.rate || 0)} ={' '}
                         <span className="text-amber-800">
                           {rupees(batch.input?.totalCost || 0)}
                         </span>
@@ -395,7 +395,7 @@ export default function CombingPage({ openNew = false }) {
                       <div className="mt-0.5 text-slate-500">
                         {batch.processingRate || batch.input?.processingRate ? (
                           <span>
-                            {rupees(batch.processingRate || batch.input?.processingRate)}/unit
+                            {rupees(batch.processingRate || batch.input?.processingRate)}/qty
                             {batch.weightLossPct || batch.input?.weightLossPct ? (
                               <span> • {batch.weightLossPct || batch.input?.weightLossPct}% loss</span>
                             ) : null}
@@ -417,7 +417,7 @@ export default function CombingPage({ openNew = false }) {
                               {out.description}
                             </span>
                             <span className="shrink-0 font-mono font-bold text-emerald-800">
-                              {out.qty} Units ({rupees(out.unitCost || 0)}/u)
+                              {out.qty} Qty ({rupees(out.unitCost || 0)}/qty)
                             </span>
                           </div>
                         ))}

@@ -95,7 +95,7 @@ export function CombingChallanModal({ open, onClose, batch }) {
                   {batch.input?.description}
                 </td>
                 <td className="p-2 border-r border-slate-300 text-center">
-                  {batch.input?.unit || 'Rolls'}
+                  {batch.input?.unit && batch.input.unit !== 'Rolls' ? batch.input.unit : 'Qty'}
                 </td>
                 <td className="p-2 border-r border-slate-300 text-right font-bold">
                   {batch.input?.qty}
@@ -116,7 +116,7 @@ export function CombingChallanModal({ open, onClose, batch }) {
               <div>
                 <span className="font-semibold text-slate-600">Agreed Combing Rate: </span>
                 <span className="font-mono font-bold text-slate-900">
-                  {rupees(batch.processingRate || batch.input?.processingRate || 0)} / unit
+                  {rupees(batch.processingRate || batch.input?.processingRate || 0)} / qty
                 </span>
               </div>
               {batch.weightLossPct ? (
@@ -149,7 +149,7 @@ export function CombingChallanModal({ open, onClose, batch }) {
                   <th className="p-2 border-r border-slate-300 font-bold">Finished Product</th>
                   <th className="p-2 border-r border-slate-300 font-bold text-center">Unit</th>
                   <th className="p-2 border-r border-slate-300 font-bold text-right">Quantity</th>
-                  <th className="p-2 font-bold text-right">Unit Manufactured Cost</th>
+                  <th className="p-2 font-bold text-right">Cost / Qty</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,7 +157,7 @@ export function CombingChallanModal({ open, onClose, batch }) {
                   <tr key={idx} className="border-b border-slate-200">
                     <td className="p-2 border-r border-slate-300 font-medium">{out.description}</td>
                     <td className="p-2 border-r border-slate-300 text-center">
-                      {out.unit || 'Rolls'}
+                      {out.unit && out.unit !== 'Rolls' ? out.unit : 'Qty'}
                     </td>
                     <td className="p-2 border-r border-slate-300 text-right font-bold">{out.qty}</td>
                     <td className="p-2 text-right font-mono font-bold text-emerald-800">

@@ -320,7 +320,7 @@ export function DyeingBatchModal({
               <span className="text-xs text-amber-900 font-medium bg-amber-100/70 px-2 py-0.5 rounded-full border border-amber-200">
                 Available in stock:{' '}
                 <strong className={matchedInputStock.available > 0 ? 'text-emerald-700' : 'text-red-600'}>
-                  {matchedInputStock.available} Units
+                  {matchedInputStock.available} Qty
                 </strong>
               </span>
             )}
@@ -330,7 +330,7 @@ export function DyeingBatchModal({
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
             <div className="sm:col-span-8">
               <ProductDescriptionInput
-                label="Grey Fabric Roll Description *"
+                label="Grey Fabric Description *"
                 value={form.input.description}
                 onChange={handleInputDescriptionChange}
                 shortcuts={shortcuts}
@@ -359,11 +359,11 @@ export function DyeingBatchModal({
                   <span className="font-mono text-lg font-black text-amber-950">
                     {rupees(totals.greyRate || greyRateDetails.avgRate || 0)}
                   </span>
-                  <span className="text-xs text-slate-500 font-medium">/ unit</span>
+                  <span className="text-xs text-slate-500 font-medium">/ qty</span>
                   {greyRateDetails.suppliersCount > 0 && (
                     <span className="text-xs text-slate-500">
                       (Across {greyRateDetails.suppliersCount} supplier
-                      {greyRateDetails.suppliersCount > 1 ? 's' : ''}, {greyRateDetails.totalQty} total units)
+                      {greyRateDetails.suppliersCount > 1 ? 's' : ''}, {greyRateDetails.totalQty} total qty)
                     </span>
                   )}
                 </div>
@@ -520,7 +520,7 @@ export function DyeingBatchModal({
             <div className="flex items-center gap-2">
               <TrendingUp className="size-4 text-emerald-700" />
               <h3 className="text-sm font-bold text-emerald-900 uppercase tracking-wider">
-                2. Finished Goods Produced (Colored Rolls)
+                2. Finished Goods Produced (Colored Fabric)
               </h3>
             </div>
             <div className="flex items-center gap-2">
@@ -542,7 +542,7 @@ export function DyeingBatchModal({
                 onClick={addOutputRow}
                 className="text-xs h-7 px-2"
               >
-                Add Color / Roll
+                Add Finished Fabric
               </Button>
             </div>
           </div>
@@ -559,7 +559,7 @@ export function DyeingBatchModal({
                     onChange={(v) => updateOutput(idx, 'description', v)}
                     shortcuts={shortcuts}
                     stockMap={stockMap}
-                    placeholder="Finished roll description (e.g. Cotton Dyed Navy Blue)"
+                    placeholder="Finished fabric description (e.g. Cotton Dyed Navy Blue)"
                   />
                 </div>
                 <div className="sm:col-span-3">
@@ -575,7 +575,7 @@ export function DyeingBatchModal({
                 </div>
                 <div className="sm:col-span-2 text-right pr-2">
                   <div className="text-xs font-bold text-emerald-800 tabular-nums">
-                    {rupees(out.unitCost || totals.adjustedUnitCost)} / unit
+                    {rupees(out.unitCost || totals.adjustedUnitCost)} / qty
                   </div>
                   <div className="text-[10px] text-slate-400">
                     Allocated: {rupees(out.allocatedCost || 0)}
@@ -587,7 +587,7 @@ export function DyeingBatchModal({
                       type="button"
                       onClick={() => removeOutputRow(idx)}
                       className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-                      title="Remove output roll"
+                      title="Remove output item"
                     >
                       <Trash2 className="size-4" />
                     </button>

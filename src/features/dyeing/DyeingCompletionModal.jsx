@@ -174,7 +174,7 @@ export function DyeingCompletionModal({
     if (validOutputs.length === 0) {
       toast(
         'Finished Goods Required',
-        'Please enter at least one finished colored roll with quantity received.',
+        'Please enter at least one finished colored fabric with quantity received.',
         'warning',
       );
       return;
@@ -262,7 +262,7 @@ export function DyeingCompletionModal({
                 <strong className="font-mono text-base font-extrabold text-emerald-800">
                   {rupees(finalAdjustedUnitCost)}
                 </strong>
-                <span className="text-slate-500">/ unit</span>
+                <span className="text-slate-500">/ qty</span>
               </div>
             ) : (
               <span className="text-amber-700 font-medium">
@@ -303,9 +303,9 @@ export function DyeingCompletionModal({
             <div className="bg-white p-2 rounded-lg border border-slate-200">
               <div className="text-[10px] text-slate-400 uppercase font-semibold">Raw Grey Sent</div>
               <div className="font-mono font-bold text-slate-900 mt-0.5">
-                {inputQty} {batch.input?.unit || 'Units'}
+                {inputQty} Qty
               </div>
-              <div className="text-[10px] text-slate-500 font-mono">@{rupees(avgGreyRate)}/u</div>
+              <div className="text-[10px] text-slate-500 font-mono">@{rupees(avgGreyRate)}/qty</div>
             </div>
 
             <div className="bg-white p-2 rounded-lg border border-slate-200">
@@ -317,13 +317,13 @@ export function DyeingCompletionModal({
             <div className="bg-white p-2 rounded-lg border border-slate-200">
               <div className="text-[10px] text-slate-400 uppercase font-semibold">Dyeing Charges</div>
               <div className="font-mono font-bold text-indigo-700 mt-0.5">+{rupees(totalDyeingCost)}</div>
-              <div className="text-[10px] text-slate-500 font-mono">@{rupees(dyeingRate)}/u</div>
+              <div className="text-[10px] text-slate-500 font-mono">@{rupees(dyeingRate)}/qty</div>
             </div>
 
             <div className="bg-white p-2 rounded-lg border border-slate-200">
               <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Batch Cost</div>
               <div className="font-mono font-bold text-slate-900 mt-0.5">={rupees(totalBatchCost)}</div>
-              <div className="text-[10px] text-slate-500 font-mono">({rupees(costBeforeLoss)}/u before loss)</div>
+              <div className="text-[10px] text-slate-500 font-mono">({rupees(costBeforeLoss)}/qty before loss)</div>
             </div>
           </div>
         </div>
@@ -390,13 +390,13 @@ export function DyeingCompletionModal({
               <div className="bg-white/10 p-2 rounded">
                 <div className="text-[10px] text-slate-300">Finished Goods Yield</div>
                 <div className="font-mono font-bold text-white mt-0.5">
-                  {actualFinishedQty > 0 ? `${actualFinishedQty} units` : '-'}
+                  {actualFinishedQty > 0 ? `${actualFinishedQty} Qty` : '-'}
                 </div>
                 <div className="text-[10px] text-slate-400">surviving output</div>
               </div>
 
               <div className="bg-emerald-500/20 border border-emerald-400/30 p-2 rounded">
-                <div className="text-[10px] text-emerald-200 font-semibold">Final Adjusted Cost / Unit</div>
+                <div className="text-[10px] text-emerald-200 font-semibold">Final Adjusted Cost / Qty</div>
                 <div className="font-mono font-black text-emerald-300 text-sm mt-0.5">
                   {rupees(finalAdjustedUnitCost)}
                 </div>
@@ -438,7 +438,7 @@ export function DyeingCompletionModal({
                     onChange={(v) => updateOutputField(idx, 'description', v)}
                     shortcuts={shortcuts}
                     stockMap={stockMap}
-                    placeholder="Finished colored roll description (e.g. Cotton Dyed Navy Blue)"
+                    placeholder="Finished colored fabric description (e.g. Cotton Dyed Navy Blue)"
                   />
                 </div>
                 <div className="sm:col-span-3">
@@ -450,7 +450,7 @@ export function DyeingCompletionModal({
                 </div>
                 <div className="sm:col-span-2 text-right pr-2">
                   <div className="text-xs font-bold text-emerald-800 tabular-nums">
-                    {rupees(finalAdjustedUnitCost)} / unit
+                    {rupees(finalAdjustedUnitCost)} / qty
                   </div>
                   <div className="text-[10px] text-slate-400">
                     Allocated: {rupees(round2(toNum(out.qty) * finalAdjustedUnitCost))}

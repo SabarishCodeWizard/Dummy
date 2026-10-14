@@ -323,7 +323,7 @@ export function validateDyeingBatch(form) {
     return { title: 'Missing Information', message: 'Please enter the Processor / Dye House Name.' };
   }
   if (!form.input?.description?.trim()) {
-    return { title: 'Missing Input Material', message: 'Please select the raw grey roll to process.' };
+    return { title: 'Missing Input Material', message: 'Please select the raw grey fabric to process.' };
   }
   if (toNum(form.input?.qty) <= 0) {
     return { title: 'Invalid Quantity', message: 'Please enter a valid raw grey quantity greater than 0.' };
@@ -336,7 +336,7 @@ export function validateDyeingBatch(form) {
     if (validOutputs.length === 0) {
       return {
         title: 'Missing Finished Goods',
-        message: 'To mark the batch as Completed, please specify at least one finished colored roll with quantity.',
+        message: 'To mark the batch as Completed, please specify at least one finished colored fabric with quantity.',
       };
     }
   }

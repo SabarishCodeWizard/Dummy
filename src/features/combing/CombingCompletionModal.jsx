@@ -268,16 +268,16 @@ export function CombingCompletionModal({
             <div>
               <span className="text-slate-500 block">Quantity Sent:</span>
               <strong className="font-mono text-slate-900 text-sm">
-                {inputQty} {batch.input?.unit || 'Rolls'}
+                {inputQty} Qty
               </strong>
             </div>
             <div>
               <span className="text-slate-500 block">Fabric Avg Cost:</span>
-              <strong className="font-mono text-slate-900">{rupees(fabricRate)} / unit</strong>
+              <strong className="font-mono text-slate-900">{rupees(fabricRate)} / qty</strong>
             </div>
             <div>
               <span className="text-slate-500 block">Combing Charges:</span>
-              <strong className="font-mono text-indigo-700">{rupees(processingRate)} / unit</strong>
+              <strong className="font-mono text-indigo-700">{rupees(processingRate)} / qty</strong>
             </div>
           </div>
         </div>
@@ -366,9 +366,9 @@ export function CombingCompletionModal({
             </div>
             <div className="flex justify-between text-emerald-900 font-bold border-t border-emerald-300 pt-1.5 text-sm">
               <span className="font-sans">
-                Final Finished Unit Cost ({rupees(totalBatchCost)} ÷ {actualFinishedQty || 1} units):
+                Final Finished Unit Cost ({rupees(totalBatchCost)} ÷ {actualFinishedQty || 1} qty):
               </span>
-              <span className="font-extrabold">{rupees(finalAdjustedUnitCost)} / unit</span>
+              <span className="font-extrabold">{rupees(finalAdjustedUnitCost)} / qty</span>
             </div>
           </div>
         </div>
@@ -409,7 +409,7 @@ export function CombingCompletionModal({
                 <div className="sm:col-span-3 flex items-center gap-2">
                   <div className="flex-1">
                     <TextField
-                      label="Unit Cost (₹)"
+                      label="Cost / Qty (₹)"
                       value={rupees(finalAdjustedUnitCost)}
                       readOnly
                       className="font-mono text-emerald-800 font-bold"
