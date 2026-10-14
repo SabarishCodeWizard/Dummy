@@ -18,7 +18,6 @@ import { digitsOnly } from '@/core/format';
 import {
   Badge,
   Button,
-  Card,
   EmptyState,
   ErrorState,
   LoadingState,
@@ -214,22 +213,22 @@ export default function DyeingDetailsPage() {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-3">
             {filteredDyers.map((dyer) => {
               const cleanPhone = digitsOnly(dyer.phone || '');
               return (
-                <Card
+                <div
                   key={dyer.id || dyer.phone || dyer.dyeingName}
-                  className="group relative flex flex-col justify-between overflow-hidden p-5 transition duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-card"
+                  className="group relative rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs transition duration-150 hover:border-slate-300 hover:shadow-card"
                 >
-                  <div>
-                    {/* Header: Mill Icon + Dyeing Name & Owner */}
-                    <div className="flex items-start gap-3">
-                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 border border-slate-200">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    {/* Left: Mill Icon + Dyeing Unit Name & Owner */}
+                    <div className="flex items-center gap-3.5 min-w-0 lg:w-72 xl:w-80 shrink-0">
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-700 shadow-2xs">
                         <Building2 className="size-5 text-slate-700" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-display text-lg font-bold text-brand-900 truncate">
+                        <h3 className="font-display text-base font-bold text-slate-900 truncate">
                           {dyer.dyeingName}
                         </h3>
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mt-0.5">
@@ -239,20 +238,19 @@ export default function DyeingDetailsPage() {
                       </div>
                     </div>
 
-                    {/* Contact & Address Box */}
-                    <div className="mt-4 space-y-2 rounded-xl bg-slate-50/80 p-3 text-xs text-slate-600 border border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                    {/* Middle: Phone with Quick Call/WhatsApp & Location */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 min-w-0 border-t border-slate-100 pt-3 lg:border-t-0 lg:pt-0">
+                      {/* Phone with one-tap Call and WhatsApp */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-900 tabular-nums">
                           <Phone className="size-3.5 text-gold-600 shrink-0" />
-                          <span className="font-mono font-bold text-slate-900 tabular-nums">
-                            {dyer.phone || 'N/A'}
-                          </span>
+                          <span>{dyer.phone || 'N/A'}</span>
                         </div>
                         {cleanPhone && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 ml-1">
                             <a
                               href={`tel:${cleanPhone}`}
-                              className="rounded-lg p-1.5 text-slate-600 hover:bg-white hover:text-brand-800 transition"
+                              className="flex size-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-white hover:text-brand-800 hover:border-slate-300 shadow-2xs"
                               title={`Call ${dyer.phone}`}
                             >
                               <Phone className="size-3.5" />
@@ -261,7 +259,7 @@ export default function DyeingDetailsPage() {
                               href={`https://wa.me/91${cleanPhone}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50 transition"
+                              className="flex size-7 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 transition hover:bg-emerald-100 hover:border-emerald-300 shadow-2xs"
                               title={`WhatsApp ${dyer.phone}`}
                             >
                               <MessageCircle className="size-3.5" />
@@ -270,49 +268,48 @@ export default function DyeingDetailsPage() {
                         )}
                       </div>
 
-                      <div className="flex items-start gap-2">
+                      {/* Address */}
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600 min-w-0">
                         <MapPin className="size-3.5 text-gold-600 shrink-0 mt-0.5" />
-                        <span className="break-words leading-relaxed text-slate-600">
+                        <span className="truncate" title={dyer.address}>
                           {dyer.address || 'Address not specified'}
                         </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Actions footer */}
-                  <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3">
-                    <Link
-                      to={`/dyeing/batches?search=${encodeURIComponent(dyer.dyeingName)}`}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-800 transition"
-                    >
-                      <span>View Batches</span>
-                      <ExternalLink className="size-3 text-slate-400" />
-                    </Link>
+                    {/* Right: Actions */}
+                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 border-t border-slate-100 pt-3 lg:border-t-0 lg:pt-0 shrink-0">
+                      <Link
+                        to={`/dyeing/batches?search=${encodeURIComponent(dyer.dyeingName)}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50/70 px-2.5 py-1.5 text-xs font-semibold text-brand-800 transition hover:bg-brand-100 hover:border-brand-300"
+                      >
+                        <span>View Batches</span>
+                        <ExternalLink className="size-3 text-brand-600" />
+                      </Link>
 
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        icon={Pencil}
-                        onClick={() => handleOpenEdit(dyer)}
-                        aria-label={`Edit ${dyer.dyeingName}`}
-                        className="text-slate-700 hover:bg-slate-100 border-slate-200"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        icon={Trash2}
-                        onClick={() => handleDelete(dyer)}
-                        aria-label={`Delete ${dyer.dyeingName}`}
-                        className="text-slate-600 hover:bg-slate-100 hover:text-slate-900 border-slate-200"
-                      >
-                        Delete
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(dyer)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                          aria-label={`Edit ${dyer.dyeingName}`}
+                        >
+                          <Pencil className="size-3.5 text-slate-500" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(dyer)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                          aria-label={`Delete ${dyer.dyeingName}`}
+                        >
+                          <Trash2 className="size-3.5 text-slate-400" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>

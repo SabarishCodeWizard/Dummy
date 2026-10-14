@@ -80,14 +80,27 @@ export class Database {
       this.initialized = true;
     }
   }
+  // Listeners for cache invalidation events
+  _listeners = [];
+  onInvalidate(fn) {
+    if (typeof fn === 'function') {
+      this._listeners.push(fn);
+    }
+  }
   /** Drop in-memory caches (e.g. refresh button, logout). */
   invalidateAll() {
     this._cache = {};
     this._promises = {};
+    this._listeners.forEach((fn) => {
+      try { fn([]); } catch (e) { console.error('Error in onInvalidate listener:', e); }
+    });
   }
   invalidate(...keys) {
     keys.forEach((k) => {
       this._cache[k] = null;
+    });
+    this._listeners.forEach((fn) => {
+      try { fn(keys); } catch (e) { console.error('Error in onInvalidate listener:', e); }
     });
   }
   col(name) {

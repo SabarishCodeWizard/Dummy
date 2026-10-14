@@ -85,7 +85,7 @@ export const NAV_CATEGORIES = [
     home: '/combing/batches',
     items: [
       { to: '/combing/batches', label: 'Processing Batches', short: 'Batches', icon: Layers },
-      { to: '/combing/details', label: 'Processing Details', short: 'Processing Details', icon: Users },
+      { to: '/combing/details', label: 'Combating Details', short: 'Combating Details', icon: Users },
     ],
   },
   {

@@ -1,5 +1,5 @@
 import { db } from '@/core/db';
-import { getStockQuantityMap } from '@/features/overview/stocks/stocksService';
+import { getStockQuantityMap, invalidateStocksCache } from '@/features/overview/stocks/stocksService';
 import { calcBatchTotals, validateDyeingBatch, validateDyer } from './dyeingLogic';
 
 /**
@@ -115,7 +115,8 @@ export async function saveDyeingBatchRecord(form) {
     }
   }
 
-  db.invalidate('dyeing_batches');
+  invalidateStocksCache();
+  if (db.invalidate) db.invalidate('dyeing_batches');
   return batchDoc;
 }
 
@@ -124,7 +125,8 @@ export async function saveDyeingBatchRecord(form) {
  */
 export async function deleteDyeingBatchRecord(batchId) {
   await db.deleteDyeingBatch(batchId);
-  db.invalidate('dyeing_batches');
+  invalidateStocksCache();
+  if (db.invalidate) db.invalidate('dyeing_batches');
 }
 
 /**

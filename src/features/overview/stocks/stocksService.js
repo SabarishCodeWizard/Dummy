@@ -36,11 +36,25 @@ export async function loadStocks() {
 let _stocksCache = null;
 let _stocksCacheTime = 0;
 
+export function invalidateStocksCache() {
+  _stocksCache = null;
+  _stocksCacheTime = 0;
+}
+
+if (db && typeof db.onInvalidate === 'function') {
+  db.onInvalidate(() => {
+    invalidateStocksCache();
+  });
+}
+
 /**
  * Returns a fast lookup Map of { [description]: { available, minStockLevel } }
  * Supports both exact description and lowercased description lookups.
  */
 export async function getStockQuantityMap(forceRefresh = false) {
+  if (forceRefresh) {
+    invalidateStocksCache();
+  }
   const now = Date.now();
   if (!forceRefresh && _stocksCache && now - _stocksCacheTime < 15000) {
     return _stocksCache;

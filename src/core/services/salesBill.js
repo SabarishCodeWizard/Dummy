@@ -13,6 +13,7 @@ import {
 } from '@/core/billing';
 import { db } from '@/core/db';
 import { toNum, todayISO } from '@/core/format';
+import { invalidateStocksCache } from '@/features/overview/stocks/stocksService';
 export function emptySalesForm() {
   return {
     invoiceNo: '',
@@ -169,6 +170,7 @@ export async function saveSalesBill(form) {
   });
   await Promise.all(saves);
   await updateSubsequentInvoices(invoice.customerName, invoice.invoiceNo);
+  invalidateStocksCache();
   return invoice;
 }
 /** script.js loadInvoiceForEditing + Utils.setFormData: turn a stored invoice back into an editable form. */

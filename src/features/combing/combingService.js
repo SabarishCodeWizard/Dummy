@@ -1,5 +1,5 @@
 import { db } from '@/core/db';
-import { getStockQuantityMap } from '@/features/overview/stocks/stocksService';
+import { getStockQuantityMap, invalidateStocksCache } from '@/features/overview/stocks/stocksService';
 import { calcCombingBatchTotals, validateCombingBatch, validateProcessor } from './combingLogic';
 
 /**
@@ -84,7 +84,8 @@ export async function saveCombingBatchRecord(form) {
   };
 
   await db.saveCombingBatch(batchDoc);
-  db.invalidate('combing_batches');
+  invalidateStocksCache();
+  if (db.invalidate) db.invalidate('combing_batches');
   return batchDoc;
 }
 
@@ -93,7 +94,8 @@ export async function saveCombingBatchRecord(form) {
  */
 export async function deleteCombingBatchRecord(batchId) {
   await db.deleteCombingBatch(batchId);
-  db.invalidate('combing_batches');
+  invalidateStocksCache();
+  if (db.invalidate) db.invalidate('combing_batches');
 }
 
 /**

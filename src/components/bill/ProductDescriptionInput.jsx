@@ -12,7 +12,7 @@
  * Keyboard: ArrowUp/ArrowDown move, Enter picks, Escape closes. A description that is not in the catalogue
  * is flagged ("Select a product from the suggestions") once the box loses focus, mirroring the save validation.
  */
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { cn } from '@/ui/cn';
 import { isKnownProduct, matchShortcuts } from './productMatch';
 
@@ -31,12 +31,42 @@ export function ProductDescriptionInput({
   const [dismissed, setDismissed] = useState(false);
   const [highlight, setHighlight] = useState(0);
 
-  const suggestions = focused && !readOnly && !dismissed ? matchShortcuts(shortcuts, value) : [];
+  const shortcutSuggestions = focused && !readOnly && !dismissed ? matchShortcuts(shortcuts, value) : [];
+
+  const suggestions = useMemo(() => {
+    if (!focused || readOnly || dismissed) return [];
+    const res = [...shortcutSuggestions];
+    const seen = new Set(res.map((s) => s.fullDescription.toLowerCase().trim()));
+    const q = (value ?? '').trim().toLowerCase();
+    if (stockMap && typeof stockMap.entries === 'function') {
+      for (const [desc, info] of stockMap.entries()) {
+        const norm = String(desc).trim().toLowerCase();
+        if (norm && !seen.has(norm) && (!q || norm.includes(q))) {
+          seen.add(norm);
+          res.push({
+            shortcutKey: 'STOCK',
+            fullDescription: String(desc).trim(),
+            stock: info?.available ?? 0,
+          });
+          if (res.length >= 12) break;
+        }
+      }
+    }
+    return res;
+  }, [focused, readOnly, dismissed, shortcutSuggestions, stockMap, value]);
+
   const open = suggestions.length > 0;
+  const inStock = Boolean(
+    stockMap &&
+      value &&
+      typeof value === 'string' &&
+      value.trim() &&
+      (stockMap.has(value.trim()) || stockMap.has(value.trim().toLowerCase())),
+  );
+  const isKnown = (!!shortcuts && isKnownProduct(shortcuts, value)) || inStock;
+  const unknown = !focused && (!!shortcuts || inStock) && value.trim().length > 0 && !isKnown;
   const noMatch =
-    focused && !readOnly && !dismissed && !!shortcuts && value.trim().length > 0 && suggestions.length === 0;
-  const isKnown = !!shortcuts && isKnownProduct(shortcuts, value);
-  const unknown = !focused && !!shortcuts && value.trim().length > 0 && !isKnown;
+    focused && !readOnly && !dismissed && (!!shortcuts || !!stockMap) && value.trim().length > 0 && suggestions.length === 0;
   const active = Math.min(highlight, suggestions.length - 1);
 
   const matchedStock =
@@ -142,7 +172,7 @@ export function ProductDescriptionInput({
         >
           {suggestions.map((s, i) => (
             <li
-              key={s.shortcutKey}
+              key={`${s.shortcutKey}_${s.fullDescription}_${i}`}
               id={`${listId}-${i}`}
               role="option"
               aria-selected={i === active}

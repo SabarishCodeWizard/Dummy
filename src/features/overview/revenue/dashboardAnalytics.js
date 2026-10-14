@@ -130,6 +130,7 @@ export async function fetchDashboardData() {
     salesReturns,
     purchaseReturns,
     dyeingBatches,
+    combingBatches,
   ] = await Promise.all([
     db.getAllInvoices(),
     db.getAllPurchaseBills(),

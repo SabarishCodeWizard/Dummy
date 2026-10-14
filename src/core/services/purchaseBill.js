@@ -11,6 +11,7 @@ import {
 import { COMPANY, CREDIT_LINE } from '@/core/branding';
 import { db } from '@/core/db';
 import { toNum, todayISO } from '@/core/format';
+import { invalidateStocksCache } from '@/features/overview/stocks/stocksService';
 export function emptyPurchaseForm() {
   return {
     invoiceNo: '',
@@ -147,6 +148,7 @@ export async function savePurchaseBillWithPayments(form) {
     );
   }
   await Promise.all(saves);
+  invalidateStocksCache();
   return bill;
 }
 /** "Share Acknowledgement" text from purchase.js. */

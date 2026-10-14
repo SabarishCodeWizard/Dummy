@@ -42,11 +42,18 @@ function HistorySection({ kind, entries, onSelectBill }) {
     {
       key: 'invoice',
       header: 'Invoice No',
-      render: (e) => (
-        <span className="font-semibold text-brand-700 underline decoration-brand-300 underline-offset-2 hover:text-brand-900">
-          #{historyInvoiceNo(e.invoiceNo)}
-        </span>
-      ),
+      render: (e) => {
+        const raw = String(e.invoiceNo || '');
+        const display =
+          raw.startsWith('Batch') || raw.startsWith('Return') || raw.startsWith('#')
+            ? raw
+            : `#${historyInvoiceNo(raw)}`;
+        return (
+          <span className="font-semibold text-brand-700 underline decoration-brand-300 underline-offset-2 hover:text-brand-900">
+            {display}
+          </span>
+        );
+      },
     },
     { key: 'party', header: kind.party, value: (e) => e.party },
     { key: 'qty', header: 'Qty', align: 'right', className: 'tabular-nums', value: (e) => e.qty },
@@ -92,27 +99,34 @@ function HistorySection({ kind, entries, onSelectBill }) {
         onRowClick={(e) => onSelectBill?.(kind, e)}
         dense
         empty={<p className="py-6 text-center text-sm text-slate-500">{kind.empty}</p>}
-        renderCard={(e) => (
-          <div className="space-y-1 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">{historyDate(e.date)}</span>
-              <span className="font-display font-bold text-brand-800 underline decoration-brand-300 underline-offset-2">
-                #{historyInvoiceNo(e.invoiceNo)}
-              </span>
+        renderCard={(e) => {
+          const raw = String(e.invoiceNo || '');
+          const display =
+            raw.startsWith('Batch') || raw.startsWith('Return') || raw.startsWith('#')
+              ? raw
+              : `#${historyInvoiceNo(raw)}`;
+          return (
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">{historyDate(e.date)}</span>
+                <span className="font-display font-bold text-brand-800 underline decoration-brand-300 underline-offset-2">
+                  {display}
+                </span>
+              </div>
+              <div className="text-slate-800">
+                {kind.party}: {e.party}
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 tabular-nums">
+                  {e.qty} × {formatRupees(e.rate)}
+                </span>
+                <span className="font-display font-bold text-brand-800 tabular-nums">
+                  {formatRupees(e.amount)}
+                </span>
+              </div>
             </div>
-            <div className="text-slate-800">
-              {kind.party}: {e.party}
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500 tabular-nums">
-                {e.qty} × {formatRupees(e.rate)}
-              </span>
-              <span className="font-display font-bold text-brand-800 tabular-nums">
-                {formatRupees(e.amount)}
-              </span>
-            </div>
-          </div>
-        )}
+          );
+        }}
         footer={
           <div className="flex flex-wrap items-center justify-between gap-3 font-display font-bold text-brand-800">
             <span className="text-sm">Total</span>
@@ -151,6 +165,14 @@ export default function StockDetailModal({ row, onClose }) {
     const rawNo = entry.rawInvoiceNo || entry.invoiceNo || '';
     if (!rawNo) return;
     onClose();
+    if (
+      entry.isCombingReceipt ||
+      entry.isCombingIssue ||
+      String(rawNo).startsWith('CB-')
+    ) {
+      nav.push('/combing/batches');
+      return;
+    }
     if (
       entry.isDyeingReceipt ||
       entry.isDyeingIssue ||

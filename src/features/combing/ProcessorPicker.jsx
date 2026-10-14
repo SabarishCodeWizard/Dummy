@@ -93,7 +93,7 @@ export function ProcessorPicker({
           className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-800 transition"
         >
           <Users className="size-3.5" />
-          <span>Manage Processors Directory</span>
+          <span>Manage Combating Directory</span>
           <ExternalLink className="size-3 text-slate-400" />
         </Link>
       </div>
@@ -202,7 +202,7 @@ export function ProcessorPicker({
           <span>
             Select a processing unit above to load owner, phone, and address from your directory.{' '}
             <Link to="/combing/details" target="_blank" className="text-brand-700 underline font-semibold">
-              Manage Processors
+              Manage Combating Details
             </Link>
           </span>
         </div>

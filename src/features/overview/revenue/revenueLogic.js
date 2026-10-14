@@ -25,7 +25,7 @@ export function buildAvgCostLookup(purchaseBills = [], dyeingBatches = [], combi
   // Account for completed dyeing batches (manufactured finished colored rolls)
   if (Array.isArray(dyeingBatches)) {
     dyeingBatches.forEach((batch) => {
-      if (batch.status === 'CANCELLED' || !Array.isArray(batch.output)) return;
+      if (batch.status !== 'COMPLETED' || !Array.isArray(batch.output)) return;
       batch.output.forEach((p) => {
         if (!p.description) return;
         const key = normalise(String(p.description));
@@ -42,7 +42,7 @@ export function buildAvgCostLookup(purchaseBills = [], dyeingBatches = [], combi
   // Account for completed combing batches (manufactured combed & processed rolls)
   if (Array.isArray(combingBatches)) {
     combingBatches.forEach((batch) => {
-      if (batch.status === 'CANCELLED' || !Array.isArray(batch.output)) return;
+      if (batch.status !== 'COMPLETED' || !Array.isArray(batch.output)) return;
       batch.output.forEach((p) => {
         if (!p.description) return;
         const key = normalise(String(p.description));
