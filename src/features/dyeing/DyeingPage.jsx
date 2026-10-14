@@ -34,6 +34,7 @@ import {
 
 import { DyeingBatchModal } from './DyeingBatchModal';
 import { DyeingChallanModal } from './DyeingChallanModal';
+import { DyeingCompletionModal } from './DyeingCompletionModal';
 import { DYEING_STATUS, filterBatches } from './dyeingLogic';
 import { deleteDyeingBatchRecord, loadDyeingData, saveDyeingBatchRecord } from './dyeingService';
 
@@ -51,6 +52,7 @@ export default function DyeingPage({ openNew = false }) {
     bankAccounts: [],
     stockMap: new Map(),
     purchaseBills: [],
+    dyers: [],
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -61,6 +63,9 @@ export default function DyeingPage({ openNew = false }) {
 
   const [isChallanOpen, setIsChallanOpen] = useState(false);
   const [challanBatch, setChallanBatch] = useState(null);
+
+  const [isCompletionOpen, setIsCompletionOpen] = useState(false);
+  const [completingBatch, setCompletingBatch] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -164,41 +169,9 @@ export default function DyeingPage({ openNew = false }) {
     }
   };
 
-  const handleCompleteBatch = async (batch) => {
-    const validOutputs = (batch.output || []).filter(
-      (o) => o.description?.trim() && parseFloat(o.qty) > 0,
-    );
-
-    if (validOutputs.length === 0) {
-      toast(
-        'Finished Output Required',
-        'Please enter received output rolls and quantities before completing the batch.',
-        'warning',
-      );
-      setEditingBatch(batch);
-      setIsModalOpen(true);
-      return;
-    }
-
-    const ok = await confirm({
-      title: `Complete Batch #${batch.batchId}?`,
-      message: `Receive ${batch.totalOutputQty || 0} ${batch.input?.unit || 'Rolls'} into finished inventory at unit cost of ${rupees(batch.avgFinishedUnitCost || 0)}?`,
-      tone: 'success',
-      confirmText: 'Complete & Receive Stock',
-    });
-    if (!ok) return;
-
-    try {
-      await saveDyeingBatchRecord({
-        ...batch,
-        status: DYEING_STATUS.COMPLETED,
-        completedAt: new Date().toISOString(),
-      });
-      toast('Batch Completed!', `Batch #${batch.batchId} completed. Finished stock has been added.`, 'success');
-      loadData();
-    } catch (err) {
-      toast('Completion Failed', err.message || 'Could not complete batch.', 'error');
-    }
+  const handleCompleteBatch = (batch) => {
+    setCompletingBatch(batch);
+    setIsCompletionOpen(true);
   };
 
   return (
@@ -402,22 +375,29 @@ export default function DyeingPage({ openNew = false }) {
                       </div>
                       <div className="mt-0.5 font-medium text-slate-800">{batch.input?.description}</div>
                       <div className="mt-0.5 font-semibold text-slate-600">
-                        {batch.input?.qty} {batch.input?.unit || 'Rolls'} @{' '}
-                        {rupees(batch.input?.avgGreyRate || 0)} ={' '}
+                        {batch.input?.qty} Units @ {rupees(batch.input?.avgGreyRate || 0)} ={' '}
                         <span className="text-amber-800">{rupees(batch.input?.totalGreyCost || 0)}</span>
                       </div>
                     </div>
 
                     <div>
                       <div className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
-                        Processing Expenses
+                        Dyeing & Processing Cost
                       </div>
                       <div className="mt-0.5 text-sm font-bold text-indigo-700">
-                        {rupees(batch.totalExpenses || 0)}
+                        {rupees(batch.totalDyeingCost || batch.totalExpenses || 0)}
                       </div>
                       <div className="mt-0.5 text-slate-500">
-                        {batch.expenses?.length || 0} expense line
-                        {(batch.expenses?.length || 0) === 1 ? '' : 's'}
+                        {batch.dyeingRate || batch.input?.dyeingRate ? (
+                          <span>
+                            {rupees(batch.dyeingRate || batch.input?.dyeingRate)}/unit
+                            {(batch.weightLossPct || batch.input?.weightLossPct) ? (
+                              <span> • {batch.weightLossPct || batch.input?.weightLossPct}% loss</span>
+                            ) : null}
+                          </span>
+                        ) : (
+                          <span>{rupees(batch.totalExpenses || 0)}</span>
+                        )}
                       </div>
                     </div>
 
@@ -432,7 +412,7 @@ export default function DyeingPage({ openNew = false }) {
                               {out.description}
                             </span>
                             <span className="shrink-0 font-mono font-bold text-emerald-800">
-                              {out.qty} {out.unit || 'Rolls'} ({rupees(out.unitCost || 0)}/u)
+                              {out.qty} Units ({rupees(out.unitCost || 0)}/u)
                             </span>
                           </div>
                         ))}
@@ -466,11 +446,24 @@ export default function DyeingPage({ openNew = false }) {
         shortcuts={data.shortcuts}
         bankAccounts={data.bankAccounts}
         stockMap={data.stockMap}
+        purchaseBills={data.purchaseBills}
         dyers={data.dyers}
         onSaved={handleSaved}
       />
 
       <DyeingChallanModal open={isChallanOpen} onClose={() => setIsChallanOpen(false)} batch={challanBatch} />
+
+      <DyeingCompletionModal
+        open={isCompletionOpen}
+        onClose={() => {
+          setIsCompletionOpen(false);
+          setCompletingBatch(null);
+        }}
+        batch={completingBatch}
+        shortcuts={data.shortcuts}
+        stockMap={data.stockMap}
+        onCompleted={loadData}
+      />
     </Page>
   );
 }

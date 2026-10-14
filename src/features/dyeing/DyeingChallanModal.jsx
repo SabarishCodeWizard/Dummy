@@ -92,6 +92,32 @@ export function DyeingChallanModal({ open, onClose, batch }) {
               </tr>
             </tbody>
           </table>
+
+          {/* Agreed Dyeing Rate & Weight Loss Terms */}
+          {(batch.dyeingRate || batch.input?.dyeingRate || batch.weightLossPct || batch.input?.weightLossPct) && (
+            <div className="flex flex-wrap items-center justify-between text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-200 mt-2">
+              <div>
+                <span className="font-semibold text-slate-600">Agreed Dyeing Rate: </span>
+                <span className="font-mono font-bold text-slate-900">
+                  {rupees(batch.dyeingRate || batch.input?.dyeingRate || 0)} / unit
+                </span>
+              </div>
+              {(batch.weightLossPct || batch.input?.weightLossPct) ? (
+                <div>
+                  <span className="font-semibold text-slate-600">Allowable Weight Loss: </span>
+                  <span className="font-mono font-bold text-slate-900">
+                    {batch.weightLossPct || batch.input?.weightLossPct}%
+                  </span>
+                </div>
+              ) : null}
+              <div>
+                <span className="font-semibold text-slate-600">Total Batch Cost: </span>
+                <span className="font-mono font-bold text-indigo-900">
+                  {rupees(batch.totalBatchCost || 0)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Expected or Completed Finished Goods */}

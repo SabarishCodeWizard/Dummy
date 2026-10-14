@@ -1,17 +1,20 @@
 import {
   AlertCircle,
-  Banknote,
+  ArrowRight,
   CheckCircle2,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Clock,
+  Info,
   Layers,
   Package,
   Plus,
   Save,
+  Sparkles,
   Trash2,
   TrendingUp,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { ProductDescriptionInput } from '@/components/bill';
 import { formatCurrency, todayISO } from '@/core/format';
@@ -22,7 +25,6 @@ import {
   DateField,
   Modal,
   NumberField,
-  SelectField,
   TextField,
   cn,
   useFeedback,
@@ -30,8 +32,8 @@ import {
 
 import {
   DYEING_STATUS,
-  UNITS,
   calcBatchTotals,
+  computeGreyPurchaseRate,
   emptyDyeingBatch,
   suggestNextBatchId,
   validateDyeingBatch,
@@ -49,12 +51,14 @@ export function DyeingBatchModal({
   shortcuts = [],
   bankAccounts = [],
   stockMap = new Map(),
+  purchaseBills = [],
   dyers = [],
   onSaved,
 }) {
   const { toast } = useFeedback();
   const [form, setForm] = useState(() => emptyDyeingBatch(todayISO()));
   const [saving, setSaving] = useState(false);
+  const [showHistoryBreakdown, setShowHistoryBreakdown] = useState(false);
 
   const handleSelectDyer = (dyer) => {
     setForm((prev) => ({
@@ -72,9 +76,16 @@ export function DyeingBatchModal({
     if (initialBatch) {
       setForm({
         ...initialBatch,
-        input: { ...initialBatch.input },
+        input: {
+          unit: 'Rolls',
+          dyeingRate: '',
+          weightLossPct: '',
+          ...initialBatch.input,
+        },
         expenses: Array.isArray(initialBatch.expenses) ? initialBatch.expenses.map((e) => ({ ...e })) : [],
-        output: Array.isArray(initialBatch.output) ? initialBatch.output.map((o) => ({ ...o })) : [],
+        output: Array.isArray(initialBatch.output) && initialBatch.output.length > 0
+          ? initialBatch.output.map((o) => ({ ...o }))
+          : [{ description: '', unit: 'Rolls', qty: '', allocatedCost: 0, unitCost: 0 }],
       });
     } else {
       const nextId = suggestNextBatchId(existingBatches);
@@ -82,7 +93,24 @@ export function DyeingBatchModal({
       fresh.batchId = nextId;
       setForm(fresh);
     }
+    setShowHistoryBreakdown(false);
   }, [open, initialBatch, existingBatches]);
+
+  // Derive weighted average purchase rate details whenever selected grey fabric changes
+  const greyRateDetails = useMemo(() => {
+    const desc = form.input?.description?.trim();
+    if (!desc) {
+      return {
+        avgRate: 0,
+        totalQty: 0,
+        totalCost: 0,
+        suppliersCount: 0,
+        suppliers: [],
+        history: [],
+      };
+    }
+    return computeGreyPurchaseRate(desc, purchaseBills, [], stockMap);
+  }, [form.input?.description, purchaseBills, stockMap]);
 
   const totals = calcBatchTotals(form);
 
@@ -98,47 +126,17 @@ export function DyeingBatchModal({
   };
 
   const handleInputDescriptionChange = (desc) => {
-    const stockInfo = stockMap.get(desc.trim()) || stockMap.get(desc.trim().toLowerCase());
+    const rateInfo = computeGreyPurchaseRate(desc, purchaseBills, [], stockMap);
     setForm((prev) => {
-      const currentRate = prev.input.avgGreyRate;
-      let newRate = currentRate;
-      if ((!currentRate || currentRate === '0') && stockInfo?.avgPurchaseRate) {
-        newRate = String(stockInfo.avgPurchaseRate);
-      }
       return {
         ...prev,
         input: {
           ...prev.input,
           description: desc,
-          avgGreyRate: newRate,
+          avgGreyRate: rateInfo.avgRate > 0 ? String(rateInfo.avgRate) : prev.input.avgGreyRate,
         },
       };
     });
-  };
-
-  const updateExpense = (index, key, val) => {
-    setForm((prev) => {
-      const copy = [...prev.expenses];
-      copy[index] = { ...copy[index], [key]: val };
-      return { ...prev, expenses: copy };
-    });
-  };
-
-  const addExpenseRow = () => {
-    setForm((prev) => ({
-      ...prev,
-      expenses: [
-        ...prev.expenses,
-        { category: 'Other Processing Expenses', amount: '', paidVia: 'cash', bankAccountId: null },
-      ],
-    }));
-  };
-
-  const removeExpenseRow = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      expenses: prev.expenses.filter((_, i) => i !== index),
-    }));
   };
 
   const updateOutput = (index, key, val) => {
@@ -166,6 +164,27 @@ export function DyeingBatchModal({
     }));
   };
 
+  // Helper to auto-fill output quantity with expected quantity after weight loss
+  const handleAutoFillExpectedQty = (index = 0) => {
+    if (totals.expectedOutputQty <= 0) return;
+    setForm((prev) => {
+      const copy = [...prev.output];
+      if (!copy[index]) {
+        copy[index] = { description: '', unit: 'Rolls', qty: '', allocatedCost: 0, unitCost: 0 };
+      }
+      copy[index] = {
+        ...copy[index],
+        qty: String(totals.expectedOutputQty),
+      };
+      return { ...prev, output: copy };
+    });
+    toast(
+      'Expected Qty Filled',
+      `Set output to ${totals.expectedOutputQty} units (${totals.weightLossPct}% weight loss deducted).`,
+      'info',
+    );
+  };
+
   const handleSave = async () => {
     const submission = {
       ...form,
@@ -191,14 +210,6 @@ export function DyeingBatchModal({
     }
   };
 
-  const bankOptions = [
-    { value: '', label: 'Select Bank Account' },
-    ...bankAccounts.map((b) => ({
-      value: b.id,
-      label: `${b.bankName || 'Bank'} (${b.accountNumber ? `•••${b.accountNumber.slice(-4)}` : b.accountHolderName || ''})`,
-    })),
-  ];
-
   const matchedInputStock = stockMap.get(form.input?.description?.trim() || '');
 
   return (
@@ -220,18 +231,23 @@ export function DyeingBatchModal({
       }
       footer={
         <div className="flex flex-col gap-3 w-full sm:flex-row sm:items-center sm:justify-between">
-          <div className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-xs text-slate-600 sm:border-0 sm:bg-transparent sm:p-0">
-            {totals.totalOutputQty > 0 ? (
-              <div className="flex flex-wrap items-center gap-1.5">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 sm:border-0 sm:bg-transparent sm:p-0">
+            {totals.adjustedUnitCost > 0 ? (
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-slate-500 font-medium">Finished Unit Cost:</span>
-                <strong className="font-mono text-sm font-extrabold text-emerald-800">
-                  {rupees(totals.avgFinishedUnitCost)}
+                <strong className="font-mono text-base font-extrabold text-emerald-800">
+                  {rupees(totals.avgFinishedUnitCost || totals.adjustedUnitCost)}
                 </strong>
-                <span className="text-slate-500">/ {form.input.unit || 'unit'}</span>
+                <span className="text-slate-500">/ unit</span>
+                {totals.weightLossPct > 0 && (
+                  <Badge variant="warning" className="text-[10px] py-0 px-1.5 font-semibold">
+                    Includes {totals.weightLossPct}% weight loss
+                  </Badge>
+                )}
               </div>
             ) : (
               <span className="text-xs text-slate-500">
-                Enter finished output to compute manufactured unit cost
+                Enter grey quantity and dyeing charges to compute finished cost
               </span>
             )}
           </div>
@@ -289,9 +305,11 @@ export function DyeingBatchModal({
           onAddressChange={(v) => updateField('processorAddress', v)}
         />
 
-        {/* Section 1: Raw Grey Roll Consumed */}
-        <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 space-y-3">
-          <div className="flex items-center justify-between">
+        {/* ============================================================== */}
+        {/* SECTION 1: RAW MATERIAL ISSUED (GREY FABRIC)                   */}
+        {/* ============================================================== */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Package className="size-4 text-amber-700" />
               <h3 className="text-sm font-bold text-amber-900 uppercase tracking-wider">
@@ -299,192 +317,269 @@ export function DyeingBatchModal({
               </h3>
             </div>
             {matchedInputStock && (
-              <span className="text-xs text-amber-800 font-medium">
-                Current Available Stock:{' '}
+              <span className="text-xs text-amber-900 font-medium bg-amber-100/70 px-2 py-0.5 rounded-full border border-amber-200">
+                Available in stock:{' '}
                 <strong className={matchedInputStock.available > 0 ? 'text-emerald-700' : 'text-red-600'}>
-                  {matchedInputStock.available} {form.input.unit}
+                  {matchedInputStock.available} Units
                 </strong>
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-            <div className="sm:col-span-6">
+          {/* Row: Product Selection & Issued Qty */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+            <div className="sm:col-span-8">
               <ProductDescriptionInput
-                label="Grey Roll Item Description"
+                label="Grey Fabric Roll Description *"
                 value={form.input.description}
                 onChange={handleInputDescriptionChange}
                 shortcuts={shortcuts}
                 stockMap={stockMap}
-                placeholder="Type grey roll name or shortcut..."
+                placeholder="Select or type raw grey fabric name..."
               />
             </div>
-            <div className="sm:col-span-2">
-              <SelectField
-                label="Unit"
-                value={form.input.unit || 'Rolls'}
-                onChange={(v) => updateInput('unit', v)}
-                options={UNITS.map((u) => ({ value: u, label: u }))}
-              />
-            </div>
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-4">
               <NumberField
-                label={`Quantity (${form.input.unit || 'Rolls'})`}
+                label="Quantity Issued *"
                 value={form.input.qty}
                 onChange={(v) => updateInput('qty', v)}
-                placeholder="0"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <NumberField
-                label="Grey Cost / Unit (₹)"
-                value={form.input.avgGreyRate}
-                onChange={(v) => updateInput('avgGreyRate', v)}
-                placeholder="0.00"
+                placeholder="e.g. 55"
               />
             </div>
           </div>
 
-          <div className="flex justify-end text-xs font-semibold text-amber-900 pt-1 border-t border-amber-200/60">
-            Total Grey Cost: {rupees(totals.totalGreyCost)}
-          </div>
-        </div>
-
-        {/* Section 2: Additional Processing Expenses */}
-        <div className="rounded-xl border border-indigo-200 bg-indigo-50/30 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Banknote className="size-4 text-indigo-700" />
-              <h3 className="text-sm font-bold text-indigo-900 uppercase tracking-wider">
-                2. Additional Processing Expenses
-              </h3>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              icon={Plus}
-              onClick={addExpenseRow}
-              className="text-xs h-7 px-2"
-            >
-              Add Expense Line
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            {form.expenses.map((exp, idx) => (
-              <div
-                key={idx}
-                className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-lg border border-indigo-100 shadow-2xs"
-              >
-                <div className="sm:col-span-4">
-                  <TextField
-                    value={exp.category}
-                    onChange={(v) => updateExpense(idx, 'category', v)}
-                    placeholder="Expense name"
-                  />
+          {/* Average Purchase Rate Card */}
+          <div className="rounded-lg border border-amber-200/90 bg-white p-3 shadow-2xs space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Weighted Average Purchase Rate
                 </div>
-                <div className="sm:col-span-3">
-                  <NumberField
-                    value={exp.amount}
-                    onChange={(v) => updateExpense(idx, 'amount', v)}
-                    placeholder="Amount (₹)"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <SelectField
-                    value={exp.paidVia || 'cash'}
-                    onChange={(v) => updateExpense(idx, 'paidVia', v)}
-                    options={[
-                      { value: 'cash', label: 'Cash in Hand' },
-                      { value: 'bank', label: 'Bank Account' },
-                      { value: 'credit', label: 'Processor Credit' },
-                    ]}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  {exp.paidVia === 'bank' ? (
-                    <SelectField
-                      value={exp.bankAccountId || ''}
-                      onChange={(v) => updateExpense(idx, 'bankAccountId', v)}
-                      options={bankOptions}
-                    />
-                  ) : (
-                    <span className="text-[11px] text-slate-400 italic px-2">No bank account</span>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <span className="font-mono text-lg font-black text-amber-950">
+                    {rupees(totals.greyRate || greyRateDetails.avgRate || 0)}
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">/ unit</span>
+                  {greyRateDetails.suppliersCount > 0 && (
+                    <span className="text-xs text-slate-500">
+                      (Across {greyRateDetails.suppliersCount} supplier
+                      {greyRateDetails.suppliersCount > 1 ? 's' : ''}, {greyRateDetails.totalQty} total units)
+                    </span>
                   )}
                 </div>
-                <div className="sm:col-span-1 flex justify-end">
-                  <button
+              </div>
+
+              <div className="flex items-center gap-2">
+                {greyRateDetails.history.length > 0 && (
+                  <Button
                     type="button"
-                    onClick={() => removeExpenseRow(idx)}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-                    title="Remove expense"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowHistoryBreakdown((prev) => !prev)}
+                    className="text-xs h-7 text-amber-800 hover:bg-amber-50"
                   >
-                    <Trash2 className="size-4" />
-                  </button>
+                    {showHistoryBreakdown ? 'Hide Breakdown' : 'View Supplier History'}
+                    {showHistoryBreakdown ? <ChevronUp className="size-3.5 ml-1" /> : <ChevronDown className="size-3.5 ml-1" />}
+                  </Button>
+                )}
+                {/* Fallback rate override if custom adjustment is needed */}
+                <div className="w-28">
+                  <NumberField
+                    label="Rate Override"
+                    value={form.input.avgGreyRate}
+                    onChange={(v) => updateInput('avgGreyRate', v)}
+                    placeholder="Rate (₹)"
+                  />
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Expandable Supplier Purchase History Breakdown */}
+            {showHistoryBreakdown && greyRateDetails.history.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-100 overflow-x-auto">
+                <div className="text-[11px] font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                  <Info className="size-3.5 text-amber-600" />
+                  <span>Purchase Invoices Used for Weighted Average:</span>
+                </div>
+                <table className="w-full text-left text-xs border border-slate-200 rounded">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-600 border-b border-slate-200">
+                      <th className="p-1.5 font-semibold">Supplier</th>
+                      <th className="p-1.5 font-semibold text-right">Quantity</th>
+                      <th className="p-1.5 font-semibold text-right">Rate / Unit</th>
+                      <th className="p-1.5 font-semibold text-right">Total Cost</th>
+                      <th className="p-1.5 font-semibold text-right">Invoice Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {greyRateDetails.history.map((h, i) => (
+                      <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
+                        <td className="p-1.5 font-medium text-slate-800">{h.supplierName}</td>
+                        <td className="p-1.5 text-right font-mono">{h.qty}</td>
+                        <td className="p-1.5 text-right font-mono">{rupees(h.rate)}</td>
+                        <td className="p-1.5 text-right font-mono font-bold text-slate-700">{rupees(h.amount)}</td>
+                        <td className="p-1.5 text-right text-slate-500">{h.date || '-'}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-amber-50/50 font-bold border-t border-amber-200 text-amber-950">
+                      <td className="p-1.5">Total Purchases</td>
+                      <td className="p-1.5 text-right font-mono">{greyRateDetails.totalQty}</td>
+                      <td className="p-1.5 text-right font-mono text-emerald-800">{rupees(greyRateDetails.avgRate)} avg</td>
+                      <td className="p-1.5 text-right font-mono">{rupees(greyRateDetails.totalCost)}</td>
+                      <td className="p-1.5 text-right text-slate-400">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
-          <div className="flex justify-end text-xs font-semibold text-indigo-900 pt-1 border-t border-indigo-200/60">
-            Total Processing Expenses: {rupees(totals.totalExpenses)}
+          {/* Dyeing Cost Input (& Weight Loss only if completed) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white/90 p-3 rounded-lg border border-amber-200/70 items-start">
+            <div>
+              <NumberField
+                label="Dyeing Cost / Unit (₹) *"
+                value={form.input.dyeingRate}
+                onChange={(v) => updateInput('dyeingRate', v)}
+                placeholder="e.g. 20.00"
+              />
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                Agreed job work dyeing rate charged by the processor
+              </span>
+            </div>
+            {form.status === DYEING_STATUS.COMPLETED ? (
+              <div>
+                <NumberField
+                  label="Actual Weight Loss (%) *"
+                  value={form.input.weightLossPct}
+                  onChange={(v) => updateInput('weightLossPct', v)}
+                  placeholder="e.g. 5"
+                />
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  Measured fabric weight loss percentage on return
+                </span>
+              </div>
+            ) : (
+              <div className="rounded-lg bg-amber-50 border border-amber-200/80 p-2.5 text-xs text-amber-900 mt-1 sm:mt-0">
+                <div className="font-semibold text-amber-950 flex items-center gap-1.5 mb-0.5">
+                  <Info className="size-3.5 text-amber-700" />
+                  <span>Weight Loss Measured on Return</span>
+                </div>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  Weight loss percentage cannot be known in advance. It will be recorded when the dyed fabric returns from the mill upon clicking <strong>Complete</strong>.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Dynamic Live Cost Breakdown Strip */}
+          <div className="rounded-lg bg-gradient-to-r from-amber-900/90 to-slate-900 p-3.5 text-white shadow-sm space-y-2.5">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-amber-200 flex items-center justify-between">
+              <span>{form.status === DYEING_STATUS.COMPLETED ? 'Processing Cost & Weight Loss Breakdown' : 'Dispatched Material & Processing Cost'}</span>
+              {totals.inputQty > 0 && (
+                <span className="font-mono text-amber-100">{totals.inputQty} Units Issued</span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+              <div className="bg-white/10 p-2 rounded">
+                <div className="text-[10px] text-slate-300">Raw Grey Cost</div>
+                <div className="font-mono font-bold text-amber-300 mt-0.5">{rupees(totals.totalGreyCost)}</div>
+                <div className="text-[10px] text-slate-400">@{rupees(totals.greyRate)}/u</div>
+              </div>
+              <div className="bg-white/10 p-2 rounded">
+                <div className="text-[10px] text-slate-300">Dyeing Charges</div>
+                <div className="font-mono font-bold text-indigo-300 mt-0.5">+{rupees(totals.totalDyeingCost)}</div>
+                <div className="text-[10px] text-slate-400">@{rupees(totals.dyeingRate)}/u</div>
+              </div>
+              <div className="bg-white/10 p-2 rounded">
+                <div className="text-[10px] text-slate-300">Total Batch Cost</div>
+                <div className="font-mono font-bold text-white mt-0.5">{rupees(totals.totalBatchCost)}</div>
+                <div className="text-[10px] text-slate-400">grey + dyeing</div>
+              </div>
+              <div className="bg-emerald-500/20 border border-emerald-400/30 p-2 rounded">
+                <div className="text-[10px] text-emerald-200 font-semibold">
+                  {form.status === DYEING_STATUS.COMPLETED ? 'Final Finished Cost / Unit' : 'Cost / Unit (Before Loss)'}
+                </div>
+                <div className="font-mono font-black text-emerald-300 text-sm mt-0.5">
+                  {rupees(form.status === DYEING_STATUS.COMPLETED ? totals.avgFinishedUnitCost : totals.costPerUnitBeforeLoss)}
+                </div>
+                <div className="text-[10px] text-emerald-200">
+                  {form.status === DYEING_STATUS.COMPLETED ? `${totals.weightLossPct || 0}% loss included` : 'Weight loss applied on return'}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Section 3: Finished Goods Output */}
+        {/* ============================================================== */}
+        {/* SECTION 2: FINISHED GOODS PRODUCED (COLORED ROLLS)            */}
+        {/* ============================================================== */}
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/30 p-4 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="size-4 text-emerald-700" />
               <h3 className="text-sm font-bold text-emerald-900 uppercase tracking-wider">
-                3. Finished Goods Produced (Colored Rolls)
+                2. Finished Goods Produced (Colored Rolls)
               </h3>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              icon={Plus}
-              onClick={addOutputRow}
-              className="text-xs h-7 px-2"
-            >
-              Add Finished Product
-            </Button>
+            <div className="flex items-center gap-2">
+              {totals.expectedOutputQty > 0 && form.output.length === 1 && !form.output[0].qty && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={Sparkles}
+                  onClick={() => handleAutoFillExpectedQty(0)}
+                  className="text-xs h-7 text-emerald-800 border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
+                >
+                  Use Expected Qty ({totals.expectedOutputQty})
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                icon={Plus}
+                onClick={addOutputRow}
+                className="text-xs h-7 px-2"
+              >
+                Add Color / Roll
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">
             {totals.enrichedOutput.map((out, idx) => (
               <div
                 key={idx}
-                className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-lg border border-emerald-100 shadow-2xs"
+                className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-white p-3 rounded-lg border border-emerald-100 shadow-2xs"
               >
-                <div className="sm:col-span-5">
+                <div className="sm:col-span-6">
                   <ProductDescriptionInput
                     value={out.description}
                     onChange={(v) => updateOutput(idx, 'description', v)}
                     shortcuts={shortcuts}
                     stockMap={stockMap}
-                    placeholder="Finished roll description (e.g. Navy Blue)"
+                    placeholder="Finished roll description (e.g. Cotton Dyed Navy Blue)"
                   />
                 </div>
-                <div className="sm:col-span-2">
-                  <SelectField
-                    value={out.unit || form.input.unit || 'Rolls'}
-                    onChange={(v) => updateOutput(idx, 'unit', v)}
-                    options={UNITS.map((u) => ({ value: u, label: u }))}
-                  />
-                </div>
-                <div className="sm:col-span-2">
+                <div className="sm:col-span-3">
                   <NumberField
                     value={out.qty}
                     onChange={(v) => updateOutput(idx, 'qty', v)}
-                    placeholder="Output Qty"
+                    placeholder={
+                      idx === 0 && totals.expectedOutputQty > 0
+                        ? `Expected: ${totals.expectedOutputQty}`
+                        : 'Finished Qty'
+                    }
                   />
                 </div>
                 <div className="sm:col-span-2 text-right pr-2">
                   <div className="text-xs font-bold text-emerald-800 tabular-nums">
-                    {rupees(out.unitCost)} / {out.unit || 'Roll'}
+                    {rupees(out.unitCost || totals.adjustedUnitCost)} / unit
                   </div>
-                  <div className="text-[10px] text-slate-400">Total: {rupees(out.allocatedCost)}</div>
+                  <div className="text-[10px] text-slate-400">
+                    Allocated: {rupees(out.allocatedCost || 0)}
+                  </div>
                 </div>
                 <div className="sm:col-span-1 flex justify-end">
                   {totals.enrichedOutput.length > 1 && (
@@ -492,7 +587,7 @@ export function DyeingBatchModal({
                       type="button"
                       onClick={() => removeOutputRow(idx)}
                       className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-                      title="Remove output product"
+                      title="Remove output roll"
                     >
                       <Trash2 className="size-4" />
                     </button>
@@ -502,58 +597,21 @@ export function DyeingBatchModal({
             ))}
           </div>
 
-          {/* Shrinkage & Loss Tracker */}
-          <div className="flex flex-wrap items-center justify-between text-xs text-slate-600 bg-white/80 p-2.5 rounded-lg border border-emerald-200/60">
+          {/* Finished Goods Output Summary Strip */}
+          <div className="flex flex-wrap items-center justify-between text-xs text-slate-600 bg-white/90 p-2.5 rounded-lg border border-emerald-200/80">
             <div>
-              Total Output Qty:{' '}
-              <strong className="text-slate-800 font-bold">
-                {totals.totalOutputQty} {form.input.unit}
+              Total Finished Qty:{' '}
+              <strong className="text-slate-900 font-bold">
+                {totals.totalOutputQty > 0 ? totals.totalOutputQty : totals.expectedOutputQty} Units
               </strong>
             </div>
             {totals.shrinkageQty > 0 && (
-              <div className="text-amber-700 font-medium">
-                Shrinkage / Loss: {totals.shrinkageQty} {form.input.unit} ({totals.shrinkagePct}%)
+              <div className="text-amber-800 font-medium">
+                Weight Loss: {totals.shrinkageQty} Units ({totals.shrinkagePct}%)
               </div>
             )}
-            <div className="font-bold text-emerald-800">
-              Total Output Value: {rupees(totals.totalBatchCost)}
-            </div>
-          </div>
-        </div>
-
-        {/* Section 4: Total Batch Cost Summary Card */}
-        <div className="rounded-xl bg-gradient-to-r from-slate-900 to-brand-950 p-4 text-white shadow-lg space-y-3">
-          <div className="flex items-center justify-between border-b border-white/10 pb-2">
-            <span className="text-xs uppercase tracking-wider text-gold-300 font-bold">
-              Total Manufacturing & Processing Summary
-            </span>
-            <span className="text-xs text-slate-400 font-mono">#{form.batchId}</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            <div className="p-2 rounded-lg bg-white/5">
-              <div className="text-[11px] text-slate-400">Raw Grey Cost</div>
-              <div className="text-base font-bold text-amber-300 font-mono">
-                {rupees(totals.totalGreyCost)}
-              </div>
-            </div>
-            <div className="p-2 rounded-lg bg-white/5">
-              <div className="text-[11px] text-slate-400">Processing Expenses</div>
-              <div className="text-base font-bold text-indigo-300 font-mono">
-                +{rupees(totals.totalExpenses)}
-              </div>
-            </div>
-            <div className="p-2 rounded-lg bg-white/5">
-              <div className="text-[11px] text-slate-400">Total Batch Cost</div>
-              <div className="text-base font-bold text-white font-mono">
-                ={rupees(totals.totalBatchCost)}
-              </div>
-            </div>
-            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-              <div className="text-[11px] text-emerald-300 font-medium">Finished Cost / Unit</div>
-              <div className="text-lg font-black text-emerald-400 font-mono">
-                {rupees(totals.avgFinishedUnitCost)}
-              </div>
+            <div className="font-bold text-emerald-900">
+              Total Finished Stock Value: {rupees(totals.totalBatchCost)}
             </div>
           </div>
         </div>

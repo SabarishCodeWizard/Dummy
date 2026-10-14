@@ -51,6 +51,9 @@ export async function getStockQuantityMap(forceRefresh = false) {
         const info = {
           available: r.available,
           minStockLevel: r.minStockLevel || 0,
+          avgPurchaseRate: r.avgPurchaseRate || 0,
+          purchased: r.purchased || 0,
+          purchaseHistory: r.purchaseHistory || [],
         };
         map.set(key, info);
         map.set(key.toLowerCase(), info);

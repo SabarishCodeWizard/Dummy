@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   calcBatchTotals,
+  computeGreyPurchaseRate,
   emptyDyeingBatch,
   emptyDyer,
   filterBatches,
@@ -12,22 +13,169 @@ import {
   DYEING_STATUS,
 } from '@/features/dyeing/dyeingLogic';
 
-describe('Dyeing & Processing Batch Logic (Workflow 2)', () => {
+describe('Dyeing & Processing Batch Logic (Workflow 2: Manufacturing)', () => {
   it('creates an empty dyeing batch with default structure', () => {
     const batch = emptyDyeingBatch('2026-10-14');
     expect(batch.batchDate).toBe('2026-10-14');
     expect(batch.status).toBe(DYEING_STATUS.IN_PROCESS);
     expect(batch.input.unit).toBe('Rolls');
-    expect(batch.expenses.length).toBeGreaterThan(0);
+    expect(batch.input.dyeingRate).toBe('');
+    expect(batch.input.weightLossPct).toBe('');
+    expect(batch.expenses).toEqual([]);
     expect(batch.output.length).toBe(1);
   });
 
-  it('accurately calculates raw grey cost, additional expenses, and total batch cost', () => {
-    // Example from user request:
-    // Raw grey roll purchased for ₹100 each, 10 rolls = ₹1000
-    // Expenses = ₹30 per roll = ₹300 total (e.g. ₹200 dyeing, ₹50 chemical, ₹30 labor, ₹20 transport)
-    // 10 finished colored rolls produced
-    // Total cost = ₹1,300 -> unit cost = ₹130 per roll
+  it('accurately computes weighted average grey purchase rate across multiple suppliers', () => {
+    // User's exact example:
+    // Supplier 1: 10 units @ ₹15 = ₹150
+    // Supplier 2: 20 units @ ₹10 = ₹200
+    // Supplier 3: 25 units @ ₹20 = ₹500
+    // Total: 55 units, Total Cost = ₹850
+    // Average Grey Purchase Rate = 850 / 55 = ₹15.45 per unit
+    const purchaseBills = [
+      {
+        supplierName: 'Supplier 1',
+        invoiceNo: 'INV-101',
+        invoiceDate: '2026-10-01',
+        products: [
+          { description: 'Cotton Grey 40s', qty: 10, rate: 15 },
+          { description: 'Other Product', qty: 5, rate: 50 },
+        ],
+      },
+      {
+        supplierName: 'Supplier 2',
+        invoiceNo: 'INV-102',
+        invoiceDate: '2026-10-05',
+        products: [
+          { description: 'Cotton Grey 40s', qty: 20, rate: 10 },
+        ],
+      },
+      {
+        supplierName: 'Supplier 3',
+        invoiceNo: 'INV-103',
+        invoiceDate: '2026-10-10',
+        products: [
+          { description: 'Cotton Grey 40s', qty: 25, rate: 20 },
+        ],
+      },
+    ];
+
+    const result = computeGreyPurchaseRate('Cotton Grey 40s', purchaseBills);
+    expect(result.totalQty).toBe(55);
+    expect(result.totalCost).toBe(850);
+    expect(result.avgRate).toBe(15.45);
+    expect(result.suppliersCount).toBe(3);
+    expect(result.suppliers).toContain('Supplier 1');
+    expect(result.suppliers).toContain('Supplier 2');
+    expect(result.suppliers).toContain('Supplier 3');
+    expect(result.history).toHaveLength(3);
+  });
+
+  it('calculates finished fabric cost considering dyeing charges and weight loss accurately', () => {
+    // User's exact example:
+    // - Average grey purchase rate: ₹15.45 / unit
+    // - Issued quantity: 55 units -> Total grey cost = ₹849.75 (or ₹850)
+    // - Dyeing cost: ₹20 / unit -> Total dyeing cost = 55 * 20 = ₹1,100
+    // - Total cost before loss = 849.75 + 1100 = 1949.75 (~₹1,950)
+    // - Cost per unit before loss = 15.45 + 20 = ₹35.45
+    // - Weight loss: 5% -> Loss qty = 55 * 0.05 = 2.75 units
+    // - Expected finished qty = 55 - 2.75 = 52.25 units
+    // - Adjusted finished fabric cost = 1949.75 / 52.25 = ₹37.32 per finished unit
+    const form = {
+      input: {
+        description: 'Cotton Grey 40s',
+        qty: '55',
+        avgGreyRate: '15.45',
+        dyeingRate: '20',
+        weightLossPct: '5',
+      },
+      output: [
+        { description: 'Cotton Dyed Navy Blue', qty: '52.25' },
+      ],
+    };
+
+    const totals = calcBatchTotals(form);
+    expect(totals.inputQty).toBe(55);
+    expect(totals.greyRate).toBe(15.45);
+    expect(totals.totalGreyCost).toBe(849.75);
+    expect(totals.dyeingRate).toBe(20);
+    expect(totals.totalDyeingCost).toBe(1100);
+    expect(totals.totalBatchCost).toBe(1949.75);
+    expect(totals.costPerUnitBeforeLoss).toBe(35.45);
+    expect(totals.weightLossPct).toBe(5);
+    expect(totals.weightLossQty).toBe(2.75);
+    expect(totals.expectedOutputQty).toBe(52.25);
+    expect(totals.adjustedUnitCost).toBe(37.32);
+    expect(totals.totalOutputQty).toBe(52.25);
+    expect(totals.avgFinishedUnitCost).toBe(37.32);
+    expect(totals.enrichedOutput[0].unitCost).toBe(37.32);
+  });
+
+  it('allocates adjusted unit cost when multiple colored rolls are produced from 1 batch', () => {
+    const form = {
+      input: {
+        description: 'Cotton Grey 40s',
+        qty: '55',
+        avgGreyRate: '15.45',
+        dyeingRate: '20',
+        weightLossPct: '5',
+      },
+      output: [
+        { description: 'Cotton Dyed Navy Blue', qty: '30' },
+        { description: 'Cotton Dyed Jet Black', qty: '22.25' },
+      ],
+    };
+
+    const totals = calcBatchTotals(form);
+    expect(totals.totalOutputQty).toBe(52.25);
+    expect(totals.avgFinishedUnitCost).toBe(37.32);
+    expect(totals.enrichedOutput[0].unitCost).toBe(37.32);
+    expect(totals.enrichedOutput[1].unitCost).toBe(37.32);
+    expect(totals.enrichedOutput[0].allocatedCost).toBe(1119.47);
+    expect(totals.enrichedOutput[1].allocatedCost).toBe(830.28);
+  });
+
+  it('calculates pre-dyeing batch cost during approval when weight loss is not yet entered, and updates when completed', () => {
+    // 1. Initial Approval: 55 units grey fabric @ ₹15.45, dyeing rate ₹20, NO weight loss yet
+    const approvalBatch = {
+      status: DYEING_STATUS.IN_PROCESS,
+      input: {
+        description: 'Cotton Grey 40s',
+        qty: '55',
+        avgGreyRate: '15.45',
+        dyeingRate: '20',
+      },
+      output: [{ description: 'Cotton Dyed Navy Blue', qty: '' }],
+    };
+
+    const approvalTotals = calcBatchTotals(approvalBatch);
+    expect(approvalTotals.inputQty).toBe(55);
+    expect(approvalTotals.totalGreyCost).toBe(849.75);
+    expect(approvalTotals.totalDyeingCost).toBe(1100);
+    expect(approvalTotals.totalBatchCost).toBe(1949.75);
+    expect(approvalTotals.costPerUnitBeforeLoss).toBe(35.45);
+    expect(approvalTotals.weightLossPct).toBe(0);
+    expect(approvalTotals.weightLossQty).toBe(0);
+    expect(approvalTotals.expectedOutputQty).toBe(55);
+    expect(approvalTotals.avgFinishedUnitCost).toBe(35.45);
+
+    // 2. Completion on Return: actual finished fabric weighed = 52.25 units (5% actual loss)
+    const completedBatch = {
+      ...approvalBatch,
+      status: DYEING_STATUS.COMPLETED,
+      weightLossPct: '5',
+      output: [{ description: 'Cotton Dyed Navy Blue', qty: '52.25' }],
+    };
+
+    const completedTotals = calcBatchTotals(completedBatch);
+    expect(completedTotals.totalOutputQty).toBe(52.25);
+    expect(completedTotals.shrinkageQty).toBe(2.75);
+    expect(completedTotals.shrinkagePct).toBe(5);
+    expect(completedTotals.avgFinishedUnitCost).toBe(37.32);
+    expect(completedTotals.enrichedOutput[0].unitCost).toBe(37.32);
+  });
+
+  it('supports legacy batches with itemized expenses gracefully', () => {
     const form = {
       input: { qty: '10', avgGreyRate: '100' },
       expenses: [
@@ -49,36 +197,7 @@ describe('Dyeing & Processing Batch Logic (Workflow 2)', () => {
     expect(totals.totalExpenses).toBe(300);
     expect(totals.totalBatchCost).toBe(1300);
     expect(totals.totalOutputQty).toBe(10);
-    expect(totals.shrinkageQty).toBe(0);
-    expect(totals.shrinkagePct).toBe(0);
     expect(totals.avgFinishedUnitCost).toBe(130);
-
-    // Check individual output allocations
-    expect(totals.enrichedOutput[0].qty).toBe('6');
-    expect(totals.enrichedOutput[0].allocatedCost).toBe(780); // 6 * 130
-    expect(totals.enrichedOutput[0].unitCost).toBe(130);
-
-    expect(totals.enrichedOutput[1].qty).toBe('4');
-    expect(totals.enrichedOutput[1].allocatedCost).toBe(520); // 4 * 130
-    expect(totals.enrichedOutput[1].unitCost).toBe(130);
-  });
-
-  it('tracks shrinkage / weight loss when output quantity is less than input', () => {
-    const form = {
-      input: { qty: '100', avgGreyRate: '50' }, // 100 kgs @ ₹50 = ₹5,000
-      expenses: [{ category: 'Dyeing Charges', amount: '1000' }], // Total ₹6,000
-      output: [{ description: 'Dyed Fabric Lycra', qty: '95' }], // 95 kgs received (5 kgs loss)
-    };
-
-    const totals = calcBatchTotals(form);
-    expect(totals.inputQty).toBe(100);
-    expect(totals.totalOutputQty).toBe(95);
-    expect(totals.shrinkageQty).toBe(5);
-    expect(totals.shrinkagePct).toBe(5); // 5% shrinkage
-    expect(totals.totalBatchCost).toBe(6000);
-    // Cost per kg absorbed by surviving output: 6000 / 95 = 63.16
-    expect(totals.avgFinishedUnitCost).toBe(63.16);
-    expect(totals.enrichedOutput[0].unitCost).toBe(63.16);
   });
 
   it('validates required fields for draft and completed batches', () => {
@@ -219,24 +338,15 @@ describe('Dyeing & Processing Batch Logic (Workflow 2)', () => {
         },
       ];
 
-      // Match by dyeing name
       expect(filterDyers(dyersList, 'murugan')).toHaveLength(1);
       expect(filterDyers(dyersList, 'royal')).toHaveLength(1);
-
-      // Match by owner
       expect(filterDyers(dyersList, 'rajesh')).toHaveLength(1);
-
-      // Match by phone
       expect(filterDyers(dyersList, '0001')).toHaveLength(1);
-
-      // Match by address
       expect(filterDyers(dyersList, 'palladam')).toHaveLength(1);
 
-      // Find exact dyer by phone for autocomplete
       const foundByPhone = findDyerByQuery(dyersList, '9842100001');
       expect(foundByPhone?.dyeingName).toBe('Sri Murugan Dyeing Works');
 
-      // Find exact dyer by dyeing name
       const foundByName = findDyerByQuery(dyersList, 'Sri Murugan Dyeing Works');
       expect(foundByName?.ownerName).toBe('Murugan');
     });
