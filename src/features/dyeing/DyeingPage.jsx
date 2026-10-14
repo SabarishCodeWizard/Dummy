@@ -35,7 +35,7 @@ import {
 import { DyeingBatchModal } from './DyeingBatchModal';
 import { DyeingChallanModal } from './DyeingChallanModal';
 import { DYEING_STATUS, filterBatches } from './dyeingLogic';
-import { deleteDyeingBatchRecord, loadDyeingData } from './dyeingService';
+import { deleteDyeingBatchRecord, loadDyeingData, saveDyeingBatchRecord } from './dyeingService';
 
 const rupees = (n) => `₹${formatCurrency(n)}`;
 
@@ -161,6 +161,43 @@ export default function DyeingPage({ openNew = false }) {
       loadData();
     } catch (err) {
       toast('Delete Failed', err.message || 'Could not delete batch.', 'error');
+    }
+  };
+
+  const handleCompleteBatch = async (batch) => {
+    const validOutputs = (batch.output || []).filter(
+      (o) => o.description?.trim() && parseFloat(o.qty) > 0,
+    );
+
+    if (validOutputs.length === 0) {
+      toast(
+        'Finished Output Required',
+        'Please enter received output rolls and quantities before completing the batch.',
+        'warning',
+      );
+      setEditingBatch(batch);
+      setIsModalOpen(true);
+      return;
+    }
+
+    const ok = await confirm({
+      title: `Complete Batch #${batch.batchId}?`,
+      message: `Receive ${batch.totalOutputQty || 0} ${batch.input?.unit || 'Rolls'} into finished inventory at unit cost of ${rupees(batch.avgFinishedUnitCost || 0)}?`,
+      tone: 'success',
+      confirmText: 'Complete & Receive Stock',
+    });
+    if (!ok) return;
+
+    try {
+      await saveDyeingBatchRecord({
+        ...batch,
+        status: DYEING_STATUS.COMPLETED,
+        completedAt: new Date().toISOString(),
+      });
+      toast('Batch Completed!', `Batch #${batch.batchId} completed. Finished stock has been added.`, 'success');
+      loadData();
+    } catch (err) {
+      toast('Completion Failed', err.message || 'Could not complete batch.', 'error');
     }
   };
 
@@ -305,6 +342,17 @@ export default function DyeingPage({ openNew = false }) {
                     </div>
 
                     <div className="flex items-center gap-1.5">
+                      {!isCompleted && (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          icon={CheckCircle2}
+                          onClick={() => handleCompleteBatch(batch)}
+                          className="font-semibold text-xs py-1.5"
+                        >
+                          Complete
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"

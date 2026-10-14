@@ -7,6 +7,7 @@ import {
   Layers,
   Package,
   Plus,
+  Save,
   Trash2,
   TrendingUp,
 } from 'lucide-react';
@@ -165,10 +166,10 @@ export function DyeingBatchModal({
     }));
   };
 
-  const handleSave = async (targetStatus) => {
+  const handleSave = async () => {
     const submission = {
       ...form,
-      status: targetStatus || form.status,
+      status: form.status || DYEING_STATUS.IN_PROCESS,
     };
 
     const err = validateDyeingBatch(submission);
@@ -180,13 +181,7 @@ export function DyeingBatchModal({
     setSaving(true);
     try {
       await saveDyeingBatchRecord(submission);
-      toast(
-        targetStatus === DYEING_STATUS.COMPLETED ? 'Batch Completed!' : 'Batch Saved',
-        `Batch #${submission.batchId} successfully ${
-          targetStatus === DYEING_STATUS.COMPLETED ? 'completed and stock converted' : 'saved'
-        }.`,
-        'success',
-      );
+      toast('Batch Saved', `Batch #${submission.batchId} saved successfully.`, 'success');
       onSaved?.();
       onClose();
     } catch (e) {
@@ -250,26 +245,15 @@ export function DyeingBatchModal({
             >
               Cancel
             </Button>
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-              <Button
-                variant="outline"
-                icon={Clock}
-                loading={saving}
-                onClick={() => handleSave(DYEING_STATUS.IN_PROCESS)}
-                className="justify-center text-xs sm:text-sm py-2 sm:py-1.5"
-              >
-                Save Draft
-              </Button>
-              <Button
-                variant="primary"
-                icon={CheckCircle2}
-                loading={saving}
-                onClick={() => handleSave(DYEING_STATUS.COMPLETED)}
-                className="justify-center text-xs sm:text-sm py-2 sm:py-1.5"
-              >
-                Complete
-              </Button>
-            </div>
+            <Button
+              variant="primary"
+              icon={Save}
+              loading={saving}
+              onClick={handleSave}
+              className="justify-center text-xs sm:text-sm py-2 sm:py-1.5 px-5 font-semibold"
+            >
+              Save Batch
+            </Button>
           </div>
         </div>
       }
