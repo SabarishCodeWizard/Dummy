@@ -1,6 +1,10 @@
 import {
+  AlertCircle,
+  Banknote,
   Building2,
+  CheckCircle2,
   ExternalLink,
+  Layers,
   MapPin,
   MessageCircle,
   Pencil,
@@ -14,7 +18,8 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 
-import { digitsOnly } from '@/core/format';
+import { db } from '@/core/db';
+import { digitsOnly, formatCurrency } from '@/core/format';
 import {
   Badge,
   Button,
@@ -24,17 +29,19 @@ import {
   Modal,
   Page,
   SearchBar,
+  StatCard,
   TextField,
   cn,
   useFeedback,
 } from '@/ui';
-import { emptyProcessor, filterProcessors, validateProcessor } from './combingLogic';
+import { calcProcessorBalanceSummary, emptyProcessor, filterProcessors, validateProcessor } from './combingLogic';
 import { deleteProcessorRecord, getAllProcessorsList, saveProcessorRecord } from './combingService';
 
 export default function CombingDetailsPage() {
   const { toast, confirm } = useFeedback();
 
   const [processors, setProcessors] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -53,8 +60,12 @@ export default function CombingDetailsPage() {
       else setLoading(true);
       setError(null);
 
-      const list = await getAllProcessorsList();
+      const [list, batchList] = await Promise.all([
+        getAllProcessorsList(),
+        db.getAllCombingBatches ? db.getAllCombingBatches() : Promise.resolve([]),
+      ]);
       setProcessors(list || []);
+      setBatches(batchList || []);
     } catch (err) {
       console.error('Failed to load processors directory:', err);
       setError(err.message || 'Could not load processors.');
@@ -71,6 +82,10 @@ export default function CombingDetailsPage() {
   const filteredProcessors = useMemo(() => {
     return filterProcessors(processors, searchTerm);
   }, [processors, searchTerm]);
+
+  const overallSummary = useMemo(() => {
+    return calcProcessorBalanceSummary(batches);
+  }, [batches]);
 
   const handleOpenAdd = () => {
     setEditingProcessor(null);
@@ -182,6 +197,38 @@ export default function CombingDetailsPage() {
       }
     >
       <div className="space-y-6">
+        {/* Combating Metrics KPI Strip */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            label="Combating Units"
+            value={processors.length}
+            icon={Building2}
+            tone="brand"
+            subtext="Registered mills"
+          />
+          <StatCard
+            label="Total Batches"
+            value={overallSummary.batchCount}
+            icon={Layers}
+            tone="info"
+            subtext="Across all mills"
+          />
+          <StatCard
+            label="Processing Charges"
+            value={`₹${formatCurrency(overallSummary.totalCharges)}`}
+            icon={Banknote}
+            tone="brand"
+            subtext={`Paid: ₹${formatCurrency(overallSummary.totalPaid)}`}
+          />
+          <StatCard
+            label="Processor Balance"
+            value={`₹${formatCurrency(overallSummary.balanceDue)}`}
+            icon={AlertCircle}
+            tone={overallSummary.balanceDue > 0 ? 'danger' : 'success'}
+            subtext={overallSummary.balanceDue > 0 ? 'Outstanding payable' : 'All settled'}
+          />
+        </div>
+
         {/* Search & Stats Bar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SearchBar
@@ -225,10 +272,12 @@ export default function CombingDetailsPage() {
             {filteredProcessors.map((proc) => {
               const cleanPhone = digitsOnly(proc.phone || '');
               const name = proc.processorName || proc.name;
+              const summary = calcProcessorBalanceSummary(batches, name);
+
               return (
                 <div
                   key={proc.id || proc.phone || name}
-                  className="group relative rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs transition duration-150 hover:border-slate-300 hover:shadow-card"
+                  className="group relative rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs transition duration-150 hover:border-slate-300 hover:shadow-card space-y-3"
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     {/* Left: Mill Icon + Name & Owner */}
@@ -316,6 +365,46 @@ export default function CombingDetailsPage() {
                           <span>Delete</span>
                         </button>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Financial Balance Summary Strip */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5 text-xs">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <div>
+                        <span className="text-slate-500">Batches:</span>{' '}
+                        <b className="text-slate-900">{summary.batchCount}</b>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Total Charges:</span>{' '}
+                        <b className="text-slate-900">₹{formatCurrency(summary.totalCharges)}</b>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Paid:</span>{' '}
+                        <b className="text-emerald-700">₹{formatCurrency(summary.totalPaid)}</b>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Balance Due:</span>{' '}
+                        <b
+                          className={summary.balanceDue > 0 ? 'text-rose-700' : 'text-emerald-700'}
+                        >
+                          ₹{formatCurrency(summary.balanceDue)}
+                        </b>
+                      </div>
+                    </div>
+
+                    <div>
+                      {summary.totalCharges > 0 && summary.balanceDue === 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
+                          <CheckCircle2 className="size-3 text-emerald-600" />
+                          All Settled
+                        </span>
+                      ) : summary.balanceDue > 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-rose-300 bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-800">
+                          <AlertCircle className="size-3 text-rose-600" />
+                          Due: ₹{formatCurrency(summary.balanceDue)}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 </div>

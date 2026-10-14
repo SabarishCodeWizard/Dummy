@@ -459,3 +459,101 @@ export function findDyerByQuery(dyers = [], query = '') {
 
   return null;
 }
+
+/**
+ * Calculates payment statistics for a dyeing batch:
+ * - totalCharges: Processing charges payable to the dyer
+ * - totalPaid: Sum of all recorded payments
+ * - balanceDue: Remaining balance to be paid
+ * - status: 'PAID' | 'PARTIAL' | 'UNPAID' | 'NO_CHARGES'
+ */
+export function calcBatchPaymentStats(batch) {
+  if (!batch) {
+    return {
+      totalCharges: 0,
+      totalPaid: 0,
+      balanceDue: 0,
+      paymentsCount: 0,
+      payments: [],
+      isPaid: false,
+      isPartial: false,
+      isUnpaid: false,
+      status: 'NO_CHARGES',
+    };
+  }
+
+  const dyeingCost = toNum(batch.totalDyeingCost);
+  const inputDyeingCost = toNum(batch.input?.totalDyeingCost);
+  const rateTimesQty = toNum(batch.dyeingRate || batch.input?.dyeingRate) * toNum(batch.input?.qty);
+  const legacyExpenses = toNum(batch.totalExpenses);
+
+  // Determine total payable charges to the dyer
+  const totalCharges = round2(dyeingCost || inputDyeingCost || rateTimesQty || legacyExpenses || 0);
+
+  const payments = Array.isArray(batch.payments) ? batch.payments : [];
+  const totalPaid = round2(payments.reduce((sum, p) => sum + toNum(p.amount), 0));
+  const balanceDue = Math.max(0, round2(totalCharges - totalPaid));
+
+  let status = 'NO_CHARGES';
+  let isPaid = false;
+  let isPartial = false;
+  let isUnpaid = false;
+
+  if (totalCharges > 0) {
+    if (totalPaid >= totalCharges) {
+      status = 'PAID';
+      isPaid = true;
+    } else if (totalPaid > 0) {
+      status = 'PARTIAL';
+      isPartial = true;
+    } else {
+      status = 'UNPAID';
+      isUnpaid = true;
+    }
+  }
+
+  return {
+    totalCharges,
+    totalPaid,
+    balanceDue,
+    paymentsCount: payments.length,
+    payments,
+    isPaid,
+    isPartial,
+    isUnpaid,
+    status,
+  };
+}
+
+/**
+ * Aggregates batch financial balance statistics for a given Dyer (or all dyers).
+ */
+export function calcDyerBalanceSummary(batches = [], dyerName = '') {
+  const target = (dyerName || '').trim().toLowerCase();
+  const relevantBatches = target
+    ? batches.filter((b) => (b.processorName || '').trim().toLowerCase() === target)
+    : batches;
+
+  let totalCharges = 0;
+  let totalPaid = 0;
+  let balanceDue = 0;
+  let batchCount = relevantBatches.length;
+  let unpaidCount = 0;
+
+  relevantBatches.forEach((b) => {
+    const stats = calcBatchPaymentStats(b);
+    totalCharges += stats.totalCharges;
+    totalPaid += stats.totalPaid;
+    balanceDue += stats.balanceDue;
+    if (stats.balanceDue > 0) unpaidCount++;
+  });
+
+  return {
+    batchCount,
+    unpaidCount,
+    totalCharges: round2(totalCharges),
+    totalPaid: round2(totalPaid),
+    balanceDue: round2(balanceDue),
+    isSettled: balanceDue <= 0 && totalCharges > 0,
+  };
+}

@@ -435,3 +435,103 @@ export function findProcessorByQuery(processors = [], query = '') {
     }) || null
   );
 }
+
+/**
+ * Calculates payment statistics for a combing & processing batch:
+ * - totalCharges: Processing charges payable to the mill/processor
+ * - totalPaid: Sum of all recorded payments
+ * - balanceDue: Remaining balance to be paid
+ * - status: 'PAID' | 'PARTIAL' | 'UNPAID' | 'NO_CHARGES'
+ */
+export function calcCombingBatchPaymentStats(batch) {
+  if (!batch) {
+    return {
+      totalCharges: 0,
+      totalPaid: 0,
+      balanceDue: 0,
+      paymentsCount: 0,
+      payments: [],
+      isPaid: false,
+      isPartial: false,
+      isUnpaid: false,
+      status: 'NO_CHARGES',
+    };
+  }
+
+  const processingCost = toNum(batch.totalProcessingCost);
+  const inputProcessingCost = toNum(batch.input?.totalProcessingCost);
+  const rateTimesQty = toNum(batch.processingRate || batch.input?.processingRate) * toNum(batch.input?.qty);
+
+  const totalCharges = round2(processingCost || inputProcessingCost || rateTimesQty || 0);
+
+  const payments = Array.isArray(batch.payments) ? batch.payments : [];
+  const totalPaid = round2(payments.reduce((sum, p) => sum + toNum(p.amount), 0));
+  const balanceDue = Math.max(0, round2(totalCharges - totalPaid));
+
+  let status = 'NO_CHARGES';
+  let isPaid = false;
+  let isPartial = false;
+  let isUnpaid = false;
+
+  if (totalCharges > 0) {
+    if (totalPaid >= totalCharges) {
+      status = 'PAID';
+      isPaid = true;
+    } else if (totalPaid > 0) {
+      status = 'PARTIAL';
+      isPartial = true;
+    } else {
+      status = 'UNPAID';
+      isUnpaid = true;
+    }
+  }
+
+  return {
+    totalCharges,
+    totalPaid,
+    balanceDue,
+    paymentsCount: payments.length,
+    payments,
+    isPaid,
+    isPartial,
+    isUnpaid,
+    status,
+  };
+}
+
+/**
+ * Aggregates batch financial balance statistics for a given Processor (or all processors).
+ */
+export function calcProcessorBalanceSummary(batches = [], processorName = '') {
+  const target = (processorName || '').trim().toLowerCase();
+  const relevantBatches = target
+    ? batches.filter(
+        (b) =>
+          (b.processorName || '').trim().toLowerCase() === target ||
+          (b.name || '').trim().toLowerCase() === target,
+      )
+    : batches;
+
+  let totalCharges = 0;
+  let totalPaid = 0;
+  let balanceDue = 0;
+  let batchCount = relevantBatches.length;
+  let unpaidCount = 0;
+
+  relevantBatches.forEach((b) => {
+    const stats = calcCombingBatchPaymentStats(b);
+    totalCharges += stats.totalCharges;
+    totalPaid += stats.totalPaid;
+    balanceDue += stats.balanceDue;
+    if (stats.balanceDue > 0) unpaidCount++;
+  });
+
+  return {
+    batchCount,
+    unpaidCount,
+    totalCharges: round2(totalCharges),
+    totalPaid: round2(totalPaid),
+    balanceDue: round2(balanceDue),
+    isSettled: balanceDue <= 0 && totalCharges > 0,
+  };
+}

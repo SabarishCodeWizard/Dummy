@@ -911,10 +911,13 @@ export class Database {
     const cached = this._cache.dyeing_batches?.find((b) => b.id === id || b.batchId === id);
     if (cached) return cached;
     const snap = await getDoc(this.ref('dyeing_batches', id));
-    return snap.exists() ? snap.data() : null;
+    if (snap.exists()) return snap.data();
+    const byBatch = await this._where('dyeing_batches', 'batchId', id);
+    return byBatch[0] || null;
   }
   async deleteDyeingBatch(id) {
     await deleteDoc(this.ref('dyeing_batches', id));
+    await this._deleteWhere('dyeing_batches', 'batchId', id);
     this._cache.dyeing_batches = null;
   }
 
@@ -982,10 +985,13 @@ export class Database {
     const cached = this._cache.combing_batches?.find((b) => b.id === id || b.batchId === id);
     if (cached) return cached;
     const snap = await getDoc(this.ref('combing_batches', id));
-    return snap.exists() ? snap.data() : null;
+    if (snap.exists()) return snap.data();
+    const byBatch = await this._where('combing_batches', 'batchId', id);
+    return byBatch[0] || null;
   }
   async deleteCombingBatch(id) {
     await deleteDoc(this.ref('combing_batches', id));
+    await this._deleteWhere('combing_batches', 'batchId', id);
     this._cache.combing_batches = null;
   }
 

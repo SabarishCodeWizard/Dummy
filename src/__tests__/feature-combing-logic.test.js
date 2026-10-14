@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import {
+  calcCombingBatchPaymentStats,
   calcCombingBatchTotals,
+  calcProcessorBalanceSummary,
   computeInputFabricRate,
   emptyCombingBatch,
   emptyProcessor,
@@ -393,6 +394,90 @@ describe('Combing & Processing Logic (Workflow: Dyeing -> Combing & Processing -
 
       const revenueRows = computeRevenueRows(salesInvoices, costLookup);
       expect(revenueRows[0].profit).toBe(1000); // 2500 - (50 * 30) = 1000 profit
+    });
+
+    it('accurately calculates combing batch payment stats and balances', () => {
+      // 1. Unpaid batch
+      const unpaidBatch = {
+        batchId: 'CB-001',
+        processorName: 'Lakshmi Combing Mills',
+        totalProcessingCost: 800,
+        payments: [],
+      };
+      const stats1 = calcCombingBatchPaymentStats(unpaidBatch);
+      expect(stats1.totalCharges).toBe(800);
+      expect(stats1.totalPaid).toBe(0);
+      expect(stats1.balanceDue).toBe(800);
+      expect(stats1.isUnpaid).toBe(true);
+      expect(stats1.status).toBe('UNPAID');
+
+      // 2. Partial payment
+      const partialBatch = {
+        batchId: 'CB-002',
+        processorName: 'Lakshmi Combing Mills',
+        totalProcessingCost: 800,
+        payments: [{ id: 'p1', date: '2026-10-14', amount: 300, mode: 'Cash' }],
+      };
+      const stats2 = calcCombingBatchPaymentStats(partialBatch);
+      expect(stats2.totalCharges).toBe(800);
+      expect(stats2.totalPaid).toBe(300);
+      expect(stats2.balanceDue).toBe(500);
+      expect(stats2.isPartial).toBe(true);
+      expect(stats2.status).toBe('PARTIAL');
+
+      // 3. Fully paid
+      const paidBatch = {
+        batchId: 'CB-003',
+        processorName: 'Lakshmi Combing Mills',
+        totalProcessingCost: 800,
+        payments: [
+          { id: 'p1', date: '2026-10-14', amount: 300, mode: 'Cash' },
+          { id: 'p2', date: '2026-10-15', amount: 500, mode: 'UPI' },
+        ],
+      };
+      const stats3 = calcCombingBatchPaymentStats(paidBatch);
+      expect(stats3.totalCharges).toBe(800);
+      expect(stats3.totalPaid).toBe(800);
+      expect(stats3.balanceDue).toBe(0);
+      expect(stats3.isPaid).toBe(true);
+      expect(stats3.status).toBe('PAID');
+    });
+
+    it('aggregates processor balance summary across combing batches', () => {
+      const batches = [
+        {
+          batchId: 'CB-001',
+          processorName: 'Lakshmi Mills',
+          totalProcessingCost: 500,
+          payments: [{ amount: 500 }],
+        },
+        {
+          batchId: 'CB-002',
+          processorName: 'Lakshmi Mills',
+          totalProcessingCost: 1000,
+          payments: [{ amount: 200 }],
+        },
+        {
+          batchId: 'CB-003',
+          processorName: 'Other Mill',
+          totalProcessingCost: 700,
+          payments: [],
+        },
+      ];
+
+      const lakshmiSummary = calcProcessorBalanceSummary(batches, 'Lakshmi Mills');
+      expect(lakshmiSummary.batchCount).toBe(2);
+      expect(lakshmiSummary.totalCharges).toBe(1500);
+      expect(lakshmiSummary.totalPaid).toBe(700);
+      expect(lakshmiSummary.balanceDue).toBe(800);
+      expect(lakshmiSummary.unpaidCount).toBe(1);
+
+      const allSummary = calcProcessorBalanceSummary(batches);
+      expect(allSummary.batchCount).toBe(3);
+      expect(allSummary.totalCharges).toBe(2200);
+      expect(allSummary.totalPaid).toBe(700);
+      expect(allSummary.balanceDue).toBe(1500);
+      expect(allSummary.unpaidCount).toBe(2);
     });
   });
 });

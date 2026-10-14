@@ -9,6 +9,7 @@ import {
   Layers,
   Package,
   Plus,
+  Receipt,
   RefreshCw,
   Search,
   Trash2,
@@ -32,10 +33,12 @@ import {
   useFeedback,
 } from '@/ui';
 
+import { AddDyeingPaymentModal } from './AddDyeingPaymentModal';
 import { DyeingBatchModal } from './DyeingBatchModal';
 import { DyeingChallanModal } from './DyeingChallanModal';
 import { DyeingCompletionModal } from './DyeingCompletionModal';
-import { DYEING_STATUS, filterBatches } from './dyeingLogic';
+import { DyeingPaymentHistoryModal } from './DyeingPaymentHistoryModal';
+import { DYEING_STATUS, calcBatchPaymentStats, filterBatches } from './dyeingLogic';
 import { deleteDyeingBatchRecord, loadDyeingData, saveDyeingBatchRecord } from './dyeingService';
 
 const rupees = (n) => `₹${formatCurrency(n)}`;
@@ -57,6 +60,7 @@ export default function DyeingPage({ openNew = false }) {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [paymentFilter, setPaymentFilter] = useState('ALL');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBatch, setEditingBatch] = useState(null);
@@ -66,6 +70,12 @@ export default function DyeingPage({ openNew = false }) {
 
   const [isCompletionOpen, setIsCompletionOpen] = useState(false);
   const [completingBatch, setCompletingBatch] = useState(null);
+
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [payingBatch, setPayingBatch] = useState(null);
+
+  const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+  const [historyBatch, setHistoryBatch] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -108,22 +118,34 @@ export default function DyeingPage({ openNew = false }) {
   };
 
   const filteredBatches = useMemo(() => {
-    return filterBatches(data.batches, searchTerm, statusFilter);
-  }, [data.batches, searchTerm, statusFilter]);
+    let result = filterBatches(data.batches, searchTerm, statusFilter);
+    if (paymentFilter === 'DUE') {
+      result = result.filter((b) => calcBatchPaymentStats(b).balanceDue > 0);
+    } else if (paymentFilter === 'PAID') {
+      result = result.filter((b) => calcBatchPaymentStats(b).isPaid);
+    }
+    return result;
+  }, [data.batches, searchTerm, statusFilter, paymentFilter]);
 
   const kpis = useMemo(() => {
     let inProcessCount = 0;
     let completedCount = 0;
     let totalGreyQty = 0;
     let totalOutputQty = 0;
-    let totalExpenses = 0;
+    let totalDyeingCharges = 0;
+    let totalPaid = 0;
+    let totalBalanceDue = 0;
 
     data.batches.forEach((b) => {
       if (b.status === DYEING_STATUS.IN_PROCESS) inProcessCount++;
       if (b.status === DYEING_STATUS.COMPLETED) completedCount++;
       totalGreyQty += parseFloat(b.input?.qty) || 0;
       totalOutputQty += parseFloat(b.totalOutputQty) || 0;
-      totalExpenses += parseFloat(b.totalExpenses) || 0;
+
+      const pStats = calcBatchPaymentStats(b);
+      totalDyeingCharges += pStats.totalCharges;
+      totalPaid += pStats.totalPaid;
+      totalBalanceDue += pStats.balanceDue;
     });
 
     return {
@@ -131,7 +153,9 @@ export default function DyeingPage({ openNew = false }) {
       completedCount,
       totalGreyQty,
       totalOutputQty,
-      totalExpenses,
+      totalDyeingCharges,
+      totalPaid,
+      totalBalanceDue,
     };
   }, [data.batches]);
 
@@ -148,6 +172,16 @@ export default function DyeingPage({ openNew = false }) {
   const handleViewChallan = (batch) => {
     setChallanBatch(batch);
     setIsChallanOpen(true);
+  };
+
+  const handleOpenPayment = (batch) => {
+    setPayingBatch(batch);
+    setIsPaymentOpen(true);
+  };
+
+  const handleOpenPaymentHistory = (batch) => {
+    setHistoryBatch(batch);
+    setIsPaymentHistoryOpen(true);
   };
 
   const handleDelete = async (batch) => {
@@ -200,7 +234,7 @@ export default function DyeingPage({ openNew = false }) {
     >
       <div className="space-y-6">
         {/* KPI Strip */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <StatCard
             label="In Process"
             value={kpis.inProcessCount}
@@ -230,12 +264,18 @@ export default function DyeingPage({ openNew = false }) {
             subtext="Ready for sale"
           />
           <StatCard
-            label="Processing Expenses"
-            value={rupees(kpis.totalExpenses)}
+            label="Dyeing Charges"
+            value={rupees(kpis.totalDyeingCharges)}
             icon={Banknote}
             tone="info"
-            subtext="Dyeing, chemicals, labor"
-            className="col-span-2 sm:col-span-1"
+            subtext={`Paid: ${rupees(kpis.totalPaid)}`}
+          />
+          <StatCard
+            label="Dyer Balance Due"
+            value={rupees(kpis.totalBalanceDue)}
+            icon={AlertCircle}
+            tone={kpis.totalBalanceDue > 0 ? 'danger' : 'success'}
+            subtext={kpis.totalBalanceDue > 0 ? 'Pending payment' : 'All settled'}
           />
         </div>
 
@@ -248,7 +288,7 @@ export default function DyeingPage({ openNew = false }) {
               placeholder="Search by Batch #, processor, fabric or color..."
             />
           </div>
-          <div className="flex items-center gap-1.5 self-start overflow-x-auto pb-1 sm:self-auto sm:pb-0">
+          <div className="flex flex-wrap items-center gap-1.5 self-start overflow-x-auto pb-1 sm:self-auto sm:pb-0">
             {['ALL', DYEING_STATUS.IN_PROCESS, DYEING_STATUS.COMPLETED].map((status) => (
               <button
                 key={status}
@@ -267,6 +307,27 @@ export default function DyeingPage({ openNew = false }) {
                     : 'Completed'}
               </button>
             ))}
+
+            <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block" />
+
+            {[
+              { id: 'ALL', label: 'All Payments' },
+              { id: 'DUE', label: 'Balance Due' },
+              { id: 'PAID', label: 'Paid' },
+            ].map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPaymentFilter(p.id)}
+                className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+                  paymentFilter === p.id
+                    ? 'bg-slate-800 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -279,10 +340,12 @@ export default function DyeingPage({ openNew = false }) {
           <EmptyState
             icon={Layers}
             title={
-              searchTerm || statusFilter !== 'ALL' ? 'No matching batches found' : 'No dyeing batches yet'
+              searchTerm || statusFilter !== 'ALL' || paymentFilter !== 'ALL'
+                ? 'No matching batches found'
+                : 'No dyeing batches yet'
             }
             description={
-              searchTerm || statusFilter !== 'ALL'
+              searchTerm || statusFilter !== 'ALL' || paymentFilter !== 'ALL'
                 ? 'Try adjusting your search keywords or filter.'
                 : 'Start your manufacturing workflow by creating your first dyeing and processing batch.'
             }
@@ -296,13 +359,15 @@ export default function DyeingPage({ openNew = false }) {
           <div className="space-y-3">
             {filteredBatches.map((batch) => {
               const isCompleted = batch.status === DYEING_STATUS.COMPLETED;
+              const paymentStats = calcBatchPaymentStats(batch);
+
               return (
                 <div
                   key={batch.batchId}
                   className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs transition hover:shadow-md"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded bg-slate-900 px-2.5 py-1 font-mono text-sm font-bold text-white">
                         #{batch.batchId}
                       </span>
@@ -312,9 +377,27 @@ export default function DyeingPage({ openNew = false }) {
                       <Badge variant={isCompleted ? 'success' : 'warning'} className="text-xs">
                         {isCompleted ? 'Completed' : 'In Process'}
                       </Badge>
+
+                      {/* Payment Status Badge */}
+                      {paymentStats.isPaid ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                          <CheckCircle2 className="size-3 text-emerald-600" />
+                          Paid
+                        </span>
+                      ) : paymentStats.isPartial ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                          <Clock className="size-3 text-amber-600" />
+                          Part Paid ({rupees(paymentStats.balanceDue)} due)
+                        </span>
+                      ) : paymentStats.totalCharges > 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-800">
+                          <AlertCircle className="size-3 text-rose-600" />
+                          Due: {rupees(paymentStats.balanceDue)}
+                        </span>
+                      ) : null}
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {!isCompleted && (
                         <Button
                           size="sm"
@@ -326,6 +409,29 @@ export default function DyeingPage({ openNew = false }) {
                           Complete
                         </Button>
                       )}
+
+                      {/* Payment Buttons */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        icon={Banknote}
+                        onClick={() => handleOpenPayment(batch)}
+                        className="text-emerald-800 hover:bg-emerald-50 border-emerald-300 font-semibold text-xs py-1.5"
+                        title="Record payment to dyer"
+                      >
+                        + Pay
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        icon={Receipt}
+                        onClick={() => handleOpenPaymentHistory(batch)}
+                        className="text-slate-700 hover:bg-slate-100 border-slate-200 text-xs py-1.5"
+                        title="View payment history"
+                      >
+                        History {paymentStats.paymentsCount > 0 ? `(${paymentStats.paymentsCount})` : ''}
+                      </Button>
+
                       <Button
                         size="sm"
                         variant="outline"
@@ -385,7 +491,7 @@ export default function DyeingPage({ openNew = false }) {
                         Dyeing & Processing Cost
                       </div>
                       <div className="mt-0.5 text-sm font-bold text-indigo-700">
-                        {rupees(batch.totalDyeingCost || batch.totalExpenses || 0)}
+                        {rupees(paymentStats.totalCharges)}
                       </div>
                       <div className="mt-0.5 text-slate-500">
                         {batch.dyeingRate || batch.input?.dyeingRate ? (
@@ -398,6 +504,22 @@ export default function DyeingPage({ openNew = false }) {
                         ) : (
                           <span>{rupees(batch.totalExpenses || 0)}</span>
                         )}
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 text-[11px]">
+                        <span className="text-slate-500">
+                          Paid: <b className="text-emerald-700">{rupees(paymentStats.totalPaid)}</b>
+                        </span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-slate-500">
+                          Due:{' '}
+                          <b
+                            className={
+                              paymentStats.balanceDue > 0 ? 'text-rose-700' : 'text-emerald-700'
+                            }
+                          >
+                            {rupees(paymentStats.balanceDue)}
+                          </b>
+                        </span>
                       </div>
                     </div>
 
@@ -463,6 +585,35 @@ export default function DyeingPage({ openNew = false }) {
         shortcuts={data.shortcuts}
         stockMap={data.stockMap}
         onCompleted={loadData}
+      />
+
+      <AddDyeingPaymentModal
+        open={isPaymentOpen}
+        batch={payingBatch}
+        onClose={() => {
+          setIsPaymentOpen(false);
+          setPayingBatch(null);
+        }}
+        onPaymentAdded={(updatedBatch) => {
+          if (updatedBatch && historyBatch && (updatedBatch.batchId === historyBatch.batchId || updatedBatch.id === historyBatch.id)) {
+            setHistoryBatch(updatedBatch);
+          }
+          loadData();
+        }}
+      />
+
+      <DyeingPaymentHistoryModal
+        open={isPaymentHistoryOpen}
+        batch={historyBatch}
+        onClose={() => {
+          setIsPaymentHistoryOpen(false);
+          setHistoryBatch(null);
+        }}
+        onPaymentDeleted={(updatedBatch) => {
+          if (updatedBatch) setHistoryBatch(updatedBatch);
+          loadData();
+        }}
+        onOpenAddPayment={(b) => handleOpenPayment(b)}
       />
     </Page>
   );

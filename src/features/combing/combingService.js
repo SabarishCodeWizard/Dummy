@@ -1,4 +1,5 @@
 import { db } from '@/core/db';
+import { todayISO } from '@/core/format';
 import { getStockQuantityMap, invalidateStocksCache } from '@/features/overview/stocks/stocksService';
 import { calcCombingBatchTotals, validateCombingBatch, validateProcessor } from './combingLogic';
 
@@ -93,6 +94,25 @@ export async function saveCombingBatchRecord(form) {
  * Deletes a combing batch and frees allocated stock.
  */
 export async function deleteCombingBatchRecord(batchId) {
+  try {
+    let batch = await db.getCombingBatch(batchId);
+    if (!batch && db.getAllCombingBatches) {
+      const all = await db.getAllCombingBatches();
+      batch = all.find((b) => b.batchId === batchId || b.id === batchId);
+    }
+    if (batch && Array.isArray(batch.payments) && db.deleteAccountTransaction) {
+      for (const p of batch.payments) {
+        try {
+          await db.deleteAccountTransaction(p.id);
+        } catch (err) {
+          console.warn('Failed to delete transaction for payment:', p.id, err);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading combing batch before deletion:', e);
+  }
+
   await db.deleteCombingBatch(batchId);
   invalidateStocksCache();
   if (db.invalidate) db.invalidate('combing_batches');
@@ -132,4 +152,105 @@ export async function deleteProcessorRecord(id) {
 export async function getAllProcessorsList() {
   if (!db.getAllProcessors) return [];
   return (await db.getAllProcessors()) || [];
+}
+
+/**
+ * Records a payment against a combing batch and syncs with finance account transactions.
+ */
+export async function addCombingBatchPayment(batchId, paymentData) {
+  const amt = parseFloat(paymentData.amount);
+  if (!amt || amt <= 0) {
+    throw new Error('Please enter a valid payment amount greater than zero.');
+  }
+
+  const batch = await db.getCombingBatch(batchId);
+  if (!batch) {
+    throw new Error(`Combing batch #${batchId} was not found.`);
+  }
+
+  const paymentId = `cb_pay_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const paymentRecord = {
+    id: paymentId,
+    date: paymentData.date || todayISO(),
+    amount: Math.round(amt * 100) / 100,
+    mode: paymentData.mode || 'Cash', // 'Cash' | 'Bank' | 'UPI'
+    bankAccountId: paymentData.mode === 'Cash' ? null : paymentData.bankAccountId || null,
+    bankAccountName: paymentData.bankAccountName || '',
+    reference: (paymentData.reference || '').trim(),
+    notes: (paymentData.notes || '').trim(),
+    createdAt: new Date().toISOString(),
+  };
+
+  const payments = Array.isArray(batch.payments) ? [...batch.payments, paymentRecord] : [paymentRecord];
+  const updatedBatch = {
+    ...batch,
+    payments,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await db.saveCombingBatch(updatedBatch);
+
+  // Sync with live financial accounts
+  if (db.saveAccountTransaction) {
+    try {
+      const source = paymentRecord.mode === 'Cash' ? 'cash' : (paymentRecord.bankAccountId || 'cash');
+      await db.saveAccountTransaction({
+        id: paymentId,
+        date: paymentRecord.date,
+        type: 'expense',
+        category: 'Combing Payment',
+        amount: paymentRecord.amount,
+        fromAccount: source,
+        bankAccountId: paymentRecord.mode !== 'Cash' ? paymentRecord.bankAccountId : null,
+        notes: `Combing Batch #${batch.batchId} (${batch.processorName || 'Processor'})${
+          paymentRecord.reference ? ` - Ref: ${paymentRecord.reference}` : ''
+        }`,
+      });
+    } catch (err) {
+      console.warn('Failed to record account transaction for combing payment:', err);
+    }
+  }
+
+  if (db.invalidate) {
+    db.invalidate('combing_batches', 'account_transactions');
+  }
+
+  return { batch: updatedBatch, payment: paymentRecord };
+}
+
+/**
+ * Removes a payment from a combing batch and removes the corresponding finance account transaction.
+ */
+export async function deleteCombingBatchPayment(batchId, paymentId) {
+  let batch = await db.getCombingBatch(batchId);
+  if (!batch && db.getAllCombingBatches) {
+    const all = await db.getAllCombingBatches();
+    batch = all.find((b) => b.batchId === batchId || b.id === batchId);
+  }
+  if (!batch) {
+    throw new Error(`Combing batch #${batchId} was not found.`);
+  }
+
+  const updatedPayments = (batch.payments || []).filter((p) => p.id !== paymentId);
+  const updatedBatch = {
+    ...batch,
+    payments: updatedPayments,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await db.saveCombingBatch(updatedBatch);
+
+  if (db.deleteAccountTransaction) {
+    try {
+      await db.deleteAccountTransaction(paymentId);
+    } catch (err) {
+      console.warn('Failed to delete account transaction for combing payment:', err);
+    }
+  }
+
+  if (db.invalidate) {
+    db.invalidate('combing_batches', 'account_transactions');
+  }
+
+  return updatedBatch;
 }

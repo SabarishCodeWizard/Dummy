@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import {
+  calcBatchPaymentStats,
   calcBatchTotals,
+  calcDyerBalanceSummary,
   computeGreyPurchaseRate,
   emptyDyeingBatch,
   emptyDyer,
@@ -349,6 +350,101 @@ describe('Dyeing & Processing Batch Logic (Workflow 2: Manufacturing)', () => {
 
       const foundByName = findDyerByQuery(dyersList, 'Sri Murugan Dyeing Works');
       expect(foundByName?.ownerName).toBe('Murugan');
+    });
+  });
+
+  describe('Dyeing Payment Tracking and Balance Statistics', () => {
+    it('accurately calculates batch payment stats for unpaid, partial, and fully paid batches', () => {
+      // 1. Unpaid batch
+      const unpaidBatch = {
+        batchId: 'B-001',
+        processorName: 'Sri Murugan Dyeing',
+        totalDyeingCost: 1100,
+        payments: [],
+      };
+      const unpaidStats = calcBatchPaymentStats(unpaidBatch);
+      expect(unpaidStats.totalCharges).toBe(1100);
+      expect(unpaidStats.totalPaid).toBe(0);
+      expect(unpaidStats.balanceDue).toBe(1100);
+      expect(unpaidStats.isUnpaid).toBe(true);
+      expect(unpaidStats.isPartial).toBe(false);
+      expect(unpaidStats.isPaid).toBe(false);
+      expect(unpaidStats.status).toBe('UNPAID');
+
+      // 2. Partially paid batch
+      const partialBatch = {
+        batchId: 'B-002',
+        processorName: 'Sri Murugan Dyeing',
+        totalDyeingCost: 1100,
+        payments: [
+          { id: 'p1', date: '2026-10-14', amount: 500, mode: 'Cash' },
+        ],
+      };
+      const partialStats = calcBatchPaymentStats(partialBatch);
+      expect(partialStats.totalCharges).toBe(1100);
+      expect(partialStats.totalPaid).toBe(500);
+      expect(partialStats.balanceDue).toBe(600);
+      expect(partialStats.isPartial).toBe(true);
+      expect(partialStats.isUnpaid).toBe(false);
+      expect(partialStats.isPaid).toBe(false);
+      expect(partialStats.status).toBe('PARTIAL');
+
+      // 3. Fully paid batch
+      const paidBatch = {
+        batchId: 'B-003',
+        processorName: 'Sri Murugan Dyeing',
+        totalDyeingCost: 1100,
+        payments: [
+          { id: 'p1', date: '2026-10-14', amount: 500, mode: 'Cash' },
+          { id: 'p2', date: '2026-10-15', amount: 600, mode: 'Bank', bankAccountId: 'bank-1' },
+        ],
+      };
+      const paidStats = calcBatchPaymentStats(paidBatch);
+      expect(paidStats.totalCharges).toBe(1100);
+      expect(paidStats.totalPaid).toBe(1100);
+      expect(paidStats.balanceDue).toBe(0);
+      expect(paidStats.isPaid).toBe(true);
+      expect(paidStats.isPartial).toBe(false);
+      expect(paidStats.status).toBe('PAID');
+    });
+
+    it('aggregates dyer balance summary across multiple batches for a dyer and overall', () => {
+      const batches = [
+        {
+          batchId: 'B-001',
+          processorName: 'Murugan Dyeing',
+          totalDyeingCost: 1000,
+          payments: [{ amount: 400 }],
+        },
+        {
+          batchId: 'B-002',
+          processorName: 'Murugan Dyeing',
+          totalDyeingCost: 1500,
+          payments: [{ amount: 1500 }],
+        },
+        {
+          batchId: 'B-003',
+          processorName: 'Other Dyeing',
+          totalDyeingCost: 2000,
+          payments: [],
+        },
+      ];
+
+      // Specific dyer summary
+      const muruganSummary = calcDyerBalanceSummary(batches, 'Murugan Dyeing');
+      expect(muruganSummary.batchCount).toBe(2);
+      expect(muruganSummary.totalCharges).toBe(2500);
+      expect(muruganSummary.totalPaid).toBe(1900);
+      expect(muruganSummary.balanceDue).toBe(600);
+      expect(muruganSummary.unpaidCount).toBe(1);
+
+      // Overall summary across all dyers
+      const allSummary = calcDyerBalanceSummary(batches);
+      expect(allSummary.batchCount).toBe(3);
+      expect(allSummary.totalCharges).toBe(4500);
+      expect(allSummary.totalPaid).toBe(1900);
+      expect(allSummary.balanceDue).toBe(2600);
+      expect(allSummary.unpaidCount).toBe(2);
     });
   });
 });
