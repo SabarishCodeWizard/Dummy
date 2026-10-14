@@ -1,4 +1,4 @@
-import { Building2, Check, ExternalLink, MapPin, Phone, User, Users } from 'lucide-react';
+import { Building2, Check, ExternalLink, Info, MapPin, Phone, User, Users } from 'lucide-react';
 import { useId, useState } from 'react';
 import { Link } from 'react-router';
 
@@ -37,14 +37,16 @@ export function DyerPicker({
     setDismissed(true);
   };
 
-  const handlePhoneInput = (val) => {
-    onPhoneChange(val);
-    const clean = digitsOnly(val);
-    if (clean.length >= 10) {
-      const match = dyers.find((d) => digitsOnly(d.phone || '') === clean);
-      if (match) {
-        onSelect(match);
-      }
+  const handleDyeingNameChange = (val) => {
+    setDismissed(false);
+    setHighlight(-1);
+    onDyeingNameChange(val);
+
+    const match = dyers.find(
+      (d) => (d.dyeingName || '').trim().toLowerCase() === val.trim().toLowerCase(),
+    );
+    if (match) {
+      onSelect(match);
     }
   };
 
@@ -111,11 +113,7 @@ export function DyerPicker({
             aria-expanded={open}
             aria-controls={open ? listId : undefined}
             aria-autocomplete="list"
-            onChange={(v) => {
-              setDismissed(false);
-              setHighlight(-1);
-              onDyeingNameChange(v);
-            }}
+            onChange={handleDyeingNameChange}
             onFocus={() => {
               setFocused(true);
               setDismissed(false);
@@ -171,34 +169,46 @@ export function DyerPicker({
           )}
         </div>
 
-        {/* 2. Owner Name */}
+        {/* 2. Owner Name (Read Only) */}
         <TextField
-          label="Dyeing Owner Name *"
+          label="Dyeing Owner Name"
           value={ownerName}
-          onChange={onOwnerNameChange}
+          readOnly
           placeholder="Owner / contact person"
           leftIcon={User}
         />
 
-        {/* 3. Phone */}
+        {/* 3. Phone (Read Only) */}
         <TextField
-          label="Mobile / Phone Number *"
+          label="Mobile / Phone Number"
           value={phone}
-          onChange={handlePhoneInput}
+          readOnly
           placeholder="10-digit mobile"
           leftIcon={Phone}
           type="tel"
         />
 
-        {/* 4. Address */}
+        {/* 4. Address (Read Only) */}
         <TextField
           label="Mill / Factory Address"
           value={address}
-          onChange={onAddressChange}
-          placeholder="e.g. Veerapandi, Tirupur"
+          readOnly
+          placeholder="Mill / factory address"
           leftIcon={MapPin}
         />
       </div>
+
+      {!isSavedDyer && (
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 pt-1">
+          <Info className="size-3.5 text-slate-400 shrink-0" />
+          <span>
+            Select a dyeing unit above to load owner, phone, and address from your directory.{' '}
+            <Link to="/dyeing/details" target="_blank" className="text-brand-700 underline font-semibold">
+              Manage Dyers
+            </Link>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
