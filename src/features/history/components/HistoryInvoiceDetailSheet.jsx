@@ -86,7 +86,7 @@ export function HistoryInvoiceDetailSheet({ invoice, labels, actions, onClose })
                     alt={`Attached manual bill slip for #${invoice.invoiceNo}`}
                     className="mx-auto max-h-48 rounded-lg object-contain shadow-2xs transition duration-200 group-hover:scale-[1.01]"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:opacity-100 rounded-b-xl">
+                  <div className="absolute inset-0 flex items-center justify-center rounded-b-xl bg-black/25 opacity-0 transition-opacity group-hover:opacity-100">
                     <span className="flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-1.5 text-xs font-bold text-slate-900 shadow">
                       <ZoomIn className="size-3.5" /> Click to view full image
                     </span>

@@ -7,8 +7,8 @@
  */
 import { toNum } from '@/core/format';
 const normalise = (description) => description.trim().toUpperCase();
-/** Average purchase cost per unit of a product description; 0 for unknown products or zero purchased qty. */
-export function buildAvgCostLookup(purchaseBills) {
+/** Average purchase or manufactured cost per unit of a product description; 0 for unknown products. */
+export function buildAvgCostLookup(purchaseBills = [], dyeingBatches = []) {
   const stats = new Map();
   purchaseBills.forEach((bill) => {
     if (!bill.products || !Array.isArray(bill.products)) return;
@@ -21,6 +21,24 @@ export function buildAvgCostLookup(purchaseBills) {
       stats.set(key, entry);
     });
   });
+
+  // Account for completed dyeing batches (manufactured finished colored rolls)
+  if (Array.isArray(dyeingBatches)) {
+    dyeingBatches.forEach((batch) => {
+      if (batch.status === 'CANCELLED' || !Array.isArray(batch.output)) return;
+      batch.output.forEach((p) => {
+        if (!p.description) return;
+        const key = normalise(String(p.description));
+        const entry = stats.get(key) ?? { qty: 0, cost: 0 };
+        const qty = toNum(p.qty);
+        const unitCost = toNum(p.unitCost);
+        entry.qty += qty;
+        entry.cost += qty * unitCost;
+        stats.set(key, entry);
+      });
+    });
+  }
+
   return (description) => {
     if (!description) return 0;
     const entry = stats.get(normalise(description));
@@ -37,8 +55,8 @@ export function invoiceDiscount(invoice) {
  * PARITY NOTE: the sort key is `parseInt(billNo)`; bill numbers that do not start with a digit give NaN, which JS sort
  * treats as "equal", so such invoices keep their incoming (newest-first) position relative to their neighbours.
  */
-export function computeRevenueRows(invoices, purchaseBills) {
-  const avgCost = buildAvgCostLookup(purchaseBills);
+export function computeRevenueRows(invoices, purchaseBills, dyeingBatches = []) {
+  const avgCost = buildAvgCostLookup(purchaseBills, dyeingBatches);
   const rows = invoices.map((invoice) => {
     let totalCost = 0;
     let totalBillProfit = 0;

@@ -197,7 +197,13 @@ export function buildInvoiceStatementHtml(input) {
     ${paymentsTable(payments, invoice.grandTotal, totalReturns, todayOf(now), labels)}
 
     ${footer(now, true)}`;
-  return wrap(`SS ${invoice.invoiceNo}`, `SS ${displayInvoiceNo(labels, invoice.invoiceNo)}`, logoSrc, partyInfoHtml, body);
+  return wrap(
+    `SS ${invoice.invoiceNo}`,
+    `SS ${displayInvoiceNo(labels, invoice.invoiceNo)}`,
+    logoSrc,
+    partyInfoHtml,
+    body,
+  );
 }
 /** generateCombinedPDFStatement(): every invoice of the party (newest first) with its returns and payment history. */
 export function buildCombinedStatementHtml({ statement, labels, logoSrc, now }) {

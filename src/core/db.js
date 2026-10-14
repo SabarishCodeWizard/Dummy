@@ -535,7 +535,11 @@ export class Database {
   }
   // ------------------------------------------------------------------ Product Metadata
   async saveProductMetadata(description, metadata) {
-    await setDoc(this.ref('productMetadata', description), { ...metadata, description, updatedAt: serverTimestamp() }, { merge: true });
+    await setDoc(
+      this.ref('productMetadata', description),
+      { ...metadata, description, updatedAt: serverTimestamp() },
+      { merge: true },
+    );
     this._cache.productMetadata = null;
     return description;
   }
@@ -763,7 +767,9 @@ export class Database {
   async getAllFinanceRecords() {
     return this._load('finance', async () => {
       const records = await this._all('finance');
-      return records.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      return records.sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+      );
     });
   }
   async getFinanceRecord(id) {
@@ -809,7 +815,9 @@ export class Database {
   async getAllBankAccounts() {
     return this._load('bank_accounts', async () => {
       const records = await this._all('bank_accounts');
-      return records.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+      return records.sort(
+        (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime(),
+      );
     });
   }
   async getBankAccount(id) {
@@ -848,13 +856,86 @@ export class Database {
   async getAllAccountTransactions() {
     return this._load('account_transactions', async () => {
       const records = await this._all('account_transactions');
-      return records.sort((a, b) => new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime());
+      return records.sort(
+        (a, b) =>
+          new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime(),
+      );
     });
   }
   async deleteAccountTransaction(id) {
     await deleteDoc(this.ref('account_transactions', id));
     this._cache.account_transactions = null;
   }
+
+  // ------------------------------------------------------------------ Dyeing & Processing Batches (Workflow 2)
+  async saveDyeingBatch(batchData) {
+    const id = batchData.batchId || batchData.id || uid('batch');
+    await setDoc(this.ref('dyeing_batches', id), {
+      ...batchData,
+      id,
+      batchId: id,
+      updatedAt: serverTimestamp(),
+      createdAt: batchData.createdAt || new Date().toISOString(),
+    });
+    this._cache.dyeing_batches = null;
+    return id;
+  }
+  async getAllDyeingBatches() {
+    return this._load(
+      'dyeing_batches',
+      async () => {
+        const records = await this._all('dyeing_batches');
+        return records.sort(
+          (a, b) =>
+            new Date(b.batchDate || b.createdAt || 0).getTime() -
+            new Date(a.batchDate || a.createdAt || 0).getTime(),
+        );
+      },
+      { onError: 'empty' },
+    );
+  }
+  async getDyeingBatch(id) {
+    const cached = this._cache.dyeing_batches?.find((b) => b.id === id || b.batchId === id);
+    if (cached) return cached;
+    const snap = await getDoc(this.ref('dyeing_batches', id));
+    return snap.exists() ? snap.data() : null;
+  }
+  async deleteDyeingBatch(id) {
+    await deleteDoc(this.ref('dyeing_batches', id));
+    this._cache.dyeing_batches = null;
+  }
+
+  // ------------------------------------------------------------------ Dyers / Dyeing Units Directory
+  async saveDyer(dyerData) {
+    const id = dyerData.id || (dyerData.phone ? `dyer_${dyerData.phone.trim()}` : uid('dyer'));
+    await setDoc(this.ref('dyers', id), {
+      ...dyerData,
+      id,
+      updatedAt: serverTimestamp(),
+      createdAt: dyerData.createdAt || new Date().toISOString(),
+    });
+    this._cache.dyers = null;
+    return id;
+  }
+  async getAllDyers() {
+    return this._load(
+      'dyers',
+      async () => {
+        const records = await this._all('dyers');
+        return records.sort((a, b) => (a.dyeingName || '').localeCompare(b.dyeingName || ''));
+      },
+      { onError: 'empty' },
+    );
+  }
+  async getDyer(id) {
+    const cached = this._cache.dyers?.find((d) => d.id === id || d.phone === id);
+    if (cached) return cached;
+    const snap = await getDoc(this.ref('dyers', id));
+    return snap.exists() ? snap.data() : null;
+  }
+  async deleteDyer(id) {
+    await deleteDoc(this.ref('dyers', id));
+    this._cache.dyers = null;
+  }
 }
 export const db = new Database();
-

@@ -102,7 +102,9 @@ export default function SupplierDetailsPage() {
         <form
           role="search"
           className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-white p-2.5 shadow-card"
-          onSubmit={(e) => { e.preventDefault(); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+          }}
         >
           <SearchBar
             value={query}

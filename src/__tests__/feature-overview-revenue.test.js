@@ -59,6 +59,29 @@ describe('average purchase cost', () => {
     const avg = buildAvgCostLookup([{ products: undefined }, ...purchases]);
     expect(avg('Cotton Shirt')).toBe(110);
   });
+  test('factors in completed dyeing batches for manufactured products (Workflow 2)', () => {
+    // 10 raw grey rolls bought for ₹100 each, dyed with ₹300 expenses -> 10 rolls of 'Cotton 30s Red' at ₹130 unit cost
+    const batches = [
+      {
+        batchId: 'B-001',
+        status: 'COMPLETED',
+        output: [{ description: 'Cotton 30s Red', qty: 10, unitCost: 130 }],
+      },
+    ];
+    const avg = buildAvgCostLookup(purchases, batches);
+    expect(avg('Cotton 30s Red')).toBe(130);
+
+    // When sold for ₹180, profit is ₹50
+    const sales = [
+      inv({
+        invoiceNo: '050',
+        products: [{ description: 'Cotton 30s Red', qty: 1, rate: 180, amount: 180 }],
+      }),
+    ];
+    const rows = computeRevenueRows(sales, purchases, batches);
+    expect(rows[0].cost).toBe(130);
+    expect(rows[0].profit).toBe(50);
+  });
 });
 describe('invoiceDiscount', () => {
   test('discountAmount, else legacy discount, else 0', () => {

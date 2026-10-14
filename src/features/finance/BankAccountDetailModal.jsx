@@ -279,10 +279,10 @@ export default function BankAccountDetailModal({
             {isCash ? <Banknote className="size-5" /> : <Building2 className="size-5" />}
           </div>
           <div>
-            <h2 className="font-display text-lg font-bold text-slate-900 leading-tight">
+            <h2 className="font-display text-lg leading-tight font-bold text-slate-900">
               {account.accountName || (isCash ? 'Cash in Hand' : 'Bank Account Details')}
             </h2>
-            <div className="flex items-center gap-2 text-xs text-slate-500 font-normal">
+            <div className="flex items-center gap-2 text-xs font-normal text-slate-500">
               <span>{isCash ? 'Physical Cash Drawer' : account.bankName || 'Bank Account'}</span>
               {!isCash && account.accountType && (
                 <>
@@ -304,7 +304,7 @@ export default function BankAccountDetailModal({
                 size="sm"
                 icon={PlusCircle}
                 onClick={onAddAmount}
-                className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs"
+                className="bg-emerald-700 text-xs text-white hover:bg-emerald-800"
               >
                 + Add Amount
               </Button>
@@ -321,13 +321,7 @@ export default function BankAccountDetailModal({
               </Button>
             )}
             {onEdit && !isCash && (
-              <Button
-                variant="outline"
-                size="sm"
-                icon={Edit}
-                onClick={onEdit}
-                className="text-xs"
-              >
+              <Button variant="outline" size="sm" icon={Edit} onClick={onEdit} className="text-xs">
                 Edit Account
               </Button>
             )}
@@ -341,54 +335,48 @@ export default function BankAccountDetailModal({
       <div className="space-y-5">
         {/* TOP SUMMARY STATS */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-line bg-gradient-to-br from-brand-900 to-brand-950 p-4 text-white shadow-sm col-span-2 sm:col-span-1">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-gold-300">
+          <div className="col-span-2 rounded-2xl border border-line bg-gradient-to-br from-brand-900 to-brand-950 p-4 text-white shadow-sm sm:col-span-1">
+            <div className="text-[11px] font-semibold tracking-wider text-gold-300 uppercase">
               Current Balance
             </div>
             <div className="mt-1 font-display text-2xl font-black text-white sm:text-3xl">
               {rs(activity.computedCurrentBalance)}
             </div>
-            <div className="mt-2 text-[11px] text-brand-200 flex items-center justify-between">
+            <div className="mt-2 flex items-center justify-between text-[11px] text-brand-200">
               <span>Opening:</span>
               <span className="font-semibold text-white">{rs(activity.openingBalance)}</span>
             </div>
           </div>
 
           <div className="rounded-2xl border border-line bg-emerald-50/60 p-4 ring-1 ring-emerald-200/50">
-            <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-emerald-800">
+            <div className="flex items-center justify-between text-[11px] font-semibold tracking-wider text-emerald-800 uppercase">
               <span>Total Inflows</span>
               <ArrowDownLeft className="size-4 text-emerald-600" />
             </div>
             <div className="mt-1 font-display text-xl font-extrabold text-emerald-700 sm:text-2xl">
               +{rs(activity.totalInflows)}
             </div>
-            <div className="mt-2 text-[10px] text-emerald-600">
-              Sales, Loans, Deposits & Inflows
-            </div>
+            <div className="mt-2 text-[10px] text-emerald-600">Sales, Loans, Deposits & Inflows</div>
           </div>
 
           <div className="rounded-2xl border border-line bg-rose-50/60 p-4 ring-1 ring-rose-200/50">
-            <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-rose-800">
+            <div className="flex items-center justify-between text-[11px] font-semibold tracking-wider text-rose-800 uppercase">
               <span>Total Outflows</span>
               <ArrowUpRight className="size-4 text-rose-600" />
             </div>
             <div className="mt-1 font-display text-xl font-extrabold text-rose-700 sm:text-2xl">
               -{rs(activity.totalOutflows)}
             </div>
-            <div className="mt-2 text-[10px] text-rose-600">
-              Purchases, Exps, Deductions & Outflows
-            </div>
+            <div className="mt-2 text-[10px] text-rose-600">Purchases, Exps, Deductions & Outflows</div>
           </div>
 
           <div className="rounded-2xl border border-line bg-slate-50 p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+            <div className="text-[11px] font-semibold tracking-wider text-slate-600 uppercase">
               Net Movement
             </div>
             <div
               className={`mt-1 font-display text-xl font-extrabold sm:text-2xl ${
-                activity.totalInflows - activity.totalOutflows >= 0
-                  ? 'text-emerald-700'
-                  : 'text-rose-700'
+                activity.totalInflows - activity.totalOutflows >= 0 ? 'text-emerald-700' : 'text-rose-700'
               }`}
             >
               {activity.totalInflows - activity.totalOutflows >= 0 ? '+' : ''}
@@ -403,19 +391,13 @@ export default function BankAccountDetailModal({
         {/* ACCOUNT METADATA & QUICK INFO */}
         {!isCash && (
           <div className="rounded-2xl border border-line bg-slate-50/70 p-3.5 sm:p-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-xs">
+            <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
               <div>
-                <span className="text-[10px] font-semibold uppercase text-slate-500">
-                  Bank Name
-                </span>
-                <p className="mt-0.5 font-bold text-slate-800">
-                  {account.bankName || 'Not Specified'}
-                </p>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase">Bank Name</span>
+                <p className="mt-0.5 font-bold text-slate-800">{account.bankName || 'Not Specified'}</p>
               </div>
               <div>
-                <span className="text-[10px] font-semibold uppercase text-slate-500">
-                  Account Number
-                </span>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase">Account Number</span>
                 <div className="mt-0.5 flex items-center gap-1.5 font-mono font-bold text-slate-800">
                   <span>{account.accountNumber || '—'}</span>
                   {account.accountNumber && (
@@ -423,7 +405,7 @@ export default function BankAccountDetailModal({
                       type="button"
                       onClick={handleCopyAccNumber}
                       title="Copy Account Number"
-                      className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
+                      className="rounded p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
                     >
                       {copied ? (
                         <Check className="size-3.5 text-emerald-600" />
@@ -435,18 +417,12 @@ export default function BankAccountDetailModal({
                 </div>
               </div>
               <div>
-                <span className="text-[10px] font-semibold uppercase text-slate-500">
-                  Account Type
-                </span>
-                <p className="mt-0.5 font-bold text-slate-800">
-                  {account.accountType || 'Current'}
-                </p>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase">Account Type</span>
+                <p className="mt-0.5 font-bold text-slate-800">{account.accountType || 'Current'}</p>
               </div>
               <div>
-                <span className="text-[10px] font-semibold uppercase text-slate-500">
-                  Notes
-                </span>
-                <p className="mt-0.5 text-slate-600 truncate" title={account.notes}>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase">Notes</span>
+                <p className="mt-0.5 truncate text-slate-600" title={account.notes}>
                   {account.notes || 'No notes added'}
                 </p>
               </div>
@@ -457,28 +433,22 @@ export default function BankAccountDetailModal({
         {/* INFLOW / OUTFLOW BREAKDOWN PILLS */}
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-emerald-200/70 bg-gradient-to-br from-white to-emerald-50/20 p-3 shadow-sm">
-            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between text-xs font-bold tracking-wider text-emerald-800 uppercase">
               <span>Inflow Sources</span>
               <span className="font-extrabold text-emerald-700">+{rs(activity.totalInflows)}</span>
             </div>
             <div className="space-y-1.5 text-xs text-slate-600">
               <div className="flex justify-between">
                 <span>{isCash ? 'Sales Collections (Cash):' : 'Sales Collections (UPI/Bank):'}</span>
-                <span className="font-bold text-emerald-700">
-                  {rs(activity.breakdown.salesInflow)}
-                </span>
+                <span className="font-bold text-emerald-700">{rs(activity.breakdown.salesInflow)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Loans Borrowed (Finance):</span>
-                <span className="font-bold text-teal-700">
-                  {rs(activity.breakdown.loanInflow)}
-                </span>
+                <span className="font-bold text-teal-700">{rs(activity.breakdown.loanInflow)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Transfers In (From Cash/Banks):</span>
-                <span className="font-bold text-indigo-700">
-                  {rs(activity.breakdown.transferInflow)}
-                </span>
+                <span className="font-bold text-indigo-700">{rs(activity.breakdown.transferInflow)}</span>
               </div>
               {(activity.breakdown.additionalInflow > 0 ||
                 (!activity.breakdown.salesInflow &&
@@ -504,34 +474,26 @@ export default function BankAccountDetailModal({
           </div>
 
           <div className="rounded-xl border border-rose-200/70 bg-gradient-to-br from-white to-rose-50/20 p-3 shadow-sm">
-            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-rose-800 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between text-xs font-bold tracking-wider text-rose-800 uppercase">
               <span>Outflow Destinations</span>
               <span className="font-extrabold text-rose-700">-{rs(activity.totalOutflows)}</span>
             </div>
             <div className="space-y-1.5 text-xs text-slate-600">
               <div className="flex justify-between">
                 <span>Purchase Payments:</span>
-                <span className="font-bold text-rose-700">
-                  {rs(activity.breakdown.purchaseOutflow)}
-                </span>
+                <span className="font-bold text-rose-700">{rs(activity.breakdown.purchaseOutflow)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Business Expenses:</span>
-                <span className="font-bold text-amber-700">
-                  {rs(activity.breakdown.expenseOutflow)}
-                </span>
+                <span className="font-bold text-amber-700">{rs(activity.breakdown.expenseOutflow)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Loan Repayments:</span>
-                <span className="font-bold text-purple-700">
-                  {rs(activity.breakdown.loanRepayOutflow)}
-                </span>
+                <span className="font-bold text-purple-700">{rs(activity.breakdown.loanRepayOutflow)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Transfers Out (To Cash/Banks):</span>
-                <span className="font-bold text-orange-700">
-                  {rs(activity.breakdown.transferOutflow)}
-                </span>
+                <span className="font-bold text-orange-700">{rs(activity.breakdown.transferOutflow)}</span>
               </div>
               {activity.breakdown.manualDeductionOutflow > 0 && (
                 <div className="flex justify-between">
@@ -576,7 +538,7 @@ export default function BankAccountDetailModal({
             </div>
 
             {/* FILTER DIRECTION BUTTONS */}
-            <div className="flex items-center self-start sm:self-auto rounded-xl bg-slate-100 p-1 text-xs">
+            <div className="flex items-center self-start rounded-xl bg-slate-100 p-1 text-xs sm:self-auto">
               <button
                 type="button"
                 onClick={() => setFilterType('all')}
@@ -616,14 +578,14 @@ export default function BankAccountDetailModal({
           {/* DATEWISE SEARCH & FILTER CONTROLS BAR */}
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-slate-50/70 p-2 sm:p-2.5">
             {/* Specific Date Picker Search */}
-            <div className="flex items-center gap-1.5 rounded-lg border border-line bg-white px-2 py-1 shadow-sm text-xs focus-within:border-brand-500">
-              <CalendarDays className="size-3.5 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-1.5 rounded-lg border border-line bg-white px-2 py-1 text-xs shadow-sm focus-within:border-brand-500">
+              <CalendarDays className="size-3.5 shrink-0 text-slate-400" />
               <input
                 type="date"
                 value={searchDate}
                 onChange={(e) => setSearchDate(e.target.value)}
                 title="Search by specific date"
-                className="bg-transparent text-xs font-medium text-slate-800 outline-none cursor-pointer"
+                className="cursor-pointer bg-transparent text-xs font-medium text-slate-800 outline-none"
               />
               {searchDate && (
                 <button
@@ -665,19 +627,19 @@ export default function BankAccountDetailModal({
 
             {/* Keyword / Text Search */}
             <div className="relative min-w-[140px] flex-1">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search description, party, date, amount..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-7 w-full rounded-lg border border-line bg-white pl-8 pr-7 text-xs text-slate-800 placeholder-slate-400 focus:border-brand-500 focus:outline-none"
+                className="h-7 w-full rounded-lg border border-line bg-white pr-7 pl-8 text-xs text-slate-800 placeholder-slate-400 focus:border-brand-500 focus:outline-none"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                  className="absolute top-1/2 right-2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                 >
                   <X className="size-3" />
                 </button>
@@ -693,7 +655,7 @@ export default function BankAccountDetailModal({
                   setSearchQuery('');
                   setFilterType('all');
                 }}
-                className="rounded-lg px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition"
+                className="rounded-lg px-2 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
               >
                 Clear All
               </button>
@@ -702,11 +664,10 @@ export default function BankAccountDetailModal({
 
           {/* ACTIVE FILTER STATUS PILL */}
           {searchDate && (
-            <div className="flex items-center gap-1.5 text-xs text-brand-900 bg-brand-50 border border-brand-200/60 rounded-lg px-2.5 py-1 w-fit">
+            <div className="flex w-fit items-center gap-1.5 rounded-lg border border-brand-200/60 bg-brand-50 px-2.5 py-1 text-xs text-brand-900">
               <CalendarDays className="size-3.5 text-brand-700" />
               <span>
-                Showing transactions for:{' '}
-                <strong>{formatDateHeading(searchDate)}</strong>
+                Showing transactions for: <strong>{formatDateHeading(searchDate)}</strong>
               </span>
               <button
                 type="button"
@@ -762,8 +723,8 @@ export default function BankAccountDetailModal({
                             isToday
                               ? 'bg-brand-900 text-gold-300'
                               : isYesterday
-                              ? 'bg-indigo-100 text-indigo-700'
-                              : 'bg-slate-200 text-slate-600'
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-slate-200 text-slate-600'
                           }`}
                         >
                           <CalendarDays className="size-3.5" />
@@ -778,24 +739,15 @@ export default function BankAccountDetailModal({
                             </span>
                           )}
                           <span className="ml-1 rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                            {group.items.length}{' '}
-                            {group.items.length === 1 ? 'entry' : 'entries'}
+                            {group.items.length} {group.items.length === 1 ? 'entry' : 'entries'}
                           </span>
                         </div>
                       </div>
 
                       {/* DAILY INFLOW / OUTFLOW TOTALS */}
                       <div className="flex items-center gap-2.5 text-xs font-bold">
-                        {group.totalIn > 0 && (
-                          <span className="text-emerald-700">
-                            +{rs(group.totalIn)}
-                          </span>
-                        )}
-                        {group.totalOut > 0 && (
-                          <span className="text-rose-700">
-                            -{rs(group.totalOut)}
-                          </span>
-                        )}
+                        {group.totalIn > 0 && <span className="text-emerald-700">+{rs(group.totalIn)}</span>}
+                        {group.totalOut > 0 && <span className="text-rose-700">-{rs(group.totalOut)}</span>}
                       </div>
                     </div>
 
@@ -855,7 +807,7 @@ export default function BankAccountDetailModal({
                               </div>
                             </div>
 
-                            <div className="text-right flex flex-col items-end">
+                            <div className="flex flex-col items-end text-right">
                               <div
                                 className={`font-display text-sm font-extrabold tabular-nums sm:text-base ${
                                   isIn ? 'text-emerald-700' : 'text-rose-700'
@@ -871,7 +823,7 @@ export default function BankAccountDetailModal({
                                     e.stopPropagation();
                                     handleUndo(item);
                                   }}
-                                  className="mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-800 transition border border-transparent hover:border-rose-200"
+                                  className="mt-1 inline-flex items-center gap-1 rounded border border-transparent px-1.5 py-0.5 text-[11px] font-semibold text-rose-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-800"
                                   title="Undo this transaction"
                                 >
                                   <RotateCcw className="size-3" />

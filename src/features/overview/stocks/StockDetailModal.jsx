@@ -80,7 +80,7 @@ function HistorySection({ kind, entries, onSelectBill }) {
           </span>
         </h3>
         {entries.length > 0 ? (
-          <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+          <span className="hidden text-[11px] font-medium text-slate-400 sm:inline">
             Click row to view bill →
           </span>
         ) : null}
@@ -94,7 +94,7 @@ function HistorySection({ kind, entries, onSelectBill }) {
         empty={<p className="py-6 text-center text-sm text-slate-500">{kind.empty}</p>}
         renderCard={(e) => (
           <div className="space-y-1 text-sm">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <span className="text-slate-500">{historyDate(e.date)}</span>
               <span className="font-display font-bold text-brand-800 underline decoration-brand-300 underline-offset-2">
                 #{historyInvoiceNo(e.invoiceNo)}
@@ -117,11 +117,11 @@ function HistorySection({ kind, entries, onSelectBill }) {
           <div className="flex flex-wrap items-center justify-between gap-3 font-display font-bold text-brand-800">
             <span className="text-sm">Total</span>
             <div className="flex flex-wrap items-center gap-4 text-sm tabular-nums">
-              <span className="text-slate-600 font-semibold">
+              <span className="font-semibold text-slate-600">
                 Total Qty: <strong className="text-brand-800">{historyQty(entries)}</strong>
               </span>
               {kind === PURCHASE && entries.length > 0 ? (
-                <span className="text-slate-600 font-semibold">
+                <span className="font-semibold text-slate-600">
                   Avg Rate:{' '}
                   <strong className="text-emerald-700">
                     {historyQty(entries) > 0
@@ -150,9 +150,20 @@ export default function StockDetailModal({ row, onClose }) {
   const handleSelectBill = (kind, entry) => {
     const rawNo = entry.rawInvoiceNo || entry.invoiceNo || '';
     if (!rawNo) return;
-    const cleanNo = String(rawNo).replace(/^Return\s*#?/i, '').trim();
-    if (!cleanNo) return;
     onClose();
+    if (
+      entry.isDyeingReceipt ||
+      entry.isDyeingIssue ||
+      String(rawNo).startsWith('B-') ||
+      String(rawNo).startsWith('Batch')
+    ) {
+      nav.push('/dyeing/batches');
+      return;
+    }
+    const cleanNo = String(rawNo)
+      .replace(/^Return\s*#?/i, '')
+      .trim();
+    if (!cleanNo) return;
     if (kind === PURCHASE) {
       nav.push(`/purchase/history?search=${encodeURIComponent(cleanNo)}&view=${encodeURIComponent(cleanNo)}`);
     } else {

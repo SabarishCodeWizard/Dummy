@@ -35,10 +35,20 @@ describe('addCustomer', () => {
   });
   test('saves { phone, name, address, openingBalance } with trimmed values', async () => {
     const m = stubDb();
-    const result = await addCustomer({ phone: ' 9876543210 ', name: ' SLN TEX ', address: ' Tirupur ', openingBalance: '500' });
+    const result = await addCustomer({
+      phone: ' 9876543210 ',
+      name: ' SLN TEX ',
+      address: ' Tirupur ',
+      openingBalance: '500',
+    });
     expect(result).toEqual({ ok: true });
     expect(m.getCustomer).toHaveBeenCalledWith('9876543210');
-    expect(m.saveCustomer).toHaveBeenCalledWith({ phone: '9876543210', name: 'SLN TEX', address: 'Tirupur', openingBalance: 500 });
+    expect(m.saveCustomer).toHaveBeenCalledWith({
+      phone: '9876543210',
+      name: 'SLN TEX',
+      address: 'Tirupur',
+      openingBalance: 500,
+    });
   });
   test('database failures propagate to the caller (the screen shows "Failed to add customer.")', async () => {
     stubDb();

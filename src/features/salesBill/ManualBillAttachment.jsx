@@ -82,13 +82,7 @@ export function ManualBillAttachment({ value, onChange }) {
         className="hidden"
         onChange={handleFile}
       />
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFile}
-      />
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
       {!value ? (
         <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 transition-colors hover:border-brand-300">
@@ -96,11 +90,10 @@ export function ManualBillAttachment({ value, onChange }) {
             <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700 shadow-xs">
               <Camera className="h-5 w-5" />
             </div>
-            <p className="text-sm font-semibold text-slate-800">
-              Attach Manual Bill / Physical Slip
-            </p>
+            <p className="text-sm font-semibold text-slate-800">Attach Manual Bill / Physical Slip</p>
             <p className="mt-0.5 max-w-xs text-xs text-slate-500">
-              Take a photo or upload a copy of the manual bill. It will be attached directly into the generated invoice document.
+              Take a photo or upload a copy of the manual bill. It will be attached directly into the
+              generated invoice document.
             </p>
 
             <div className="mt-3.5 flex flex-wrap items-center justify-center gap-2">

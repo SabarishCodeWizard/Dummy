@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   Sparkles,
   Landmark,
+  Layers,
   ChevronDown,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -36,6 +37,13 @@ const MODULE_CARDS = [
     points: ['Purchase bills', 'Supplier ledger', 'Payments & returns'],
   },
   {
+    to: '/dyeing/batches',
+    title: 'Dyeing & Processing',
+    text: 'Convert raw grey fabric into finished dyed rolls with cost & loss tracking.',
+    icon: Layers,
+    points: ['Processing batches', 'Dyeing details directory', 'Delivery challans'],
+  },
+  {
     to: '/sales/bill',
     title: 'Sales',
     text: 'Create invoices, collect payments and keep every customer ledger in order.',
@@ -57,7 +65,6 @@ const MODULE_CARDS = [
     points: ['Revenue & profit', 'Live stock levels', 'Expense tracking'],
   },
 ];
-
 
 function greeting() {
   const h = new Date().getHours();
@@ -99,7 +106,7 @@ function HeaderDropdown({ category }) {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 z-50 mt-2 w-56 rounded-2xl border border-white/15 bg-brand-900/95 p-1.5 shadow-pop backdrop-blur-md animate-fade-in">
+        <div className="absolute top-full left-0 z-50 mt-2 w-56 animate-fade-in rounded-2xl border border-white/15 bg-brand-900/95 p-1.5 shadow-pop backdrop-blur-md">
           <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-gold-400 uppercase">
             {category.title}
           </div>
@@ -148,19 +155,14 @@ export default function DashboardPage() {
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-3 py-5">
             <BrandLockup />
-            <div className="hidden lg:flex items-center gap-1 rounded-full bg-white/5 px-2 py-1 ring-1 ring-white/10 backdrop-blur">
+            <div className="hidden items-center gap-1 rounded-full bg-white/5 px-2 py-1 ring-1 ring-white/10 backdrop-blur lg:flex">
               {NAV_CATEGORIES.filter((c) => !c.isDirect).map((category) => (
                 <HeaderDropdown key={category.id} category={category} />
               ))}
             </div>
             <div className="flex items-center gap-2">
               <InstallButton className="hidden sm:inline-flex" />
-              <Button
-                variant="danger"
-                size="sm"
-                icon={LogOut}
-                onClick={onLogout}
-              >
+              <Button variant="danger" size="sm" icon={LogOut} onClick={onLogout}>
                 <span className="hidden sm:inline">Logout</span>
               </Button>
             </div>
@@ -183,8 +185,8 @@ export default function DashboardPage() {
       </header>
 
       {/* ------------------------------------------------------------ content */}
-      <main className="pb-safe relative mx-auto -mt-20 max-w-6xl px-4 pb-12 sm:-mt-24 sm:px-6 lg:px-8">
-        <section aria-label="Modules" className="grid gap-4 md:grid-cols-4 md:gap-5">
+      <main className="pb-safe relative mx-auto -mt-20 max-w-7xl px-4 pb-12 sm:-mt-24 sm:px-6 lg:px-8">
+        <section aria-label="Modules" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 md:gap-4">
           {MODULE_CARDS.map(({ to, title, text, icon: Icon, points }, i) => (
             <Link
               key={to}
@@ -214,27 +216,31 @@ export default function DashboardPage() {
           ))}
         </section>
 
-        <section aria-label="Features" className="mt-10 mb-2 relative overflow-hidden rounded-3xl bg-white border border-line shadow-card sm:mt-16">
+        <section
+          aria-label="Features"
+          className="relative mt-10 mb-2 overflow-hidden rounded-3xl border border-line bg-white shadow-card sm:mt-16"
+        >
           <div className="px-6 py-10 sm:px-12 sm:py-12 md:flex md:items-center md:justify-between md:gap-8">
             <div className="md:flex-1">
               <h3 className="font-display text-2xl font-extrabold text-brand-900 sm:text-3xl">
                 Ready to scale your operations?
               </h3>
               <p className="mt-3 max-w-lg text-base leading-relaxed text-slate-600">
-                Experience seamless accounting, lightning-fast invoicing, and effortless inventory tracking — everything you need in one unified space.
+                Experience seamless accounting, lightning-fast invoicing, and effortless inventory tracking —
+                everything you need in one unified space.
               </p>
             </div>
             <div className="mt-8 flex flex-wrap gap-3 md:mt-0 md:w-[320px] md:shrink-0 md:flex-col md:items-end md:justify-center">
-              <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200 transition hover:bg-gold-50 hover:text-brand-900 hover:ring-gold-200">
-                <Sparkles className="size-4 text-gold-500" /> 
+              <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition ring-inset hover:bg-gold-50 hover:text-brand-900 hover:ring-gold-200">
+                <Sparkles className="size-4 text-gold-500" />
                 Smart Automation
               </div>
-              <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200 transition hover:bg-emerald-50 hover:text-emerald-900 hover:ring-emerald-200">
-                <Globe className="size-4 text-emerald-500" /> 
+              <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition ring-inset hover:bg-emerald-50 hover:text-emerald-900 hover:ring-emerald-200">
+                <Globe className="size-4 text-emerald-500" />
                 Cloud Synced
               </div>
-              <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-inset ring-slate-200 transition hover:bg-sky-50 hover:text-sky-900 hover:ring-sky-200">
-                <PieChart className="size-4 text-sky-500" /> 
+              <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition ring-inset hover:bg-sky-50 hover:text-sky-900 hover:ring-sky-200">
+                <PieChart className="size-4 text-sky-500" />
                 Real-time Analytics
               </div>
             </div>
@@ -255,7 +261,7 @@ export default function DashboardPage() {
       <footer className="relative mt-auto overflow-hidden surface-ink text-white">
         <GoldWaves className="opacity-60" />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-[0.03]">
-          <span className="font-display text-[12vw] font-black uppercase tracking-tighter text-white whitespace-nowrap">
+          <span className="font-display text-[12vw] font-black tracking-tighter whitespace-nowrap text-white uppercase">
             BRIGHTLIGHT SOLUTIONS
           </span>
         </div>

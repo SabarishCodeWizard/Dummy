@@ -25,10 +25,10 @@ export function CustomerTable({ rows, onRemind }) {
       },
       { key: 'phone', header: 'Phone', render: (c) => <PhoneReveal phone={c.phone} /> },
       { key: 'address', header: 'Address', render: (c) => <AddressText address={c.address} /> },
-      { 
-        key: 'invoices', 
-        header: 'Total Invoices', 
-        align: 'right', 
+      {
+        key: 'invoices',
+        header: 'Total Invoices',
+        align: 'right',
         render: (c) => (
           <TotalInvoicesClickable
             count={buildRowModel(c).invoices}
@@ -36,7 +36,7 @@ export function CustomerTable({ rows, onRemind }) {
             entityName={c.name}
             module="sales"
           />
-        )
+        ),
       },
       ...AMOUNT_COLUMNS.map(([key, header]) => ({
         key,

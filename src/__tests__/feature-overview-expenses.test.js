@@ -57,7 +57,13 @@ describe('buildExpense', () => {
 });
 describe('form helpers', () => {
   test('empty form defaults to the given day; editing loads the stored values as text', () => {
-    expect(emptyExpenseForm('2026-10-03')).toEqual({ id: '', date: '2026-10-03', amount: '', reason: '', paymentSource: 'cash' });
+    expect(emptyExpenseForm('2026-10-03')).toEqual({
+      id: '',
+      date: '2026-10-03',
+      amount: '',
+      reason: '',
+      paymentSource: 'cash',
+    });
     expect(expenseToForm(e('9', '2026-10-01', 12.5, 'Rent'))).toEqual({
       id: '9',
       date: '2026-10-01',

@@ -161,30 +161,36 @@ export function ProductDescriptionInput({
                 {s.shortcutKey}
               </strong>
               <span className="min-w-0 flex-1 truncate">{s.fullDescription}</span>
-              {stockMap ? (() => {
-                const stockInfo = stockMap.get(s.fullDescription?.trim()) || stockMap.get(s.fullDescription?.trim().toLowerCase());
-                if (!stockInfo || typeof stockInfo.available !== 'number') return null;
-                const qty = stockInfo.available;
-                return (
-                  <span
-                    className={cn(
-                      'ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
-                      qty > 0
-                        ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'
-                        : qty === 0
-                          ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-200'
-                          : 'bg-red-100 text-red-800 ring-1 ring-red-200',
-                    )}
-                  >
-                    Stock: {qty}
-                  </span>
-                );
-              })() : null}
+              {stockMap
+                ? (() => {
+                    const stockInfo =
+                      stockMap.get(s.fullDescription?.trim()) ||
+                      stockMap.get(s.fullDescription?.trim().toLowerCase());
+                    if (!stockInfo || typeof stockInfo.available !== 'number') return null;
+                    const qty = stockInfo.available;
+                    return (
+                      <span
+                        className={cn(
+                          'ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                          qty > 0
+                            ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'
+                            : qty === 0
+                              ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-200'
+                              : 'bg-red-100 text-red-800 ring-1 ring-red-200',
+                        )}
+                      >
+                        Stock: {qty}
+                      </span>
+                    );
+                  })()
+                : null}
             </li>
           ))}
         </ul>
       ) : null}
-      {noMatch ? <p className="mt-1.5 text-xs font-medium text-amber-600">No matching products found in catalogue</p> : null}
+      {noMatch ? (
+        <p className="mt-1.5 text-xs font-medium text-amber-600">No matching products found in catalogue</p>
+      ) : null}
       {unknown ? (
         <p className="mt-1.5 text-xs font-semibold text-red-600" role="alert">
           Select a product from the suggestions

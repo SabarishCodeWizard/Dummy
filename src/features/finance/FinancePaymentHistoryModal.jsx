@@ -6,9 +6,9 @@ import { formatCurrency, formatDateShort } from '@/core/format';
 import { calculateFinanceStats } from './financeLogic';
 
 const ICONS = {
-  'Cash': Banknote,
-  'Account': Landmark,
-  'UPI': Smartphone,
+  Cash: Banknote,
+  Account: Landmark,
+  UPI: Smartphone,
 };
 
 export default function FinancePaymentHistoryModal({ record, onClose, onUpdate }) {
@@ -37,7 +37,7 @@ export default function FinancePaymentHistoryModal({ record, onClose, onUpdate }
       title: 'Delete Payment?',
       message: 'Are you sure you want to remove this payment?',
       tone: 'danger',
-      confirmText: 'Delete'
+      confirmText: 'Delete',
     });
 
     if (!ok) return;
@@ -45,7 +45,7 @@ export default function FinancePaymentHistoryModal({ record, onClose, onUpdate }
     try {
       const updatedRecord = {
         ...record,
-        payments: record.payments.filter(p => p.id !== paymentId)
+        payments: record.payments.filter((p) => p.id !== paymentId),
       };
       await db.saveFinanceRecord(updatedRecord);
       toast('Deleted', 'Payment record has been deleted', 'success');
@@ -67,26 +67,28 @@ export default function FinancePaymentHistoryModal({ record, onClose, onUpdate }
         </Button>
       }
     >
-      <div className="mb-4 bg-slate-50/80 border border-line rounded-xl p-3.5">
-        <div className="flex justify-between items-start">
+      <div className="mb-4 rounded-xl border border-line bg-slate-50/80 p-3.5">
+        <div className="flex items-start justify-between">
           <div>
-            <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Lender</div>
+            <div className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">Lender</div>
             <div className="font-bold text-slate-900">{record.lenderName}</div>
-            {record.phone && <div className="text-xs text-slate-600 font-mono mt-0.5">{record.phone}</div>}
+            {record.phone && <div className="mt-0.5 font-mono text-xs text-slate-600">{record.phone}</div>}
           </div>
           {stats.isSettled ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">
               <CheckCircle2 className="size-3.5 text-emerald-600" />
               Settled
             </span>
           ) : (
             <div className="text-right">
-              <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Balance Due</div>
-              <div className="text-sm font-extrabold text-emerald-800">₹{formatCurrency(stats.balancePayable)}</div>
+              <div className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">Balance Due</div>
+              <div className="text-sm font-extrabold text-emerald-800">
+                ₹{formatCurrency(stats.balancePayable)}
+              </div>
             </div>
           )}
         </div>
-        <div className="grid grid-cols-3 gap-2 mt-3 pt-2.5 border-t border-slate-200/70 text-xs">
+        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-200/70 pt-2.5 text-xs">
           <div>
             <span className="text-slate-500">Principal:</span>{' '}
             <span className="font-bold text-indigo-950">₹{formatCurrency(record.principal)}</span>
@@ -103,51 +105,54 @@ export default function FinancePaymentHistoryModal({ record, onClose, onUpdate }
       </div>
 
       {payments.length === 0 ? (
-        <EmptyState 
-          icon={Receipt} 
-          title="No Payments Yet" 
+        <EmptyState
+          icon={Receipt}
+          title="No Payments Yet"
           message="Payments you record for this loan will appear here."
         />
       ) : (
-        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-          {payments.map(p => {
+        <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+          {payments.map((p) => {
             const Icon = ICONS[p.mode] || Receipt;
             return (
-              <div key={p.id} className="flex items-center justify-between p-3 border border-line rounded-xl bg-white shadow-sm">
+              <div
+                key={p.id}
+                className="flex items-center justify-between rounded-xl border border-line bg-white p-3 shadow-sm"
+              >
                 <div className="flex items-center gap-3">
                   <div
                     className={`flex size-10 shrink-0 items-center justify-center rounded-xl ring-1 ${
                       p.mode === 'Cash'
                         ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
                         : p.mode === 'UPI'
-                        ? 'bg-purple-50 text-purple-700 ring-purple-200'
-                        : 'bg-blue-50 text-blue-700 ring-blue-200'
+                          ? 'bg-purple-50 text-purple-700 ring-purple-200'
+                          : 'bg-blue-50 text-blue-700 ring-blue-200'
                     }`}
                   >
                     <Icon className="size-5" />
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                    <div className="flex flex-wrap items-center gap-1.5 font-bold text-slate-900">
                       <span>{p.mode} Payment</span>
-                      <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
                         {!p.sourceAccount || p.sourceAccount === 'cash'
                           ? 'Cash in Hand'
                           : bankMap[p.sourceAccount]
-                          ? `${bankMap[p.sourceAccount].accountName} (${bankMap[p.sourceAccount].bankName || bankMap[p.sourceAccount].accountType || 'Bank'})`
-                          : 'Bank Account'}
+                            ? `${bankMap[p.sourceAccount].accountName} (${bankMap[p.sourceAccount].bankName || bankMap[p.sourceAccount].accountType || 'Bank'})`
+                            : 'Bank Account'}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 font-medium mt-0.5">{formatDateShort(p.date)}</div>
+                    <div className="mt-0.5 text-xs font-medium text-slate-500">{formatDateShort(p.date)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="font-display text-lg font-extrabold text-blue-700 tabular-nums">
                     ₹{formatCurrency(p.amount)}
                   </div>
-                  <IconButton 
-                    icon={X} 
-                    onClick={() => handleDelete(p.id)} 
-                    className="text-slate-400 hover:text-red-600 hover:bg-red-50" 
+                  <IconButton
+                    icon={X}
+                    onClick={() => handleDelete(p.id)}
+                    className="text-slate-400 hover:bg-red-50 hover:text-red-600"
                     label="Delete Payment"
                   />
                 </div>

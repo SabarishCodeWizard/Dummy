@@ -15,7 +15,8 @@ function cleanInvoiceNo(invoiceNo) {
  * results only differ for stale legacy documents. `discount` is read without the `discountAmount` fallback history uses.
  */
 export function aggregateSuppliers(bills, returns = [], directorySuppliers = []) {
-  if ((!bills || !Array.isArray(bills)) && (!directorySuppliers || !Array.isArray(directorySuppliers))) return [];
+  if ((!bills || !Array.isArray(bills)) && (!directorySuppliers || !Array.isArray(directorySuppliers)))
+    return [];
   const returnedByInvoice = new Map();
   if (Array.isArray(returns)) {
     for (const r of returns) {
@@ -83,10 +84,10 @@ export function aggregateSuppliers(bills, returns = [], directorySuppliers = [])
       s.totalBills++;
       s.totalAmount += toNum(bill.grandTotal);
       s.totalPaid += toNum(bill.payment?.totalPaid || bill.amountPaid);
-      s.totalDiscount += toNum(bill.discount !== undefined ? bill.discount : (bill.discountAmount || 0));
+      s.totalDiscount += toNum(bill.discount !== undefined ? bill.discount : bill.discountAmount || 0);
       s.balanceDue += toNum(bill.payment?.balanceDue || bill.balanceDue);
       s.totalManualAdjustments += toNum(bill.manualPreviousBalance);
-      
+
       if (bill.invoiceNo) {
         const cleanNo = cleanInvoiceNo(bill.invoiceNo);
         s.allInvoiceNumbers.push(cleanNo);

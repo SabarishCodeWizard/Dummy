@@ -23,7 +23,9 @@ function invoiceBlock(invoice, isLast, labels) {
     if (pb.cash > 0) parts.push(`💵 Cash: ${rs(pb.cash)}`);
     if (pb.upi > 0) parts.push(`📱 UPI: ${rs(pb.upi)}`);
     if (pb.account > 0) {
-      const accLabel = invoice.bankAccountName ? `🏦 Account (${invoice.bankAccountName}): ${rs(pb.account)}` : `🏦 Account: ${rs(pb.account)}`;
+      const accLabel = invoice.bankAccountName
+        ? `🏦 Account (${invoice.bankAccountName}): ${rs(pb.account)}`
+        : `🏦 Account: ${rs(pb.account)}`;
       parts.push(accLabel);
     }
     if (parts.length > 0) lines.push(`💳 ${parts.join(' | ')}`);

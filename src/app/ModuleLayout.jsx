@@ -8,6 +8,7 @@ import {
   FilePlus2,
   History,
   Landmark,
+  Layers,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -33,12 +34,13 @@ import { BrandLockup, BrandMark } from './Brand';
 import { OfflineBanner } from './pwa';
 
 /**
- * Navigation categories configured in the user-requested order:
+ * Navigation categories configured in the natural supply-chain order:
  * 1. Dashboard
- * 2. Purchase (Collapsible dropdown)
- * 3. Sales (Collapsible dropdown)
- * 4. Finance (Collapsible dropdown)
- * 5. Overview (Collapsible dropdown)
+ * 2. Purchase (Inward Grey Rolls / Traded Colored Rolls)
+ * 3. Dyeing & Processing (Convert Grey to Finished Dyed Rolls)
+ * 4. Sales (Sell Finished Rolls)
+ * 5. Finance (Bank, Cash, and Ledger Tracking)
+ * 6. Overview (Stocks, Profit/Revenue, Analytics, Expenses)
  */
 export const NAV_CATEGORIES = [
   {
@@ -60,6 +62,17 @@ export const NAV_CATEGORIES = [
       { to: '/purchase/add-supplier', label: 'Add Supplier', short: 'Add', icon: UserPlus },
       { to: '/purchase/suppliers', label: 'Supplier Details', short: 'Suppliers', icon: Users },
       { to: '/purchase/bin', label: 'Recycle Bin', short: 'Bin', icon: Trash2 },
+    ],
+  },
+  {
+    id: 'dyeing',
+    title: 'Dyeing & Processing',
+    icon: Layers,
+    basePath: '/dyeing',
+    home: '/dyeing/batches',
+    items: [
+      { to: '/dyeing/batches', label: 'Processing Batches', short: 'Batches', icon: Layers },
+      { to: '/dyeing/details', label: 'Dyeing Details', short: 'Dyeing Details', icon: Users },
     ],
   },
   {
@@ -107,9 +120,10 @@ export const NAV_CATEGORIES = [
 
 export const MODULES = {
   purchase: NAV_CATEGORIES[1],
-  sales: NAV_CATEGORIES[2],
-  finance: NAV_CATEGORIES[3],
-  overview: NAV_CATEGORIES[4],
+  dyeing: NAV_CATEGORIES[2],
+  sales: NAV_CATEGORIES[3],
+  finance: NAV_CATEGORIES[4],
+  overview: NAV_CATEGORIES[5],
 };
 
 function useLogout() {
@@ -162,9 +176,7 @@ function NavAccordion({ onItemClick }) {
 
   const activeCategoryId = useMemo(() => {
     if (pathname === '/') return 'dashboard';
-    return NAV_CATEGORIES.find(
-      (cat) => !cat.isDirect && pathname.startsWith(cat.basePath),
-    )?.id;
+    return NAV_CATEGORIES.find((cat) => !cat.isDirect && pathname.startsWith(cat.basePath))?.id;
   }, [pathname]);
 
   const [openCategories, setOpenCategories] = useState(() => {
@@ -210,7 +222,7 @@ function NavAccordion({ onItemClick }) {
                 cn(
                   'group relative flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition duration-150',
                   linkActive
-                    ? 'bg-white/10 text-white font-semibold'
+                    ? 'bg-white/10 font-semibold text-white'
                     : 'text-brand-200 hover:bg-white/5 hover:text-white',
                 )
               }
@@ -250,7 +262,7 @@ function NavAccordion({ onItemClick }) {
               className={cn(
                 'group relative flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition duration-150',
                 isActiveCategory
-                  ? 'bg-white/10 text-white font-semibold'
+                  ? 'bg-white/10 font-semibold text-white'
                   : 'text-brand-200 hover:bg-white/5 hover:text-white',
               )}
             >
@@ -260,7 +272,7 @@ function NavAccordion({ onItemClick }) {
                   isActiveCategory ? 'opacity-100' : 'opacity-0',
                 )}
               />
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex min-w-0 items-center gap-3">
                 <Icon
                   className={cn(
                     'size-[18px] shrink-0 transition',
@@ -270,7 +282,7 @@ function NavAccordion({ onItemClick }) {
                 />
                 <span className="truncate">{category.title}</span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex shrink-0 items-center gap-2">
                 <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-brand-300 ring-1 ring-white/10">
                   {category.items.length}
                 </span>
@@ -288,11 +300,11 @@ function NavAccordion({ onItemClick }) {
             <div
               className={cn(
                 'grid transition-all duration-200 ease-in-out',
-                isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none',
+                isOpen ? 'grid-rows-[1fr] opacity-100' : 'pointer-events-none grid-rows-[0fr] opacity-0',
               )}
             >
               <div className="overflow-hidden">
-                <div className="my-1 space-y-0.5 pl-3 border-l border-white/10 ml-5 py-0.5">
+                <div className="my-1 ml-5 space-y-0.5 border-l border-white/10 py-0.5 pl-3">
                   {category.items.map(({ to, label, icon: SubIcon }) => (
                     <NavLink
                       key={to}
@@ -302,7 +314,7 @@ function NavAccordion({ onItemClick }) {
                         cn(
                           'group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition duration-150',
                           itemActive
-                            ? 'bg-gold-500/15 text-gold-200 font-semibold shadow-sm ring-1 ring-gold-400/20'
+                            ? 'bg-gold-500/15 font-semibold text-gold-200 shadow-sm ring-1 ring-gold-400/20'
                             : 'text-brand-300 hover:bg-white/5 hover:text-white',
                         )
                       }
@@ -311,14 +323,14 @@ function NavAccordion({ onItemClick }) {
                         <>
                           <SubIcon
                             className={cn(
-                              'size-4 transition shrink-0',
+                              'size-4 shrink-0 transition',
                               itemActive ? 'text-gold-400' : 'text-brand-400 group-hover:text-gold-300',
                             )}
                             aria-hidden
                           />
                           <span className="truncate">{label}</span>
                           {itemActive && (
-                            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-gold-400 shrink-0" />
+                            <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-gold-400" />
                           )}
                         </>
                       )}
@@ -345,7 +357,7 @@ function Sidebar() {
 
       <NavAccordion />
 
-      <div className="space-y-3 p-3 border-t border-white/5">
+      <div className="space-y-3 border-t border-white/5 p-3">
         <UserCard onLogout={onLogout} />
         <p className="px-2 pb-1 text-center text-[10px] tracking-wide text-brand-400">
           Powered by {COMPANY.displayName}
@@ -395,7 +407,7 @@ function TopBarCategoryDropdown({ category, isActiveCategory, currentPath }) {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 z-50 mt-1.5 w-56 rounded-2xl border border-line bg-white/95 p-1.5 shadow-pop backdrop-blur-md animate-fade-in">
+        <div className="absolute top-full left-0 z-50 mt-1.5 w-56 animate-fade-in rounded-2xl border border-line bg-white/95 p-1.5 shadow-pop backdrop-blur-md">
           <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
             {category.title}
           </div>
@@ -410,17 +422,13 @@ function TopBarCategoryDropdown({ category, isActiveCategory, currentPath }) {
                   className={cn(
                     'flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-medium transition',
                     isItemActive
-                      ? 'bg-gold-50 text-brand-950 font-bold ring-1 ring-gold-200/80'
+                      ? 'bg-gold-50 font-bold text-brand-950 ring-1 ring-gold-200/80'
                       : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900',
                   )}
                 >
-                  <SubIcon
-                    className={cn('size-3.5', isItemActive ? 'text-gold-600' : 'text-slate-400')}
-                  />
+                  <SubIcon className={cn('size-3.5', isItemActive ? 'text-gold-600' : 'text-slate-400')} />
                   <span className="truncate">{label}</span>
-                  {isItemActive && (
-                    <span className="ml-auto size-1.5 rounded-full bg-gold-500" />
-                  )}
+                  {isItemActive && <span className="ml-auto size-1.5 rounded-full bg-gold-500" />}
                 </NavLink>
               );
             })}
@@ -439,7 +447,7 @@ function TopBar({ module }) {
 
   return (
     <div className="no-print sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-line glass px-6 lg:flex">
-      <nav className="flex items-center gap-2 text-sm shrink-0" aria-label="Breadcrumb">
+      <nav className="flex shrink-0 items-center gap-2 text-sm" aria-label="Breadcrumb">
         <module.icon className="size-4 text-gold-600" aria-hidden />
         <span className="font-medium text-slate-500">{module.title}</span>
         <ChevronRight className="size-3.5 text-slate-300" aria-hidden />
@@ -447,7 +455,7 @@ function TopBar({ module }) {
       </nav>
 
       {/* Quick Category Dropdown navigation */}
-      <div className="hidden xl:flex items-center gap-1" aria-label="Quick Category Navigation">
+      <div className="hidden items-center gap-1 xl:flex" aria-label="Quick Category Navigation">
         {NAV_CATEGORIES.map((category) => {
           if (category.isDirect) {
             const isActive = pathname === '/';
@@ -481,7 +489,7 @@ function TopBar({ module }) {
         })}
       </div>
 
-      <div className="flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm shrink-0">
+      <div className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
         <CalendarDays className="size-3.5 text-gold-600" aria-hidden />
         {formatDateShort(todayISO())}
       </div>
@@ -501,7 +509,7 @@ function MobileDrawer({ open, onClose }) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative flex h-full w-80 max-w-[85vw] flex-col surface-ink text-white shadow-2xl ring-1 ring-white/10 animate-sheet-in">
+      <div className="relative flex h-full w-80 max-w-[85vw] animate-sheet-in flex-col surface-ink text-white shadow-2xl ring-1 ring-white/10">
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <BrandLockup />
           <button
@@ -535,7 +543,7 @@ function MobileHeader({ module, onOpenMenu }) {
         type="button"
         onClick={onOpenMenu}
         aria-label="Open navigation menu"
-        className="rounded-xl p-2 text-brand-200 hover:bg-white/10 active:scale-95 transition"
+        className="rounded-xl p-2 text-brand-200 transition hover:bg-white/10 active:scale-95"
       >
         <Menu className="size-5" />
       </button>
@@ -543,7 +551,7 @@ function MobileHeader({ module, onOpenMenu }) {
         type="button"
         onClick={() => navigate('/')}
         aria-label="Back to dashboard"
-        className="rounded-xl p-2 text-brand-200 hover:bg-white/10 active:scale-95 transition"
+        className="rounded-xl p-2 text-brand-200 transition hover:bg-white/10 active:scale-95"
       >
         <ArrowLeft className="size-4.5" />
       </button>
@@ -586,13 +594,13 @@ function BottomTabs({ module }) {
                 <>
                   <span
                     className={cn(
-                      'rounded-full px-3 py-1 sm:px-4 transition',
+                      'rounded-full px-3 py-1 transition sm:px-4',
                       isActive && 'bg-gold-sheen text-brand-900 shadow-gold',
                     )}
                   >
                     <Icon className="size-4.5 sm:size-5" aria-hidden />
                   </span>
-                  <span className="truncate max-w-[75px] sm:max-w-none text-center leading-tight">
+                  <span className="max-w-[75px] truncate text-center leading-tight sm:max-w-none">
                     {short}
                   </span>
                 </>

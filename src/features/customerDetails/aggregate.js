@@ -78,7 +78,7 @@ export function buildCustomerSummaries(invoices, returns, directoryCustomers = [
       customer.amountPaid += toNum(invoice.amountPaid);
       customer.totalDiscountAmount += toNum(invoice.discountAmount);
       customer.totalManualAdjustments += toNum(invoice.manualPreviousBalance);
-      
+
       if (invoice.invoiceNo) {
         customer.allInvoiceNumbers.push(invoice.invoiceNo);
         const numVal = invoiceNumberValue(invoice.invoiceNo);
@@ -119,7 +119,10 @@ export function buildCustomerSummaries(invoices, returns, directoryCustomers = [
  * (see reminder.ts).
  */
 export function customerBalance(customer) {
-  if (customer.latestBalanceDue !== undefined && (customer.firstInvoicePreviousBalance || customer.totalManualAdjustments)) {
+  if (
+    customer.latestBalanceDue !== undefined &&
+    (customer.firstInvoicePreviousBalance || customer.totalManualAdjustments)
+  ) {
     return customer.latestBalanceDue - (customer.totalReturns || 0);
   }
   return (

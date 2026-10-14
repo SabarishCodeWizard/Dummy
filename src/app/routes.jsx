@@ -23,6 +23,8 @@ const PurchaseHistoryPage = lazy(() => import('@/features/history/purchase/Purch
 const AddSupplierPage = lazy(() => import('@/features/purchase/pages/AddSupplierPage'));
 const SupplierDetailsPage = lazy(() => import('@/features/purchase/pages/SupplierDetailsPage'));
 const PurchaseBinPage = lazy(() => import('@/features/recycleBin/PurchaseBinPage'));
+const DyeingPage = lazy(() => import('@/features/dyeing/DyeingPage'));
+const DyeingDetailsPage = lazy(() => import('@/features/dyeing/DyeingDetailsPage'));
 
 const RevenuePage = lazy(() => import('@/features/overview/revenue/RevenuePage'));
 const StatisticsPage = lazy(() => import('@/features/overview/revenue/StatisticsPage'));
@@ -52,6 +54,25 @@ export function AppRoutes() {
           <Route element={<RequireAuth />}>
             <Route index element={<DashboardPage />} />
 
+            <Route path="purchase" element={<ModuleLayout module="purchase" />}>
+              <Route index element={<Navigate to="bill" replace />} />
+              <Route path="bill" element={<PurchaseBillPage />} />
+              <Route path="history" element={<PurchaseHistoryPage />} />
+              <Route path="add-supplier" element={<AddSupplierPage />} />
+              <Route path="suppliers" element={<SupplierDetailsPage />} />
+              <Route path="dyeing" element={<Navigate to="/dyeing/batches" replace />} />
+              <Route path="bin" element={<PurchaseBinPage />} />
+              <Route path="edit/:invoiceNo" element={<PurchaseEditPage />} />
+            </Route>
+
+            <Route path="dyeing" element={<ModuleLayout module="dyeing" />}>
+              <Route index element={<Navigate to="batches" replace />} />
+              <Route path="batches" element={<DyeingPage />} />
+              <Route path="details" element={<DyeingDetailsPage />} />
+              <Route path="new" element={<DyeingPage openNew />} />
+              <Route path="add-dyer" element={<Navigate to="/dyeing/details" replace />} />
+            </Route>
+
             <Route path="sales" element={<ModuleLayout module="sales" />}>
               <Route index element={<Navigate to="bill" replace />} />
               <Route path="bill" element={<SalesBillPage />} />
@@ -61,14 +82,12 @@ export function AppRoutes() {
               <Route path="bin" element={<SalesBinPage />} />
             </Route>
 
-            <Route path="purchase" element={<ModuleLayout module="purchase" />}>
-              <Route index element={<Navigate to="bill" replace />} />
-              <Route path="bill" element={<PurchaseBillPage />} />
-              <Route path="history" element={<PurchaseHistoryPage />} />
-              <Route path="add-supplier" element={<AddSupplierPage />} />
-              <Route path="suppliers" element={<SupplierDetailsPage />} />
-              <Route path="bin" element={<PurchaseBinPage />} />
-              <Route path="edit/:invoiceNo" element={<PurchaseEditPage />} />
+            <Route path="finance" element={<ModuleLayout module="finance" />}>
+              <Route index element={<Navigate to="accounts" replace />} />
+              <Route path="accounts" element={<BankAccountsPage />} />
+              <Route path="records" element={<FinanceRecordsPage />} />
+              <Route path="settled" element={<FinanceSettledRecordsPage />} />
+              <Route path="lenders" element={<FinanceLendersPage />} />
             </Route>
 
             <Route path="overview" element={<ModuleLayout module="overview" />}>
@@ -78,14 +97,6 @@ export function AppRoutes() {
               <Route path="stocks" element={<StocksPage />} />
               <Route path="expenses" element={<ExpensesPage />} />
               <Route path="shortcuts" element={<ShortcutsPage />} />
-            </Route>
-
-            <Route path="finance" element={<ModuleLayout module="finance" />}>
-              <Route index element={<Navigate to="accounts" replace />} />
-              <Route path="accounts" element={<BankAccountsPage />} />
-              <Route path="records" element={<FinanceRecordsPage />} />
-              <Route path="settled" element={<FinanceSettledRecordsPage />} />
-              <Route path="lenders" element={<FinanceLendersPage />} />
             </Route>
           </Route>
 

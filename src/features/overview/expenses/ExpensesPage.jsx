@@ -171,7 +171,12 @@ export default function ExpensesPage() {
   );
 
   const columns = [
-    { key: 'date', header: 'Date', className: 'whitespace-nowrap font-medium text-slate-700', value: (e) => formatDateShort(e.date) },
+    {
+      key: 'date',
+      header: 'Date',
+      className: 'whitespace-nowrap font-medium text-slate-700',
+      value: (e) => formatDateShort(e.date),
+    },
     { key: 'reason', header: 'Reason', className: 'min-w-48', render: (e) => <ReasonChip expense={e} /> },
     {
       key: 'paymentSource',
@@ -219,7 +224,7 @@ export default function ExpensesPage() {
           renderCard={(e) => (
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1 space-y-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold tracking-wide text-slate-500">
                     {formatDateShort(e.date)}
                   </span>

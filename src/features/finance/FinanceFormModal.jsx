@@ -21,7 +21,6 @@ export default function FinanceFormModal({ form, onChange, saving, onClose, onSa
     }
   }, [form !== null]);
 
-
   const handlePhoneChange = (v) => {
     onChange({ ...form, phone: v });
   };
@@ -36,9 +35,7 @@ export default function FinanceFormModal({ form, onChange, saving, onClose, onSa
   };
 
   const notFoundPhone =
-    form?.phone?.length >= 10 && !lenders.some((l) => l.phone === form.phone)
-      ? form.phone
-      : null;
+    form?.phone?.length >= 10 && !lenders.some((l) => l.phone === form.phone) ? form.phone : null;
   const showHint = notFoundPhone !== null && notFoundPhone === form?.phone?.trim();
 
   let durationStr = '';
@@ -50,7 +47,7 @@ export default function FinanceFormModal({ form, onChange, saving, onClose, onSa
       const startPlusMonths = new Date(start);
       startPlusMonths.setMonth(startPlusMonths.getMonth() + months);
       const extraDays = differenceInDays(end, startPlusMonths);
-      const totalMonths = months + (extraDays / 30);
+      const totalMonths = months + extraDays / 30;
       durationStr = ` (${totalMonths.toFixed(1)} months)`;
     }
   }
@@ -99,14 +96,7 @@ export default function FinanceFormModal({ form, onChange, saving, onClose, onSa
               onPhoneChange={handlePhoneChange}
               onSelect={handleSelect}
               readOnly={false}
-              notFound={
-                showHint ? (
-                  <PartyNotFoundHint
-                    partyLabel="Lender"
-                    to={`/finance/lenders`}
-                  />
-                ) : null
-              }
+              notFound={showHint ? <PartyNotFoundHint partyLabel="Lender" to={`/finance/lenders`} /> : null}
             />
           </div>
 
@@ -164,7 +154,6 @@ export default function FinanceFormModal({ form, onChange, saving, onClose, onSa
                 rows={2}
               />
             </Grid>
-
           </div>
         </form>
       ) : null}

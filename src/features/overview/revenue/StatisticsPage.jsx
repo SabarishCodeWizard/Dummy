@@ -11,7 +11,7 @@ import { FirestoreUsageSection } from './components/FirestoreUsageSection';
 export default function StatisticsPage() {
   const [data, setData] = useState(null);
   const [rangeKey, setRangeKey] = useState('thisMonth');
-  
+
   const { loading, refreshing, error, refresh, reload } = useFocusLoad(async () => {
     try {
       const res = await fetchDashboardData();
@@ -33,10 +33,10 @@ export default function StatisticsPage() {
       icon={TrendingUp}
       actions={
         <div className="flex items-center gap-4">
-          <select 
-            value={rangeKey} 
+          <select
+            value={rangeKey}
             onChange={(e) => setRangeKey(e.target.value)}
-            className="rounded-lg border-line bg-surface px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm outline-none focus:ring-2 focus:ring-brand-500"
+            className="bg-surface rounded-lg border-line px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="today">Today</option>
             <option value="yesterday">Yesterday</option>
@@ -46,30 +46,28 @@ export default function StatisticsPage() {
             <option value="thisQuarter">This Quarter</option>
             <option value="thisYear">This Year</option>
           </select>
-          <button 
-            onClick={refresh} 
+          <button
+            onClick={refresh}
             disabled={refreshing}
-            className="p-2 rounded-lg bg-surface border border-line text-slate-600 hover:bg-slate-50 transition"
+            className="bg-surface rounded-lg border border-line p-2 text-slate-600 transition hover:bg-slate-50"
           >
             <RefreshCw className={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       }
     >
-      <p className="text-slate-500 text-sm mb-6 mt-[-10px]">
+      <p className="mt-[-10px] mb-6 text-sm text-slate-500">
         Monitor sales, purchases, profit, inventory and cash flow from one place.
       </p>
 
       {loading && !data && (
         <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-          <RefreshCw className="size-8 animate-spin mb-4" />
+          <RefreshCw className="mb-4 size-8 animate-spin" />
           <p>Loading analytics engine...</p>
         </div>
       )}
 
-      {error && !data && (
-        <ErrorState message={error} onRetry={() => void reload()} />
-      )}
+      {error && !data && <ErrorState message={error} onRetry={() => void reload()} />}
 
       {data && analytics && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">

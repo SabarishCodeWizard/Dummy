@@ -68,7 +68,8 @@ export function applyAdditionalPurchasePayment(bill, amounts) {
   const current = bill.paymentBreakdown ?? ZERO;
   const newAmountPaid = (bill.amountPaid || bill.payment?.totalPaid || 0) + totalOf(amounts);
   const balanceDue = bill.grandTotal - newAmountPaid;
-  const bankAccountId = amounts.bankAccountId || bill.bankAccountId || bill.payment?.bankAccountId || undefined;
+  const bankAccountId =
+    amounts.bankAccountId || bill.bankAccountId || bill.payment?.bankAccountId || undefined;
   const updated = {
     ...bill,
     amountPaid: newAmountPaid,

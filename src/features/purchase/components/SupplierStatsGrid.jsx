@@ -29,7 +29,9 @@ export function SupplierStatsGrid({ stats }) {
   }
 
   return (
-    <div className={`grid grid-cols-2 gap-3.5 sm:grid-cols-3 ${items.length > 6 ? 'xl:grid-cols-7' : 'xl:grid-cols-6'}`}>
+    <div
+      className={`grid grid-cols-2 gap-3.5 sm:grid-cols-3 ${items.length > 6 ? 'xl:grid-cols-7' : 'xl:grid-cols-6'}`}
+    >
       {items.map((item, i) => (
         <div key={item.label} className="animate-rise" style={{ animationDelay: `${i * 45}ms` }}>
           <StatCard {...item} className="h-full" />

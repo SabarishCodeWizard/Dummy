@@ -42,7 +42,8 @@ export default function CashOpeningModal({ currentOpening, onClose, onSave, savi
     >
       <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
         <p className="text-sm text-slate-600">
-          Enter the initial physical cash amount available in your shop / cash drawer before recording any new sales or purchases.
+          Enter the initial physical cash amount available in your shop / cash drawer before recording any new
+          sales or purchases.
         </p>
         <NumberField
           label="Initial Cash in Hand (₹)"

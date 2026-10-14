@@ -30,7 +30,7 @@ export function Page({ title, icon: Icon, actions, max = '6xl', className, child
               </span>
             ) : null}
             <div className="min-w-0">
-              <h1 className="truncate font-display text-lg sm:text-xl leading-tight font-extrabold text-brand-800 lg:text-[26px]">
+              <h1 className="truncate font-display text-lg leading-tight font-extrabold text-brand-800 sm:text-xl lg:text-[26px]">
                 {title}
               </h1>
               <span

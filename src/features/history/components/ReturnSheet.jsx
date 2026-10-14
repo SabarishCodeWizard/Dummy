@@ -31,8 +31,8 @@ function SummaryRow({ label, value, tone, bold }) {
       <span className={cn('min-w-0 text-slate-600', bold && 'font-bold text-brand-800')}>{label}</span>
       <span
         className={cn(
-          'tabular-nums shrink-0',
-          bold ? 'font-display text-base sm:text-lg font-extrabold' : 'font-semibold',
+          'shrink-0 tabular-nums',
+          bold ? 'font-display text-base font-extrabold sm:text-lg' : 'font-semibold',
           tone ?? 'text-brand-800',
         )}
       >
@@ -91,7 +91,8 @@ export function ReturnSheet({
   const update = (key, next) => setItems((list) => list.map((i) => (i.key === key ? next : i)));
 
   const isCashOverdraft = isSales && settlementType === 'cash' && total > cashBalance;
-  const isBankOverdraft = isSales && settlementType === 'bank' && selectedBank && total > selectedBank.currentBalance;
+  const isBankOverdraft =
+    isSales && settlementType === 'bank' && selectedBank && total > selectedBank.currentBalance;
 
   const submit = async () => {
     if (busy) return;
@@ -167,7 +168,7 @@ export function ReturnSheet({
 
       {/* Settlement / Refund Option */}
       <div className="my-4 space-y-2.5 rounded-2xl border border-line bg-slate-50/80 p-3 sm:p-3.5">
-        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+        <label className="block text-xs font-bold tracking-wider text-slate-700 uppercase">
           Settlement / Refund Method
         </label>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -175,7 +176,7 @@ export function ReturnSheet({
             type="button"
             onClick={() => setSettlementType('adjustment')}
             className={cn(
-              'flex items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition cursor-pointer',
+              'flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition',
               settlementType === 'adjustment'
                 ? 'border-gold-500 bg-gold-50/80 text-brand-900 shadow-xs ring-1 ring-gold-400'
                 : 'border-line bg-white text-slate-700 hover:bg-slate-50',
@@ -188,7 +189,7 @@ export function ReturnSheet({
             type="button"
             onClick={() => setSettlementType('cash')}
             className={cn(
-              'flex items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition cursor-pointer',
+              'flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition',
               settlementType === 'cash'
                 ? 'border-emerald-500 bg-emerald-50/80 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
                 : 'border-line bg-white text-slate-700 hover:bg-slate-50',
@@ -201,7 +202,7 @@ export function ReturnSheet({
             type="button"
             onClick={() => setSettlementType('bank')}
             className={cn(
-              'flex items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition cursor-pointer',
+              'flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition',
               settlementType === 'bank'
                 ? 'border-brand-500 bg-brand-50/80 text-brand-900 shadow-xs ring-1 ring-brand-400'
                 : 'border-line bg-white text-slate-700 hover:bg-slate-50',
@@ -216,17 +217,22 @@ export function ReturnSheet({
         {settlementType === 'cash' && liveBalances && (
           <div
             className={cn(
-              'flex items-center justify-between rounded-xl px-3 py-1.5 text-xs transition border',
+              'flex items-center justify-between rounded-xl border px-3 py-1.5 text-xs transition',
               isCashOverdraft
                 ? 'border-amber-300 bg-amber-50 text-amber-900 shadow-xs'
                 : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-900 shadow-xs',
             )}
           >
-            <span className="flex items-center gap-1.5 font-semibold text-[11px]">
-              <span className={cn('size-2 rounded-full', isCashOverdraft ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500')} />
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold">
+              <span
+                className={cn(
+                  'size-2 rounded-full',
+                  isCashOverdraft ? 'animate-pulse bg-amber-500' : 'bg-emerald-500',
+                )}
+              />
               Current Cash in Drawer
             </span>
-            <span className="font-display font-extrabold text-[13px] tabular-nums">
+            <span className="font-display text-[13px] font-extrabold tabular-nums">
               ₹{formatCurrency(cashBalance)}
             </span>
           </div>
@@ -236,7 +242,8 @@ export function ReturnSheet({
           <div className="flex items-center gap-1.5 px-2 text-[11px] font-semibold text-amber-700">
             <AlertTriangle className="size-3.5 shrink-0" />
             <span>
-              Refund amount (₹{formatCurrency(total)}) exceeds available cash drawer balance (₹{formatCurrency(cashBalance)}).
+              Refund amount (₹{formatCurrency(total)}) exceeds available cash drawer balance (₹
+              {formatCurrency(cashBalance)}).
             </span>
           </div>
         )}
@@ -245,7 +252,9 @@ export function ReturnSheet({
         {settlementType === 'bank' && bankAccounts.length > 0 && (
           <div className="space-y-1.5 rounded-xl border border-line bg-white p-2.5">
             <SelectField
-              label={isSales ? 'Refund Customer from Bank Account' : 'Receive Supplier Refund into Bank Account'}
+              label={
+                isSales ? 'Refund Customer from Bank Account' : 'Receive Supplier Refund into Bank Account'
+              }
               value={selectedBankId}
               onChange={(bId) => setBankAccountId(bId)}
               options={bankAccounts.map((a) => ({
@@ -254,9 +263,9 @@ export function ReturnSheet({
               }))}
             />
             {selectedBank && (
-              <div className="flex items-center justify-between rounded-lg bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600 border border-slate-200/60">
+              <div className="flex items-center justify-between rounded-lg border border-slate-200/60 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600">
                 <span>Account Available:</span>
-                <span className="font-bold font-display text-slate-800 tabular-nums">
+                <span className="font-display font-bold text-slate-800 tabular-nums">
                   ₹{formatCurrency(selectedBank.currentBalance)}
                 </span>
               </div>
@@ -265,7 +274,8 @@ export function ReturnSheet({
               <div className="flex items-center gap-1.5 pt-1 text-[11px] font-semibold text-amber-700">
                 <AlertTriangle className="size-3.5 shrink-0" />
                 <span>
-                  Refund amount (₹{formatCurrency(total)}) exceeds available bank balance (₹{formatCurrency(selectedBank.currentBalance)}).
+                  Refund amount (₹{formatCurrency(total)}) exceeds available bank balance (₹
+                  {formatCurrency(selectedBank.currentBalance)}).
                 </span>
               </div>
             )}

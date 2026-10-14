@@ -137,11 +137,7 @@ export function ReturnStatusSheet({
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-slate-500">Method: </span>
-                  <ReturnMethodBadge
-                    item={item}
-                    bankMap={bankMap}
-                    defaultBank={bankAccounts[0]}
-                  />
+                  <ReturnMethodBadge item={item} bankMap={bankMap} defaultBank={bankAccounts[0]} />
                 </div>
                 <p>
                   <span className="font-semibold text-slate-500">Reason: </span>

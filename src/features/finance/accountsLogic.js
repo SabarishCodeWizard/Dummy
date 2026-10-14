@@ -111,9 +111,13 @@ export function computeAccountBalances({
         }
       });
     } else {
-      const cashPaid = toNum(inv.paymentBreakdown?.cash || (inv.paymentMethod === 'cash' ? inv.amountPaid : 0));
+      const cashPaid = toNum(
+        inv.paymentBreakdown?.cash || (inv.paymentMethod === 'cash' ? inv.amountPaid : 0),
+      );
       const upiPaid = toNum(inv.paymentBreakdown?.upi || (inv.paymentMethod === 'upi' ? inv.amountPaid : 0));
-      const accPaid = toNum(inv.paymentBreakdown?.account || (inv.paymentMethod === 'account' ? inv.amountPaid : 0));
+      const accPaid = toNum(
+        inv.paymentBreakdown?.account || (inv.paymentMethod === 'account' ? inv.amountPaid : 0),
+      );
 
       if (cashPaid > 0) {
         cashBalance += cashPaid;
@@ -196,7 +200,7 @@ export function computeAccountBalances({
   accountTransactions.forEach((tx) => {
     const amt = toNum(tx.amount);
     const from = tx.fromAccount; // 'cash' or bankId
-    const to = tx.toAccount;     // 'cash' or bankId
+    const to = tx.toAccount; // 'cash' or bankId
 
     // Debit 'from'
     if (from === 'cash') {
@@ -324,7 +328,8 @@ export function getRecordTimestamp(ref, fallbackDateStr) {
   if (created) {
     if (typeof created === 'number') return created;
     if (typeof created.toDate === 'function') return created.toDate().getTime();
-    if (created.seconds) return created.seconds * 1000 + (created.nanoseconds ? created.nanoseconds / 1e6 : 0);
+    if (created.seconds)
+      return created.seconds * 1000 + (created.nanoseconds ? created.nanoseconds / 1e6 : 0);
     const d = new Date(created);
     if (!isNaN(d.getTime())) return d.getTime();
   }
@@ -340,7 +345,8 @@ export function getRecordTimestamp(ref, fallbackDateStr) {
   }
 
   // 3. Fallback to fallbackDateStr or ref.date / ref.paymentDate / ref.invoiceDate
-  const dateVal = fallbackDateStr || ref.paymentDate || ref.date || ref.invoiceDate || ref.billDate || ref.startDate;
+  const dateVal =
+    fallbackDateStr || ref.paymentDate || ref.date || ref.invoiceDate || ref.billDate || ref.startDate;
   if (dateVal) {
     const d = new Date(dateVal);
     if (!isNaN(d.getTime())) return d.getTime();
@@ -388,7 +394,15 @@ export function getAccountActivity({
   salesReturns = [],
   purchaseReturns = [],
 }) {
-  if (!account) return { items: [], openingBalance: 0, totalInflows: 0, totalOutflows: 0, computedCurrentBalance: 0, breakdown: {} };
+  if (!account)
+    return {
+      items: [],
+      openingBalance: 0,
+      totalInflows: 0,
+      totalOutflows: 0,
+      computedCurrentBalance: 0,
+      breakdown: {},
+    };
 
   const isCash = account.id === 'cash';
   const accountId = account.id;
@@ -459,7 +473,9 @@ export function getAccountActivity({
     } else {
       // Fallback: Invoice level breakdown
       if (isCash) {
-        const cashAmt = toNum(inv.paymentBreakdown?.cash || (inv.paymentMethod === 'cash' ? inv.amountPaid : 0));
+        const cashAmt = toNum(
+          inv.paymentBreakdown?.cash || (inv.paymentMethod === 'cash' ? inv.amountPaid : 0),
+        );
         if (cashAmt > 0) {
           items.push({
             id: `sale-${inv.id || invNo}-cash`,
@@ -477,15 +493,24 @@ export function getAccountActivity({
       } else {
         const targetBankId = inv.bankAccountId || bankAccounts[0]?.id;
         if (targetBankId === accountId) {
-          const upiPaid = toNum(inv.paymentBreakdown?.upi || (inv.paymentMethod === 'upi' ? inv.amountPaid : 0));
-          const accPaid = toNum(inv.paymentBreakdown?.account || (inv.paymentMethod === 'account' ? inv.amountPaid : 0));
+          const upiPaid = toNum(
+            inv.paymentBreakdown?.upi || (inv.paymentMethod === 'upi' ? inv.amountPaid : 0),
+          );
+          const accPaid = toNum(
+            inv.paymentBreakdown?.account || (inv.paymentMethod === 'account' ? inv.amountPaid : 0),
+          );
           const totalBank = upiPaid + accPaid;
           if (totalBank > 0) {
             items.push({
               id: `sale-${inv.id || invNo}-bank`,
               date: invDate,
               timestamp: invTs,
-              type: upiPaid > 0 && accPaid > 0 ? 'Sale (UPI & Bank)' : upiPaid > 0 ? 'Sale (UPI)' : 'Sale (Bank Transfer)',
+              type:
+                upiPaid > 0 && accPaid > 0
+                  ? 'Sale (UPI & Bank)'
+                  : upiPaid > 0
+                    ? 'Sale (UPI)'
+                    : 'Sale (Bank Transfer)',
               direction: 'in',
               category: 'Sales',
               amount: totalBank,
@@ -584,7 +609,12 @@ export function getAccountActivity({
               id: `purchase-${bill.id || billNo}-bank`,
               date: billDate,
               timestamp: billTs,
-              type: upiPaid > 0 && accPaid > 0 ? 'Purchase (UPI & Bank)' : upiPaid > 0 ? 'Purchase (UPI)' : 'Purchase (Bank Transfer)',
+              type:
+                upiPaid > 0 && accPaid > 0
+                  ? 'Purchase (UPI & Bank)'
+                  : upiPaid > 0
+                    ? 'Purchase (UPI)'
+                    : 'Purchase (Bank Transfer)',
               direction: 'out',
               category: 'Purchase',
               amount: totalBank,
@@ -678,8 +708,8 @@ export function getAccountActivity({
     if (from === accountId) {
       const isManualDebit = !to || to === 'external' || to === 'manual';
       const destName = isManualDebit
-        ? (tx.category || tx.type || 'Manual Outflow')
-        : (bankNameMap[to] || (to === 'cash' ? 'Cash in Hand' : 'Bank Account'));
+        ? tx.category || tx.type || 'Manual Outflow'
+        : bankNameMap[to] || (to === 'cash' ? 'Cash in Hand' : 'Bank Account');
       items.push({
         id: `tx-out-${tx.id}`,
         date: txDate,
@@ -688,9 +718,7 @@ export function getAccountActivity({
         direction: 'out',
         category: tx.category || 'Transfer',
         amount: amt,
-        title: isManualDebit
-          ? `Deduction: ${tx.category || 'Manual Outflow'}`
-          : `Transferred to ${destName}`,
+        title: isManualDebit ? `Deduction: ${tx.category || 'Manual Outflow'}` : `Transferred to ${destName}`,
         subtitle: tx.notes || (isManualDebit ? 'Manual deduction from account' : 'Internal fund transfer'),
         sourceRef: tx,
       });
@@ -700,8 +728,8 @@ export function getAccountActivity({
     if (to === accountId) {
       const isManualCredit = !from || from === 'external' || from === 'manual';
       const srcName = isManualCredit
-        ? (tx.category || tx.type || 'Additional Amount')
-        : (bankNameMap[from] || (from === 'cash' ? 'Cash in Hand' : 'Bank Account'));
+        ? tx.category || tx.type || 'Additional Amount'
+        : bankNameMap[from] || (from === 'cash' ? 'Cash in Hand' : 'Bank Account');
       items.push({
         id: `tx-in-${tx.id}`,
         date: txDate,
@@ -820,13 +848,9 @@ export function getAccountActivity({
   });
 
   // Compute breakdown stats
-  const totalInflows = items
-    .filter((i) => i.direction === 'in')
-    .reduce((sum, i) => sum + i.amount, 0);
+  const totalInflows = items.filter((i) => i.direction === 'in').reduce((sum, i) => sum + i.amount, 0);
 
-  const totalOutflows = items
-    .filter((i) => i.direction === 'out')
-    .reduce((sum, i) => sum + i.amount, 0);
+  const totalOutflows = items.filter((i) => i.direction === 'out').reduce((sum, i) => sum + i.amount, 0);
 
   const salesInflow = items
     .filter((i) => i.direction === 'in' && i.category === 'Sales')

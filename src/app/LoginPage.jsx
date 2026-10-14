@@ -65,13 +65,21 @@ function HeroPanel() {
       </div>
 
       <div className="relative flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-brand-300">
-        <a href="tel:+917845081278" className="inline-flex items-center gap-2 hover:text-gold-300 transition">
+        <a href="tel:+917845081278" className="inline-flex items-center gap-2 transition hover:text-gold-300">
           <Phone className="size-4 text-gold-400" /> +91 7845081278
         </a>
-        <a href="mailto:contact@brightlightsolutions.in" className="inline-flex items-center gap-2 hover:text-gold-300 transition">
+        <a
+          href="mailto:contact@brightlightsolutions.in"
+          className="inline-flex items-center gap-2 transition hover:text-gold-300"
+        >
           <Mail className="size-4 text-gold-400" /> contact@brightlightsolutions.in
         </a>
-        <a href="https://www.brightlightsolutions.in" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-gold-300 transition">
+        <a
+          href="https://www.brightlightsolutions.in"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 transition hover:text-gold-300"
+        >
           <Globe className="size-4 text-gold-400" /> www.brightlightsolutions.in
         </a>
       </div>

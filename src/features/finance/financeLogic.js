@@ -7,18 +7,18 @@ export function computeInterest(principal, rate, startDate, endDate) {
 
   const start = new Date(startDate);
   const end = endDate ? new Date(endDate) : new Date();
-  
+
   if (start > end) return 0;
 
   const months = differenceInMonths(end, start);
   const startPlusMonths = new Date(start);
   startPlusMonths.setMonth(startPlusMonths.getMonth() + months);
-  
-  const daysInMonth = 30; 
+
+  const daysInMonth = 30;
   const extraDays = differenceInDays(end, startPlusMonths);
-  
-  const totalMonths = months + (extraDays / daysInMonth);
-  
+
+  const totalMonths = months + extraDays / daysInMonth;
+
   return (p * r * totalMonths) / 100;
 }
 
@@ -39,34 +39,39 @@ export function emptyFinanceForm(dateStr) {
 export function calculateFinanceStats(record, targetDate) {
   const principal = parseFloat(record.principal) || 0;
   const rate = parseFloat(record.rate) || 0;
-  
-  const totalInterestAccrued = computeInterest(principal, rate, record.startDate, targetDate || record.endDate);
-  
+
+  const totalInterestAccrued = computeInterest(
+    principal,
+    rate,
+    record.startDate,
+    targetDate || record.endDate,
+  );
+
   const payments = record.payments || [];
   const totalPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-  
+
   const totalPayable = principal + totalInterestAccrued;
   const balancePayable = Math.max(0, totalPayable - totalPaid);
 
   const expectedMonthlyInterest = (principal * rate) / 100;
-  
+
   const calculationDate = targetDate ? new Date(targetDate) : new Date();
   const start = new Date(record.startDate);
-  
+
   let monthsElapsed = differenceInMonths(calculationDate, start);
   if (monthsElapsed < 0) monthsElapsed = 0;
-  
+
   let totalMonths = monthsElapsed;
   if (record.endDate) {
     totalMonths = differenceInMonths(new Date(record.endDate), start);
     if (totalMonths < 0) totalMonths = 0;
   }
-  
+
   const totalStrictlyDue = monthsElapsed * expectedMonthlyInterest;
   const overdueAmount = totalStrictlyDue - totalPaid;
   const isOverdue = balancePayable > 0 && overdueAmount > 0;
   const isSettled = balancePayable <= 0 && (totalPaid > 0 || principal === 0);
-  
+
   return {
     totalInterestAccrued,
     totalPaid,
@@ -83,7 +88,7 @@ export function calculateFinanceStats(record, targetDate) {
 
 export function validateFinanceForm(form) {
   if (!form.lenderName?.trim()) return 'Lender name is required.';
-  
+
   const phone = form.phone?.trim() || '';
   let phoneDigits = phone.replace(/[^0-9]/g, '');
   if (phoneDigits.length !== 10) return 'Phone number must be exactly 10 digits.';
@@ -102,8 +107,8 @@ export async function updateLenderWithReferences(db, original, input) {
 
   // Update finance records linked to this lender
   const allFinance = await db.getAllFinanceRecords();
-  const recordsToUpdate = allFinance.filter(r => r.phone === original.phone);
-  
+  const recordsToUpdate = allFinance.filter((r) => r.phone === original.phone);
+
   for (const r of recordsToUpdate) {
     await db.saveFinanceRecord({ ...r, phone: input.phone, lenderName: input.name });
   }
@@ -117,6 +122,6 @@ export async function updateLenderWithReferences(db, original, input) {
       console.error('Failed to delete old lender record:', error);
     }
   }
-  
+
   return 'updated';
 }

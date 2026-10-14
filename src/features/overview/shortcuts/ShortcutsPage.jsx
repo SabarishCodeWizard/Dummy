@@ -165,7 +165,7 @@ export default function ShortcutsPage() {
           <button
             type="button"
             onClick={(e) => handleCopy(s.shortcutKey, e)}
-            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
             title="Copy shortcut key"
             aria-label={`Copy shortcut key ${s.shortcutKey}`}
           >
@@ -216,7 +216,7 @@ export default function ShortcutsPage() {
                   <button
                     type="button"
                     onClick={(e) => handleCopy(s.shortcutKey, e)}
-                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                    className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                     title="Copy shortcut key"
                     aria-label={`Copy shortcut key ${s.shortcutKey}`}
                   >
@@ -266,7 +266,7 @@ export default function ShortcutsPage() {
           tint="violet"
         />
       </KpiRow>
-      <Card className="mb-5 bg-white/80 p-3 sm:p-3.5 space-y-3">
+      <Card className="mb-5 space-y-3 bg-white/80 p-3 sm:p-3.5">
         <SearchBar
           value={search}
           onChange={setSearch}
@@ -274,29 +274,28 @@ export default function ShortcutsPage() {
           aria-label="Search shortcuts"
         />
         <div className="border-t border-slate-100 pt-3">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs">
+          <div className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center">
             <span className="flex items-center gap-1.5 font-semibold text-slate-600">
               <Sparkles className="h-3.5 w-3.5 text-amber-500" />
               Test Autocomplete:
             </span>
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex flex-1 items-center gap-2">
               <input
                 type="text"
                 value={testKey}
                 onChange={(e) => setTestKey(e.target.value)}
                 placeholder="Type a key (e.g. 101)..."
-                className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500 max-w-xs"
+                className="max-w-xs rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-800 focus:bg-white focus:ring-1 focus:ring-brand-500 focus:outline-none"
               />
-              {testKey.trim() && (
-                testMatch ? (
-                  <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-medium truncate max-w-md">
+              {testKey.trim() &&
+                (testMatch ? (
+                  <span className="inline-flex max-w-md items-center gap-1 truncate rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">
                     <Check className="h-3 w-3 shrink-0" />
                     Expands to: &ldquo;{testMatch.fullDescription}&rdquo;
                   </span>
                 ) : (
                   <span className="text-slate-400 italic">No exact shortcut match</span>
-                )
-              )}
+                ))}
             </div>
           </div>
         </div>

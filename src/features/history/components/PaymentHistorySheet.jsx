@@ -40,9 +40,7 @@ function PaymentMethodBadge({ payment, bankMap, defaultBank }) {
       <span className="inline-flex items-center gap-1.5 rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-800 ring-1 ring-purple-200">
         <Smartphone className="size-3.5 text-purple-600" />
         <span>UPI</span>
-        {activeBank && (
-          <span className="font-medium text-purple-600/80">({activeBank.accountName})</span>
-        )}
+        {activeBank && <span className="font-medium text-purple-600/80">({activeBank.accountName})</span>}
       </span>
     );
   }
@@ -142,11 +140,7 @@ export function PaymentHistorySheet({
                   </p>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-slate-500">Method: </span>
-                    <PaymentMethodBadge
-                      payment={payment}
-                      bankMap={bankMap}
-                      defaultBank={bankAccounts[0]}
-                    />
+                    <PaymentMethodBadge payment={payment} bankMap={bankMap} defaultBank={bankAccounts[0]} />
                   </div>
                   <p>
                     <span className="font-semibold text-slate-500">Type: </span>

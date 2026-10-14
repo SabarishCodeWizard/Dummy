@@ -25,9 +25,11 @@ src/
 | Path | Screen |
 | --- | --- |
 | `/login`, `/` | Login, dashboard |
-| `/sales/bill?edit=<no>` · `history` · `add-customer?phone=` · `customers` · `bin` | Sales module |
 | `/purchase/bill` · `history` · `add-supplier` · `suppliers?phone=` · `bin` · `edit/:invoiceNo` | Purchase module |
-| `/overview/revenue` · `stocks` · `expenses` · `shortcuts` | Overview module |
+| `/dyeing/batches` · `new` | Dyeing & Processing module |
+| `/sales/bill?edit=<no>` · `history` · `add-customer?phone=` · `customers` · `bin` | Sales module |
+| `/finance/accounts` · `records` · `settled` · `lenders` | Finance module |
+| `/overview/revenue` · `statistics` · `stocks` · `expenses` · `shortcuts` | Overview module |
 
 All pages are lazy-loaded (`app/routes.jsx`). Sign-in is guarded by `RequireAuth`.
 

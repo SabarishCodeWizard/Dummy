@@ -94,16 +94,10 @@ export default function AddAdditionalAmountModal({
         <div className="flex items-center gap-2">
           <div
             className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
-              mode === 'in'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-rose-100 text-rose-700'
+              mode === 'in' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
             }`}
           >
-            {mode === 'in' ? (
-              <ArrowDownLeft className="size-4.5" />
-            ) : (
-              <ArrowUpRight className="size-4.5" />
-            )}
+            {mode === 'in' ? <ArrowDownLeft className="size-4.5" /> : <ArrowUpRight className="size-4.5" />}
           </div>
           <div>
             <div className="text-base font-bold text-slate-900">
@@ -128,16 +122,10 @@ export default function AddAdditionalAmountModal({
             icon={Save}
             loading={saving}
             className={`max-sm:flex-1 ${
-              mode === 'in'
-                ? 'bg-emerald-700 hover:bg-emerald-800'
-                : 'bg-rose-700 hover:bg-rose-800'
+              mode === 'in' ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-rose-700 hover:bg-rose-800'
             }`}
           >
-            {saving
-              ? 'Saving...'
-              : mode === 'in'
-              ? 'Add Amount'
-              : 'Record Deduction'}
+            {saving ? 'Saving...' : mode === 'in' ? 'Add Amount' : 'Record Deduction'}
           </Button>
         </>
       }
@@ -149,9 +137,7 @@ export default function AddAdditionalAmountModal({
             type="button"
             onClick={() => handleModeChange('in')}
             className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition ${
-              mode === 'in'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+              mode === 'in' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <ArrowDownLeft className="size-4" />
@@ -161,9 +147,7 @@ export default function AddAdditionalAmountModal({
             type="button"
             onClick={() => handleModeChange('out')}
             className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition ${
-              mode === 'out'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+              mode === 'out' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <ArrowUpRight className="size-4" />

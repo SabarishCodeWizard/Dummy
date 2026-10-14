@@ -69,7 +69,7 @@ export function Modal({
         <span className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-200 sm:hidden" aria-hidden />
         {title ? (
           <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-6 sm:py-4">
-            <h2 id={titleId} className="font-display text-base sm:text-lg font-bold text-brand-800 truncate">
+            <h2 id={titleId} className="truncate font-display text-base font-bold text-brand-800 sm:text-lg">
               {title}
             </h2>
             {dismissable ? (

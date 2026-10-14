@@ -32,9 +32,7 @@ describe('firestoreUsageTracker', () => {
         { invoiceNo: 'INV-001', customerName: 'Ravi', grandTotal: 500, amountPaid: 500 },
         { invoiceNo: 'INV-002', customerName: 'Suresh', grandTotal: 1200, amountPaid: 0 },
       ],
-      customers: [
-        { name: 'Ravi', phone: '9876543210', openingBalance: 100 },
-      ],
+      customers: [{ name: 'Ravi', phone: '9876543210', openingBalance: 100 }],
     };
 
     const storage = calculateCollectionStorage(mockData);

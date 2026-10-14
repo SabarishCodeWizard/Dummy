@@ -25,15 +25,14 @@ import { usePagedRows } from '../overview/components/paging';
 import { updateLenderWithReferences } from './financeLogic';
 import FinanceNavTabs from './FinanceNavTabs';
 
-
 export default function FinanceLendersPage() {
   const { toast, confirm } = useFeedback();
   const [lenders, setLenders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  
+
   const [form, setForm] = useState({ name: '', phone: '', address: '' });
   const [saving, setSaving] = useState(false);
 
@@ -46,10 +45,11 @@ export default function FinanceLendersPage() {
     }
   });
 
-  const shown = lenders.filter(l => 
-    !searchTerm || 
-    (l.name && l.name.toLowerCase().includes(searchTerm.toLowerCase())) || 
-    (l.phone && l.phone.includes(searchTerm))
+  const shown = lenders.filter(
+    (l) =>
+      !searchTerm ||
+      (l.name && l.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (l.phone && l.phone.includes(searchTerm)),
   );
 
   const paged = usePagedRows(shown, searchTerm);
@@ -60,7 +60,7 @@ export default function FinanceLendersPage() {
       toast('Warning', 'Name and Phone are required.', 'warning');
       return;
     }
-    
+
     let phoneDigits = form.phone.replace(/[^0-9]/g, '');
     if (phoneDigits.length !== 10) {
       toast('Warning', 'Phone number must be exactly 10 digits.', 'warning');
@@ -85,7 +85,7 @@ export default function FinanceLendersPage() {
         }
         await db.saveLender(form);
       }
-      
+
       toast('Success', 'Lender saved successfully!', 'success');
       setIsAddOpen(false);
       setEditing(null);
@@ -119,7 +119,7 @@ export default function FinanceLendersPage() {
     setForm({ name: '', phone: '', address: '' });
     setIsAddOpen(true);
   };
-  
+
   const openEdit = (lender) => {
     setForm({ name: lender.name, phone: lender.phone, address: lender.address || '' });
     setEditing(lender);
@@ -129,16 +129,21 @@ export default function FinanceLendersPage() {
     { key: 'name', header: 'Name', value: (e) => e.name, className: 'font-bold text-slate-900' },
     { key: 'phone', header: 'Phone', value: (e) => e.phone, className: 'text-slate-600 font-mono text-xs' },
     { key: 'address', header: 'Address', value: (e) => e.address || '-', className: 'text-slate-600' },
-    { 
-      key: 'actions', 
-      header: 'Actions', 
-      align: 'center', 
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'center',
       render: (e) => (
         <div className="flex items-center justify-center gap-2">
           <IconButton icon={Edit} onClick={() => openEdit(e)} label="Edit" />
-          <IconButton icon={Trash2} onClick={() => void remove(e)} label="Delete" className="text-red-500 hover:text-red-700 hover:bg-red-50" />
+          <IconButton
+            icon={Trash2}
+            onClick={() => void remove(e)}
+            label="Delete"
+            className="text-red-500 hover:bg-red-50 hover:text-red-700"
+          />
         </div>
-      )
+      ),
     },
   ];
 
@@ -154,17 +159,29 @@ export default function FinanceLendersPage() {
           rowKey={(e) => e.phone}
           renderCard={(e) => (
             <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-start">
+              <div className="flex items-start justify-between">
                 <div>
                   <div className="font-bold text-slate-900">{e.name}</div>
-                  <div className="text-xs text-slate-600 font-mono flex items-center gap-1 mt-0.5"><Phone className="size-3 text-slate-400"/>{e.phone}</div>
+                  <div className="mt-0.5 flex items-center gap-1 font-mono text-xs text-slate-600">
+                    <Phone className="size-3 text-slate-400" />
+                    {e.phone}
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <IconButton icon={Edit} onClick={() => openEdit(e)} label="Edit" />
-                  <IconButton icon={Trash2} onClick={() => void remove(e)} label="Delete" className="text-red-500 hover:text-red-700" />
+                  <IconButton
+                    icon={Trash2}
+                    onClick={() => void remove(e)}
+                    label="Delete"
+                    className="text-red-500 hover:text-red-700"
+                  />
                 </div>
               </div>
-              {e.address && <div className="text-xs text-slate-600 mt-1 bg-slate-50/80 p-2 rounded-lg border border-line">{e.address}</div>}
+              {e.address && (
+                <div className="mt-1 rounded-lg border border-line bg-slate-50/80 p-2 text-xs text-slate-600">
+                  {e.address}
+                </div>
+              )}
             </div>
           )}
           empty={
@@ -181,12 +198,7 @@ export default function FinanceLendersPage() {
 
   const formContent = (
     <div className="space-y-4">
-      <TextField
-        label="Name"
-        value={form.name}
-        onChange={(v) => setForm({ ...form, name: v })}
-        required
-      />
+      <TextField label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required />
       <TextField
         label="Phone Number"
         value={form.phone}
@@ -216,8 +228,6 @@ export default function FinanceLendersPage() {
     >
       <FinanceNavTabs />
       <FilterBar
-
-
         text={searchTerm}
         onTextChange={setSearchTerm}
         textPlaceholder="Search by Name or Phone..."
@@ -231,8 +241,12 @@ export default function FinanceLendersPage() {
         title="Add New Lender"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-            <Button variant="primary" icon={Save} loading={saving} onClick={handleSave}>Save</Button>
+            <Button variant="outline" onClick={() => setIsAddOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" icon={Save} loading={saving} onClick={handleSave}>
+              Save
+            </Button>
           </>
         }
       >
@@ -248,8 +262,12 @@ export default function FinanceLendersPage() {
         title="Edit Lender"
         footer={
           <>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button variant="success" icon={Save} loading={saving} onClick={handleSave}>Save</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>
+              Cancel
+            </Button>
+            <Button variant="success" icon={Save} loading={saving} onClick={handleSave}>
+              Save
+            </Button>
           </>
         }
       >

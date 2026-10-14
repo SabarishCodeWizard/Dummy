@@ -5,7 +5,8 @@ const trimmed = (i) => ({ phone: i.phone.trim(), name: i.name.trim(), address: i
 /** addSupplier(): phone first, then name. Returns the message to show, or null when valid. */
 export function validateNewSupplier(input) {
   const { phone, name } = trimmed(input);
-  if (!phone || digitsOnly(phone).length < 10) return 'Please enter a valid phone number (at least 10 digits).';
+  if (!phone || digitsOnly(phone).length < 10)
+    return 'Please enter a valid phone number (at least 10 digits).';
   if (!name) return 'Supplier name is required.';
   return null;
 }

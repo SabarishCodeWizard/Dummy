@@ -295,8 +295,8 @@ export default function BankAccountsPage() {
             t.type === 'Deposit' || t.type === 'Additional Amount'
               ? 'success'
               : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
-              ? 'warning'
-              : 'purple'
+                ? 'warning'
+                : 'purple'
           }
         >
           {t.type}
@@ -309,7 +309,9 @@ export default function BankAccountsPage() {
       render: (t) => (
         <span className="font-medium text-slate-700">
           {!t.fromAccount || t.fromAccount === 'external'
-            ? (t.category ? `Self / ${t.category}` : 'External / Self')
+            ? t.category
+              ? `Self / ${t.category}`
+              : 'External / Self'
             : getAccountLabel(t.fromAccount)}
         </span>
       ),
@@ -320,7 +322,9 @@ export default function BankAccountsPage() {
       render: (t) => (
         <span className="font-bold text-slate-900">
           {!t.toAccount || t.toAccount === 'external'
-            ? (t.category ? `Deduction (${t.category})` : 'External / Self')
+            ? t.category
+              ? `Deduction (${t.category})`
+              : 'External / Self'
             : getAccountLabel(t.toAccount)}
         </span>
       ),
@@ -335,15 +339,15 @@ export default function BankAccountsPage() {
             t.type === 'Deposit' || t.type === 'Additional Amount'
               ? 'text-emerald-700'
               : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
-              ? 'text-rose-700'
-              : 'text-indigo-700'
+                ? 'text-rose-700'
+                : 'text-indigo-700'
           }`}
         >
           {t.type === 'Deposit' || t.type === 'Additional Amount'
             ? '+'
             : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
-            ? '-'
-            : ''}
+              ? '-'
+              : ''}
           {rs(t.amount)}
         </span>
       ),
@@ -371,7 +375,7 @@ export default function BankAccountsPage() {
               refresh();
             }
           }}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-semibold text-rose-600 shadow-2xs transition hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-semibold text-rose-600 shadow-2xs transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
           title="Undo this transaction and restore balances"
         >
           <RotateCcw className="size-3 text-rose-500" />
@@ -397,7 +401,7 @@ export default function BankAccountsPage() {
             size="sm"
             icon={PlusCircle}
             onClick={() => setAdditionalAmountTarget({ accountId: 'cash', mode: 'in' })}
-            className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs sm:text-sm shadow-sm"
+            className="bg-emerald-700 text-xs font-semibold text-white shadow-sm hover:bg-emerald-800 sm:text-sm"
           >
             <span className="hidden sm:inline">+ Add Amount</span>
             <span className="sm:hidden">+ Add</span>
@@ -407,7 +411,7 @@ export default function BankAccountsPage() {
             size="sm"
             icon={ArrowRightLeft}
             onClick={() => setShowTransfer(true)}
-            className="bg-brand-900 hover:bg-brand-800 text-white font-semibold text-xs sm:text-sm shadow-sm"
+            className="bg-brand-900 text-xs font-semibold text-white shadow-sm hover:bg-brand-800 sm:text-sm"
           >
             <span className="hidden sm:inline">Transfer Funds</span>
             <span className="sm:hidden">Transfer</span>
@@ -417,28 +421,22 @@ export default function BankAccountsPage() {
             size="sm"
             icon={Plus}
             onClick={() => setEditingAccount({})}
-            className="max-sm:hidden text-xs sm:text-sm"
+            className="text-xs max-sm:hidden sm:text-sm"
           >
             Add Bank Account
           </Button>
           <RefreshButton onClick={refresh} loading={refreshing} />
         </div>
       }
-
     >
       {/* ----------------- TOP TABS ----------------- */}
       <FinanceNavTabs />
 
-
       {/* ----------------- KPI ROW ----------------- */}
       <KpiRow cols={3} className="grid-cols-1 sm:grid-cols-3">
-        <InkStat
-          label="Total Available Funds"
-          value={rs(balances.totalAvailableFunds)}
-          icon={Sigma}
-        />
+        <InkStat label="Total Available Funds" value={rs(balances.totalAvailableFunds)} icon={Sigma} />
         <div className="rounded-2xl border border-blue-200/70 bg-gradient-to-br from-white via-blue-50/20 to-blue-50/40 p-4 shadow-lift sm:p-5">
-          <div className="text-xs font-bold text-blue-800 uppercase tracking-wider">
+          <div className="text-xs font-bold tracking-wider text-blue-800 uppercase">
             Total in Bank Accounts
           </div>
           <div className="mt-2 font-display text-2xl font-extrabold text-blue-900 sm:text-3xl">
@@ -449,7 +447,7 @@ export default function BankAccountsPage() {
           </div>
         </div>
         <div className="rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-white via-emerald-50/20 to-emerald-50/40 p-4 shadow-lift sm:p-5">
-          <div className="flex items-center justify-between text-xs font-bold text-emerald-800 uppercase tracking-wider">
+          <div className="flex items-center justify-between text-xs font-bold tracking-wider text-emerald-800 uppercase">
             <span>Cash in Hand</span>
             <IconButton
               size="xs"
@@ -517,23 +515,28 @@ export default function BankAccountsPage() {
                           {account.accountName}
                         </h4>
                         <p className="text-[11px] font-semibold text-blue-700 sm:text-xs">
-                          {account.bankName || 'Bank'} {account.accountNumber ? `(• • • • ${account.accountNumber})` : ''}
+                          {account.bankName || 'Bank'}{' '}
+                          {account.accountNumber ? `(• • • • ${account.accountNumber})` : ''}
                         </p>
                       </div>
                     </div>
                     <Badge tone="brand">{account.accountType}</Badge>
                   </div>
 
-                  <div className="mt-4 rounded-xl bg-gradient-to-br from-blue-50/70 via-slate-50 to-blue-50/30 p-3 sm:mt-5 sm:p-3.5 border border-blue-200/60">
-                    <div className="text-[10px] font-bold text-blue-800 uppercase tracking-wider sm:text-xs">
+                  <div className="mt-4 rounded-xl border border-blue-200/60 bg-gradient-to-br from-blue-50/70 via-slate-50 to-blue-50/30 p-3 sm:mt-5 sm:p-3.5">
+                    <div className="text-[10px] font-bold tracking-wider text-blue-800 uppercase sm:text-xs">
                       Current Balance
                     </div>
                     <div className="mt-0.5 font-display text-xl font-extrabold text-blue-900 sm:text-2xl">
                       {rs(account.currentBalance)}
                     </div>
                     <div className="mt-2 flex items-center justify-between border-t border-blue-200/60 pt-2 text-[11px] text-slate-600 sm:text-xs">
-                      <span>Opening: <strong className="text-slate-800">{rs(account.openingBalance)}</strong></span>
-                      <span className="font-semibold text-emerald-700">Total Inflows: +{rs(account.inflows)}</span>
+                      <span>
+                        Opening: <strong className="text-slate-800">{rs(account.openingBalance)}</strong>
+                      </span>
+                      <span className="font-semibold text-emerald-700">
+                        Total Inflows: +{rs(account.inflows)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -544,7 +547,7 @@ export default function BankAccountsPage() {
                     size="xs"
                     icon={PlusCircle}
                     onClick={() => setAdditionalAmountTarget({ accountId: account.id, mode: 'in' })}
-                    className="rounded-lg border-0 shadow-none text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 font-semibold px-2.5 py-1 text-xs"
+                    className="rounded-lg border-0 px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-none hover:bg-emerald-50 hover:text-emerald-800"
                   >
                     + Add Amount
                   </Button>
@@ -553,7 +556,7 @@ export default function BankAccountsPage() {
                     size="xs"
                     icon={Eye}
                     onClick={() => setViewingAccount(account)}
-                    className="rounded-lg border-0 shadow-none text-slate-700 hover:text-brand-900 hover:bg-slate-100 font-semibold px-2.5 py-1 text-xs"
+                    className="rounded-lg border-0 px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-brand-900"
                   >
                     View Details
                   </Button>
@@ -562,7 +565,7 @@ export default function BankAccountsPage() {
                     size="xs"
                     icon={Edit}
                     onClick={() => setEditingAccount(account)}
-                    className="rounded-lg border-0 shadow-none text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-semibold px-2.5 py-1 text-xs"
+                    className="rounded-lg border-0 px-2.5 py-1 text-xs font-semibold text-blue-600 shadow-none hover:bg-blue-50 hover:text-blue-800"
                   >
                     Edit
                   </Button>
@@ -571,7 +574,7 @@ export default function BankAccountsPage() {
                     size="xs"
                     icon={Trash2}
                     onClick={() => handleDeleteAccount(account)}
-                    className="rounded-lg border-0 shadow-none text-red-600 hover:text-red-800 hover:bg-red-50 font-semibold px-2.5 py-1 text-xs"
+                    className="rounded-lg border-0 px-2.5 py-1 text-xs font-semibold text-red-600 shadow-none hover:bg-red-50 hover:text-red-800"
                   >
                     Delete
                   </Button>
@@ -583,9 +586,12 @@ export default function BankAccountsPage() {
           {balances.bankAccounts.length === 0 && (
             <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center sm:p-8">
               <Building2 className="mx-auto size-9 text-slate-400 sm:size-10" />
-              <h3 className="mt-2 text-sm font-bold text-slate-700 sm:text-base">No Bank Accounts Added Yet</h3>
+              <h3 className="mt-2 text-sm font-bold text-slate-700 sm:text-base">
+                No Bank Accounts Added Yet
+              </h3>
               <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-                Add your business bank accounts (SBI, HDFC, Canara, etc.) to track live bank balances with sales and purchases.
+                Add your business bank accounts (SBI, HDFC, Canara, etc.) to track live bank balances with
+                sales and purchases.
               </p>
               <Button
                 variant="primary"
@@ -619,16 +625,31 @@ export default function BankAccountsPage() {
                 <Badge tone="success">Drawer</Badge>
               </div>
 
-              <div className="mt-4 rounded-xl bg-gradient-to-br from-emerald-50/70 via-teal-50/30 to-emerald-50/30 p-3 sm:mt-5 sm:p-3.5 border border-emerald-200/70">
-                <div className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider sm:text-xs">
+              <div className="mt-4 rounded-xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/70 via-teal-50/30 to-emerald-50/30 p-3 sm:mt-5 sm:p-3.5">
+                <div className="text-[10px] font-bold tracking-wider text-emerald-800 uppercase sm:text-xs">
                   Current Balance
                 </div>
                 <div className="mt-0.5 font-display text-xl font-extrabold text-emerald-700 sm:text-2xl">
                   {rs(balances.cashBalance)}
                 </div>
                 <div className="mt-2 flex items-center justify-between border-t border-emerald-200/70 pt-2 text-[11px] text-emerald-800 sm:text-xs">
-                  <span>Opening: <strong className="text-slate-800">{rs(balances.cashAccount.openingBalance)}</strong></span>
-                  <span>Net Flow: <strong className={balances.cashBalance - balances.cashAccount.openingBalance >= 0 ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>{balances.cashBalance - balances.cashAccount.openingBalance >= 0 ? '+' : ''}{rs(balances.cashBalance - balances.cashAccount.openingBalance)}</strong></span>
+                  <span>
+                    Opening:{' '}
+                    <strong className="text-slate-800">{rs(balances.cashAccount.openingBalance)}</strong>
+                  </span>
+                  <span>
+                    Net Flow:{' '}
+                    <strong
+                      className={
+                        balances.cashBalance - balances.cashAccount.openingBalance >= 0
+                          ? 'font-bold text-emerald-700'
+                          : 'font-bold text-rose-700'
+                      }
+                    >
+                      {balances.cashBalance - balances.cashAccount.openingBalance >= 0 ? '+' : ''}
+                      {rs(balances.cashBalance - balances.cashAccount.openingBalance)}
+                    </strong>
+                  </span>
                 </div>
               </div>
             </div>
@@ -639,7 +660,7 @@ export default function BankAccountsPage() {
                 size="xs"
                 icon={PlusCircle}
                 onClick={() => setAdditionalAmountTarget({ accountId: 'cash', mode: 'in' })}
-                className="rounded-lg border-0 shadow-none text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 font-semibold px-2.5 py-1 text-xs"
+                className="rounded-lg border-0 px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-none hover:bg-emerald-50 hover:text-emerald-800"
               >
                 + Add Cash
               </Button>
@@ -648,7 +669,7 @@ export default function BankAccountsPage() {
                 size="xs"
                 icon={Eye}
                 onClick={() => setViewingAccount(balances.cashAccount)}
-                className="rounded-lg border-0 shadow-none text-slate-700 hover:text-brand-900 hover:bg-slate-100 font-semibold px-2.5 py-1 text-xs"
+                className="rounded-lg border-0 px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-brand-900"
               >
                 View Details
               </Button>
@@ -657,7 +678,7 @@ export default function BankAccountsPage() {
                 size="xs"
                 icon={Edit}
                 onClick={() => setEditingCash(true)}
-                className="rounded-lg border-0 shadow-none text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-semibold px-2.5 py-1 text-xs"
+                className="rounded-lg border-0 px-2.5 py-1 text-xs font-semibold text-blue-600 shadow-none hover:bg-blue-50 hover:text-blue-800"
               >
                 Adjust Opening
               </Button>
@@ -695,12 +716,10 @@ export default function BankAccountsPage() {
               }
             />
           ) : filteredAccountTransactions.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center bg-white shadow-sm">
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
               <CalendarDays className="mx-auto size-8 text-slate-400" />
               <p className="mt-2 text-sm font-semibold text-slate-700">No transfers match your filters</p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Try selecting a different date or search query.
-              </p>
+              <p className="mt-0.5 text-xs text-slate-500">Try selecting a different date or search query.</p>
               <Button
                 variant="outline"
                 size="xs"
@@ -728,8 +747,8 @@ export default function BankAccountsPage() {
                             t.type === 'Deposit' || t.type === 'Additional Amount'
                               ? 'success'
                               : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
-                              ? 'warning'
-                              : 'purple'
+                                ? 'warning'
+                                : 'purple'
                           }
                         >
                           {t.type}
@@ -739,8 +758,10 @@ export default function BankAccountsPage() {
                         </span>
                       </div>
                       <div className="mt-2 text-xs font-semibold text-slate-700">
-                        {t.fromAccount ? getAccountLabel(t.fromAccount) : `Self / ${t.category || 'Addition'}`} →{' '}
-                        {t.toAccount ? getAccountLabel(t.toAccount) : `Self / ${t.category || 'Deduction'}`}
+                        {t.fromAccount
+                          ? getAccountLabel(t.fromAccount)
+                          : `Self / ${t.category || 'Addition'}`}{' '}
+                        → {t.toAccount ? getAccountLabel(t.toAccount) : `Self / ${t.category || 'Deduction'}`}
                       </div>
                     </div>
                     <div className="text-right">
@@ -749,15 +770,15 @@ export default function BankAccountsPage() {
                           t.type === 'Deposit' || t.type === 'Additional Amount'
                             ? 'text-emerald-600'
                             : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
-                            ? 'text-rose-600'
-                            : 'text-indigo-600'
+                              ? 'text-rose-600'
+                              : 'text-indigo-600'
                         }`}
                       >
                         {t.type === 'Deposit' || t.type === 'Additional Amount'
                           ? '+'
                           : t.type === 'Withdrawal' || t.type === 'Manual Deduction'
-                          ? '-'
-                          : ''}
+                            ? '-'
+                            : ''}
                         {rs(t.amount)}
                       </div>
                       <button
@@ -785,7 +806,7 @@ export default function BankAccountsPage() {
                       </button>
                     </div>
                   </div>
-                  {t.notes && <div className="text-xs text-slate-500 italic mt-0.5">{t.notes}</div>}
+                  {t.notes && <div className="mt-0.5 text-xs text-slate-500 italic">{t.notes}</div>}
                 </div>
               )}
             />
@@ -794,10 +815,7 @@ export default function BankAccountsPage() {
       )}
 
       {/* Floating Add for mobile */}
-      <FloatingAddButton
-        onClick={() => setEditingAccount({})}
-        title="Add Bank Account"
-      />
+      <FloatingAddButton onClick={() => setEditingAccount({})} title="Add Bank Account" />
 
       {/* MODALS */}
       {viewingAccount && activeViewingAccount && (

@@ -50,7 +50,9 @@ export async function savePurchaseReturnDraft(invoiceNo, input, now = new Date()
   if (input.refundMethod) settlement.refundMethod = input.refundMethod;
   if (input.bankAccountId) settlement.bankAccountId = input.bankAccountId;
   for (const line of validation.lines) {
-    await db.savePurchaseReturn(buildPurchaseReturnRecord(invoiceNo, bill.supplierName, line, now, settlement));
+    await db.savePurchaseReturn(
+      buildPurchaseReturnRecord(invoiceNo, bill.supplierName, line, now, settlement),
+    );
   }
   await updatePurchaseBillWithReturns(invoiceNo);
   return { ok: true, total: validation.total };

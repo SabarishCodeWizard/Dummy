@@ -47,7 +47,11 @@ async function buildContext(invoice) {
 
   const payments = (rawPayments || []).map((p) => {
     const rawMethod = (p.paymentMethod || 'cash').toLowerCase();
-    const bank = p.bankAccountId ? bankMap.get(p.bankAccountId) : (rawMethod === 'account' ? defaultBank : null);
+    const bank = p.bankAccountId
+      ? bankMap.get(p.bankAccountId)
+      : rawMethod === 'account'
+        ? defaultBank
+        : null;
     const bankAccountName = bank
       ? `${bank.accountName}${bank.bankName ? ` (${bank.bankName})` : ''}`
       : bank?.accountName || '';
@@ -117,10 +121,7 @@ export async function printInvoice(invoice) {
  */
 export async function shareInvoicePdf(invoice) {
   const html = buildInvoiceHtml(await buildContext(invoice));
-  if (
-    (await sharePdfHtml(html, `SS ${invoice.invoiceNo}.pdf`, `SS ${invoice.invoiceNo}`)) ===
-    'shared'
-  )
+  if ((await sharePdfHtml(html, `SS ${invoice.invoiceNo}.pdf`, `SS ${invoice.invoiceNo}`)) === 'shared')
     return 'shared';
   await printHtml(html);
   if (normalizeWhatsAppPhone(invoice.customerPhone)) await openWhatsApp(invoice.customerPhone);

@@ -88,7 +88,7 @@ export function ProductRowsEditor({ rows, onChange, shortcuts, readOnly, addLabe
                       return (
                         <span
                           className={cn(
-                            'rounded px-1.5 py-0.2 text-[10px] font-bold tabular-nums',
+                            'py-0.2 rounded px-1.5 text-[10px] font-bold tabular-nums',
                             st.available > 0
                               ? 'bg-emerald-50 text-emerald-700'
                               : st.available === 0
@@ -101,11 +101,7 @@ export function ProductRowsEditor({ rows, onChange, shortcuts, readOnly, addLabe
                       );
                     })()}
                   </div>
-                  <NumberField
-                    value={row.qty}
-                    readOnly={readOnly}
-                    onChange={(qty) => update(i, { qty })}
-                  />
+                  <NumberField value={row.qty} readOnly={readOnly} onChange={(qty) => update(i, { qty })} />
                 </div>
                 <div>
                   <div className="pb-1 text-xs font-semibold text-slate-600">Rate</div>

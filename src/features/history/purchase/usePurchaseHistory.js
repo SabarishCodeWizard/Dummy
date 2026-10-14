@@ -164,7 +164,8 @@ export function usePurchaseHistory(onDataChanged) {
         }
         const allBills = await db.getAllPurchaseBills();
         const supplierBills = allBills.filter(
-          (b) => b.supplierName && b.supplierName.trim().toLowerCase() === bill.supplierName.trim().toLowerCase(),
+          (b) =>
+            b.supplierName && b.supplierName.trim().toLowerCase() === bill.supplierName.trim().toLowerCase(),
         );
         // Combine products from all bills of this supplier (unique descriptions with aggregated/total quantities)
         const productMap = new Map();

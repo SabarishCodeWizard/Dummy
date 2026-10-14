@@ -22,9 +22,7 @@ describe('Statistics & Dashboard Analytics', () => {
     {
       invoiceNo: 'P-102',
       invoiceDate: '2026-10-05',
-      products: [
-        { description: 'Blue Jeans', qty: 10, rate: 600 },
-      ],
+      products: [{ description: 'Blue Jeans', qty: 10, rate: 600 }],
       grandTotal: 6000,
     },
   ];

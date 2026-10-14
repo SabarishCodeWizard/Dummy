@@ -27,9 +27,7 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
         mode: 'Cash',
         sourceAccount: 'cash',
       });
-      loadLiveAccountBalances()
-        .then(setLiveBalances)
-        .catch(console.error);
+      loadLiveAccountBalances().then(setLiveBalances).catch(console.error);
     }
   }, [record]);
 
@@ -55,9 +53,7 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
       setForm((prev) => ({ ...prev, mode: newMode, sourceAccount: 'cash' }));
     } else {
       const defaultBankId =
-        form.sourceAccount && form.sourceAccount !== 'cash'
-          ? form.sourceAccount
-          : (bankAccounts[0]?.id || '');
+        form.sourceAccount && form.sourceAccount !== 'cash' ? form.sourceAccount : bankAccounts[0]?.id || '';
       setForm((prev) => ({ ...prev, mode: newMode, sourceAccount: defaultBankId }));
     }
   };
@@ -65,9 +61,9 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.amount || parseFloat(form.amount) <= 0) return;
-    
+
     const isDuplicate = record.payments?.some(
-      p => p.date === form.date && parseFloat(p.amount) === parseFloat(form.amount)
+      (p) => p.date === form.date && parseFloat(p.amount) === parseFloat(form.amount),
     );
     if (isDuplicate) {
       toast('Duplicate Entry', 'A payment of this exact amount is already recorded on this date.', 'error');
@@ -76,9 +72,7 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
 
     setSaving(true);
     try {
-      const source = form.mode === 'Cash'
-        ? 'cash'
-        : (form.sourceAccount || bankAccounts[0]?.id || 'cash');
+      const source = form.mode === 'Cash' ? 'cash' : form.sourceAccount || bankAccounts[0]?.id || 'cash';
 
       const newPayment = {
         id: crypto.randomUUID(),
@@ -90,7 +84,7 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
 
       const updatedRecord = {
         ...record,
-        payments: [...(record.payments || []), newPayment]
+        payments: [...(record.payments || []), newPayment],
       };
 
       await db.saveFinanceRecord(updatedRecord);
@@ -155,29 +149,33 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
       }
     >
       <form id={FORM_ID} className="space-y-4" onSubmit={handleSubmit}>
-        <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 space-y-2">
+        <div className="space-y-2 rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Lender</span>
-              <div className="font-bold text-slate-900 text-base">{record.lenderName}</div>
-              {record.phone && <div className="text-xs text-slate-500 font-mono mt-0.5">{record.phone}</div>}
+              <span className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">Lender</span>
+              <div className="text-base font-bold text-slate-900">{record.lenderName}</div>
+              {record.phone && <div className="mt-0.5 font-mono text-xs text-slate-500">{record.phone}</div>}
             </div>
             <div className="text-right">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Balance Due</span>
-              <div className="font-display font-black text-rose-700 text-lg tabular-nums">
+              <span className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
+                Balance Due
+              </span>
+              <div className="font-display text-lg font-black text-rose-700 tabular-nums">
                 ₹{formatCurrency(balancePayable)}
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200/70 text-xs">
+          <div className="grid grid-cols-3 gap-2 border-t border-slate-200/70 pt-2 text-xs">
             <div>
               <span className="text-slate-500">Principal:</span>{' '}
               <span className="font-bold text-slate-800">₹{formatCurrency(record.principal)}</span>
             </div>
             <div>
               <span className="text-slate-500">Accrued Int:</span>{' '}
-              <span className="font-bold text-amber-700">₹{formatCurrency(stats?.totalInterestAccrued || 0)}</span>
+              <span className="font-bold text-amber-700">
+                ₹{formatCurrency(stats?.totalInterestAccrued || 0)}
+              </span>
             </div>
             <div className="text-right">
               <span className="text-slate-500">Paid:</span>{' '}
@@ -188,25 +186,27 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
 
         <div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <DateField 
-              label="Payment Date" 
-              value={form.date} 
-              onChange={v => setForm(f => ({ ...f, date: v }))} 
-              required 
+            <DateField
+              label="Payment Date"
+              value={form.date}
+              onChange={(v) => setForm((f) => ({ ...f, date: v }))}
+              required
             />
-            <NumberField 
-              label="Amount Paid (Rs.)" 
-              value={form.amount} 
-              onChange={v => setForm(f => ({ ...f, amount: v }))} 
-              required 
+            <NumberField
+              label="Amount Paid (Rs.)"
+              value={form.amount}
+              onChange={(v) => setForm((f) => ({ ...f, amount: v }))}
+              required
             />
           </div>
           {balancePayable > 0 && (
             <div className="mt-1 flex justify-end">
               <button
                 type="button"
-                onClick={() => setForm(f => ({ ...f, amount: String(Math.round(balancePayable * 100) / 100) }))}
-                className="text-[11px] font-semibold text-brand-600 hover:text-brand-800 hover:underline inline-flex items-center gap-1"
+                onClick={() =>
+                  setForm((f) => ({ ...f, amount: String(Math.round(balancePayable * 100) / 100) }))
+                }
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-600 hover:text-brand-800 hover:underline"
               >
                 Pay Full Due (₹{formatCurrency(balancePayable)})
               </button>
@@ -214,27 +214,27 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
           )}
         </div>
 
-        <SelectField 
-          label="Payment Mode" 
-          value={form.mode} 
+        <SelectField
+          label="Payment Mode"
+          value={form.mode}
           onChange={handleModeChange}
           options={paymentModeOptions}
         />
 
         {isCash ? (
-          <SelectField 
-            label="Deduct / Pay From" 
-            value="cash" 
+          <SelectField
+            label="Deduct / Pay From"
+            value="cash"
             onChange={() => {}}
             disabled
             options={cashOption}
           />
         ) : (
           <div className="space-y-1">
-            <SelectField 
-              label="Deduct from Bank Account" 
-              value={form.sourceAccount} 
-              onChange={v => setForm(f => ({ ...f, sourceAccount: v }))}
+            <SelectField
+              label="Deduct from Bank Account"
+              value={form.sourceAccount}
+              onChange={(v) => setForm((f) => ({ ...f, sourceAccount: v }))}
               options={bankAccountOptions}
               required
             />
@@ -249,16 +249,16 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
         {/* Live balance indicator */}
         {liveBalances && (
           <div
-            className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs transition border ${
+            className={`flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-xs transition ${
               isOverdrawn
                 ? 'border-amber-300 bg-amber-50 text-amber-900 shadow-xs'
                 : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-900 shadow-xs'
             }`}
           >
-            <span className="flex items-center gap-2 font-semibold text-xs">
+            <span className="flex items-center gap-2 text-xs font-semibold">
               <span
                 className={`size-2 rounded-full ${
-                  isOverdrawn ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+                  isOverdrawn ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'
                 }`}
               />
               {isCash ? (
@@ -273,7 +273,7 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
                 </>
               )}
             </span>
-            <span className="font-display font-extrabold text-sm tabular-nums">
+            <span className="font-display text-sm font-extrabold tabular-nums">
               ₹{formatCurrency(availableBalance)}
             </span>
           </div>
@@ -283,7 +283,8 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
           <div className="flex items-center gap-1.5 px-1 text-[11px] font-semibold text-amber-700">
             <AlertTriangle className="size-3.5 shrink-0" />
             <span>
-              Payment amount of ₹{formatCurrency(amountNum)} exceeds available balance (₹{formatCurrency(availableBalance)}).
+              Payment amount of ₹{formatCurrency(amountNum)} exceeds available balance (₹
+              {formatCurrency(availableBalance)}).
             </span>
           </div>
         )}
@@ -291,5 +292,3 @@ export default function AddFinancePaymentModal({ record, onClose, onSave }) {
     </Modal>
   );
 }
-
-

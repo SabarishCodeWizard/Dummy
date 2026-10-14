@@ -97,21 +97,23 @@ export default function ExpenseFormModal({ form, onChange, saving, onClose, onSa
 
             {liveBalances && (
               <div
-                className={`flex items-center justify-between rounded-xl px-3 py-1.5 text-xs transition border ${
+                className={`flex items-center justify-between rounded-xl border px-3 py-1.5 text-xs transition ${
                   isOverdrawn
                     ? 'border-amber-300 bg-amber-50 text-amber-900'
                     : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-900'
                 }`}
               >
-                <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold">
                   {isCash ? (
                     <Banknote className="size-3.5 text-emerald-700" />
                   ) : (
                     <Building2 className="size-3.5 text-brand-700" />
                   )}
-                  {isCash ? 'Available in Cash Drawer:' : `Available in ${selectedBank?.accountName || 'Bank'}:`}
+                  {isCash
+                    ? 'Available in Cash Drawer:'
+                    : `Available in ${selectedBank?.accountName || 'Bank'}:`}
                 </span>
-                <span className="font-display font-extrabold text-[12px] tabular-nums">
+                <span className="font-display text-[12px] font-extrabold tabular-nums">
                   ₹{formatCurrency(availableBalance)}
                 </span>
               </div>

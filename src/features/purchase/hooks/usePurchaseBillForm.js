@@ -22,7 +22,7 @@ export function usePurchaseBillForm() {
   const nav = useAppNavigate();
   const shortcuts = useShortcuts();
   const [searchParams] = useSearchParams();
-  
+
   const [form, setForm] = useState(() => {
     const initialForm = emptyPurchaseForm();
     const paramProduct = searchParams.get('product');
@@ -33,12 +33,12 @@ export function usePurchaseBillForm() {
           qty: searchParams.get('qty') || '',
           rate: '',
         },
-        { description: '', qty: '', rate: '' }
+        { description: '', qty: '', rate: '' },
       ];
     }
     return initialForm;
   });
-  
+
   const [suppliers, setSuppliers] = useState([]);
   const [suggestion, setSuggestion] = useState({ lastInvoiceNo: '-', nextInvoiceNo: '' });
   /** a >= 10 character phone that matches no supplier */

@@ -13,18 +13,14 @@ export function TotalInvoicesClickable({ count, invoiceNumbers, entityName, modu
 
   return (
     <>
-      <button 
-        type="button" 
+      <button
+        type="button"
         onClick={() => setIsOpen(true)}
         className="font-medium text-brand-600 hover:text-brand-800 hover:underline focus:outline-none"
       >
         {count}
       </button>
-      <Modal 
-        open={isOpen} 
-        onClose={() => setIsOpen(false)} 
-        title={`${entityName}'s Invoices`}
-      >
+      <Modal open={isOpen} onClose={() => setIsOpen(false)} title={`${entityName}'s Invoices`}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {invoiceNumbers.map((inv) => (
             <Button

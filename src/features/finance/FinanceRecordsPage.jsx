@@ -1,4 +1,17 @@
-import { Landmark, Plus, Sigma, Trash2, Edit, CreditCard, AlertCircle, History, Phone, CheckCircle2, Banknote, Building2 } from 'lucide-react';
+import {
+  Landmark,
+  Plus,
+  Sigma,
+  Trash2,
+  Edit,
+  CreditCard,
+  AlertCircle,
+  History,
+  Phone,
+  CheckCircle2,
+  Banknote,
+  Building2,
+} from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -19,7 +32,6 @@ import AddFinancePaymentModal from './AddFinancePaymentModal';
 import FinancePaymentHistoryModal from './FinancePaymentHistoryModal';
 import FinanceNavTabs from './FinanceNavTabs';
 import { todayISO } from '@/core/format';
-
 
 const rs = (n) => `Rs. ${formatCurrency(n)}`;
 
@@ -58,13 +70,16 @@ export default function FinanceRecordsPage() {
     return map;
   }, [bankAccounts]);
 
-  const ongoingAll = records.filter(r => !calculateFinanceStats(r, calcDate || undefined).isSettled);
-  const settledCount = records.filter(r => calculateFinanceStats(r, calcDate || undefined).isSettled).length;
+  const ongoingAll = records.filter((r) => !calculateFinanceStats(r, calcDate || undefined).isSettled);
+  const settledCount = records.filter(
+    (r) => calculateFinanceStats(r, calcDate || undefined).isSettled,
+  ).length;
 
-  const shown = ongoingAll.filter(r => 
-    !searchTerm || 
-    r.lenderName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    r.phone.includes(searchTerm)
+  const shown = ongoingAll.filter(
+    (r) =>
+      !searchTerm ||
+      r.lenderName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.phone.includes(searchTerm),
   );
 
   const paged = usePagedRows(shown, searchTerm);
@@ -114,18 +129,21 @@ export default function FinanceRecordsPage() {
   const openAdd = () => setForm(emptyFinanceForm(todayISO()));
   const openEdit = (record) => setForm({ ...record });
 
-  const totals = shown.reduce((acc, r) => {
-    const targetDate = calcDate || undefined;
-    const stats = calculateFinanceStats(r, targetDate);
-    
-    acc.principal += toNum(r.principal);
-    acc.interest += stats.totalInterestAccrued;
-    acc.total += stats.totalPayable;
-    acc.paid += stats.totalPaid;
-    acc.balance += stats.balancePayable;
-    acc.overdue += stats.overdueAmount;
-    return acc;
-  }, { principal: 0, interest: 0, total: 0, paid: 0, balance: 0, overdue: 0 });
+  const totals = shown.reduce(
+    (acc, r) => {
+      const targetDate = calcDate || undefined;
+      const stats = calculateFinanceStats(r, targetDate);
+
+      acc.principal += toNum(r.principal);
+      acc.interest += stats.totalInterestAccrued;
+      acc.total += stats.totalPayable;
+      acc.paid += stats.totalPaid;
+      acc.balance += stats.balancePayable;
+      acc.overdue += stats.overdueAmount;
+      return acc;
+    },
+    { principal: 0, interest: 0, total: 0, paid: 0, balance: 0, overdue: 0 },
+  );
 
   const renderProgress = (stats, record) => {
     const start = new Date(record.startDate);
@@ -133,21 +151,21 @@ export default function FinanceRecordsPage() {
 
     if (stats.isSettled) {
       return (
-        <div className="flex flex-col gap-1.5 items-start">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+        <div className="flex flex-col items-start gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
             <CheckCircle2 className="size-3 text-emerald-600" />
             Settled
           </span>
-          <div className="flex flex-wrap gap-1 max-w-[220px]">
+          <div className="flex max-w-[220px] flex-wrap gap-1">
             {Array.from({ length: totalBlocks }).map((_, i) => {
               const due = new Date(start);
               due.setMonth(start.getMonth() + i + 1);
               const dateStr = due.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 
               return (
-                <div 
-                  key={i} 
-                  className="h-5 flex items-center justify-center rounded-[3px] text-[9px] font-bold px-1.5 bg-emerald-500 text-white"
+                <div
+                  key={i}
+                  className="flex h-5 items-center justify-center rounded-[3px] bg-emerald-500 px-1.5 text-[9px] font-bold text-white"
                   title="Settled"
                 >
                   {dateStr}
@@ -159,27 +177,30 @@ export default function FinanceRecordsPage() {
       );
     }
 
-    const paidMonths = stats.expectedMonthlyInterest > 0 
-      ? Math.min(Math.floor(stats.totalPaid / stats.expectedMonthlyInterest), totalBlocks)
-      : 0;
+    const paidMonths =
+      stats.expectedMonthlyInterest > 0
+        ? Math.min(Math.floor(stats.totalPaid / stats.expectedMonthlyInterest), totalBlocks)
+        : 0;
 
     return (
-      <div className="flex flex-wrap gap-1 max-w-[220px]">
+      <div className="flex max-w-[220px] flex-wrap gap-1">
         {Array.from({ length: totalBlocks }).map((_, i) => {
           const isPaid = i < paidMonths;
           const isOverdue = i >= paidMonths && i < stats.monthsElapsed;
-          
+
           const due = new Date(start);
           due.setMonth(start.getMonth() + i + 1);
           const dateStr = due.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 
           return (
-            <div 
-              key={i} 
-              className={`h-5 flex items-center justify-center rounded-[3px] text-[9px] font-bold px-1.5 ${
-                isPaid ? 'bg-emerald-500 text-white' : 
-                isOverdue ? 'bg-red-500 text-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)]' : 
-                'bg-slate-100 text-slate-400 border border-slate-200'
+            <div
+              key={i}
+              className={`flex h-5 items-center justify-center rounded-[3px] px-1.5 text-[9px] font-bold ${
+                isPaid
+                  ? 'bg-emerald-500 text-white'
+                  : isOverdue
+                    ? 'bg-red-500 text-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)]'
+                    : 'border border-slate-200 bg-slate-100 text-slate-400'
               }`}
               title={isPaid ? 'Paid' : isOverdue ? 'Overdue' : 'Upcoming'}
             >
@@ -192,29 +213,54 @@ export default function FinanceRecordsPage() {
   };
 
   const columns = [
-    { key: 'lender', header: 'Lender', className: 'whitespace-nowrap font-bold text-slate-900', value: (e) => e.lenderName },
-    { key: 'phone', header: 'Phone', className: 'whitespace-nowrap text-slate-600 font-mono text-xs', value: (e) => e.phone },
-    { key: 'start', header: 'Start Date', className: 'whitespace-nowrap text-slate-600', value: (e) => formatDateShort(e.startDate) },
-    { key: 'end', header: 'End Date', className: 'whitespace-nowrap text-slate-600', value: (e) => e.endDate ? formatDateShort(e.endDate) : 'Ongoing' },
-    { 
-      key: 'totalMonths', 
-      header: 'Total Months', 
-      align: 'center', 
-      className: 'whitespace-nowrap font-semibold text-slate-800 tabular-nums', 
+    {
+      key: 'lender',
+      header: 'Lender',
+      className: 'whitespace-nowrap font-bold text-slate-900',
+      value: (e) => e.lenderName,
+    },
+    {
+      key: 'phone',
+      header: 'Phone',
+      className: 'whitespace-nowrap text-slate-600 font-mono text-xs',
+      value: (e) => e.phone,
+    },
+    {
+      key: 'start',
+      header: 'Start Date',
+      className: 'whitespace-nowrap text-slate-600',
+      value: (e) => formatDateShort(e.startDate),
+    },
+    {
+      key: 'end',
+      header: 'End Date',
+      className: 'whitespace-nowrap text-slate-600',
+      value: (e) => (e.endDate ? formatDateShort(e.endDate) : 'Ongoing'),
+    },
+    {
+      key: 'totalMonths',
+      header: 'Total Months',
+      align: 'center',
+      className: 'whitespace-nowrap font-semibold text-slate-800 tabular-nums',
       value: (e) => {
         const stats = calculateFinanceStats(e, calcDate || undefined);
         const m = e.endDate ? stats.totalMonths : stats.monthsElapsed;
         if (m === 0) return '< 1 Month';
         return `${m} ${m === 1 ? 'Month' : 'Months'}${e.endDate ? '' : ' (Elapsed)'}`;
-      } 
+      },
     },
-    { key: 'rate', header: 'Rate/Mo', className: 'whitespace-nowrap font-bold text-amber-800 tabular-nums', value: (e) => `${e.rate}%` },
-    { 
-      key: 'principal', 
-      header: 'Principal', 
-      align: 'right', 
-      className: 'font-display font-bold text-indigo-950 tabular-nums whitespace-nowrap', 
-      value: (e) => rs(toNum(e.principal)) 
+    {
+      key: 'rate',
+      header: 'Rate/Mo',
+      className: 'whitespace-nowrap font-bold text-amber-800 tabular-nums',
+      value: (e) => `${e.rate}%`,
+    },
+    {
+      key: 'principal',
+      header: 'Principal',
+      align: 'right',
+      className: 'font-display font-bold text-indigo-950 tabular-nums whitespace-nowrap',
+      value: (e) => rs(toNum(e.principal)),
     },
     {
       key: 'receiveLoanIn',
@@ -247,7 +293,7 @@ export default function FinanceRecordsPage() {
       value: (e) => {
         const stats = calculateFinanceStats(e, calcDate || undefined);
         return rs(stats.totalInterestAccrued);
-      }
+      },
     },
     {
       key: 'paid',
@@ -257,7 +303,7 @@ export default function FinanceRecordsPage() {
       value: (e) => {
         const stats = calculateFinanceStats(e, calcDate || undefined);
         return rs(stats.totalPaid);
-      }
+      },
     },
     {
       key: 'balance',
@@ -266,19 +312,19 @@ export default function FinanceRecordsPage() {
       className: 'font-display font-extrabold text-emerald-800 tabular-nums whitespace-nowrap',
       render: (e) => {
         const stats = calculateFinanceStats(e, calcDate || undefined);
-        
+
         return (
           <div className="flex flex-col items-end">
             <span>{rs(stats.balancePayable)}</span>
             {stats.isOverdue && (
-               <div className="text-red-500 text-[10px] mt-1 flex items-center gap-1 font-semibold">
-                 <AlertCircle className="size-3" />
-                 Overdue: {rs(stats.overdueAmount)}
-               </div>
+              <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-red-500">
+                <AlertCircle className="size-3" />
+                Overdue: {rs(stats.overdueAmount)}
+              </div>
             )}
           </div>
         );
-      }
+      },
     },
     {
       key: 'progress',
@@ -287,20 +333,35 @@ export default function FinanceRecordsPage() {
       render: (e) => {
         const stats = calculateFinanceStats(e, calcDate || undefined);
         return renderProgress(stats, e);
-      }
+      },
     },
-    { 
-      key: 'actions', 
-      header: 'Actions', 
-      align: 'center', 
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'center',
       render: (e) => (
         <div className="flex items-center justify-center gap-2">
-          <IconButton icon={History} onClick={() => setHistoryRecord(e)} label="History" className="text-slate-600 hover:text-brand-700 hover:bg-slate-50" />
-          <IconButton icon={CreditCard} onClick={() => setPaymentRecord(e)} label="Add Payment" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50" />
+          <IconButton
+            icon={History}
+            onClick={() => setHistoryRecord(e)}
+            label="History"
+            className="text-slate-600 hover:bg-slate-50 hover:text-brand-700"
+          />
+          <IconButton
+            icon={CreditCard}
+            onClick={() => setPaymentRecord(e)}
+            label="Add Payment"
+            className="text-blue-600 hover:bg-blue-50 hover:text-blue-800"
+          />
           <IconButton icon={Edit} onClick={() => openEdit(e)} label="Edit" />
-          <IconButton icon={Trash2} onClick={() => void remove(e)} label="Delete" className="text-red-500 hover:text-red-700 hover:bg-red-50" />
+          <IconButton
+            icon={Trash2}
+            onClick={() => void remove(e)}
+            label="Delete"
+            className="text-red-500 hover:bg-red-50 hover:text-red-700"
+          />
         </div>
-      )
+      ),
     },
   ];
 
@@ -318,72 +379,116 @@ export default function FinanceRecordsPage() {
             const stats = calculateFinanceStats(e, calcDate || undefined);
             return (
               <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-start">
+                <div className="flex items-start justify-between">
                   <div>
                     <div className="font-bold text-slate-900">{e.lenderName}</div>
-                    <div className="text-xs text-slate-600 font-mono flex items-center gap-1 mt-0.5"><Phone className="size-3 text-slate-400"/>{e.phone}</div>
-                    <div className="text-[11px] font-bold text-amber-800 mt-1">Rate: {e.rate}% / mo</div>
-                    <div className="text-[11px] font-medium text-slate-600 mt-1 space-y-0.5">
-                      <div>Start: <span className="font-semibold text-slate-800">{formatDateShort(e.startDate)}</span></div>
+                    <div className="mt-0.5 flex items-center gap-1 font-mono text-xs text-slate-600">
+                      <Phone className="size-3 text-slate-400" />
+                      {e.phone}
+                    </div>
+                    <div className="mt-1 text-[11px] font-bold text-amber-800">Rate: {e.rate}% / mo</div>
+                    <div className="mt-1 space-y-0.5 text-[11px] font-medium text-slate-600">
+                      <div>
+                        Start:{' '}
+                        <span className="font-semibold text-slate-800">{formatDateShort(e.startDate)}</span>
+                      </div>
                       {e.endDate ? (
-                        <div>End: <span className="font-semibold text-slate-800">{formatDateShort(e.endDate)}</span></div>
+                        <div>
+                          End:{' '}
+                          <span className="font-semibold text-slate-800">{formatDateShort(e.endDate)}</span>
+                        </div>
                       ) : null}
                       <div>
-                        Total Months: <span className="font-semibold text-slate-800">
-                          {e.endDate ? `${stats.totalMonths || '< 1'} Mo` : `${stats.monthsElapsed || '< 1'} Mo (Elapsed)`}
+                        Total Months:{' '}
+                        <span className="font-semibold text-slate-800">
+                          {e.endDate
+                            ? `${stats.totalMonths || '< 1'} Mo`
+                            : `${stats.monthsElapsed || '< 1'} Mo (Elapsed)`}
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <IconButton icon={History} onClick={() => setHistoryRecord(e)} label="History" className="text-slate-500 hover:text-brand-700" />
-                    <IconButton icon={CreditCard} onClick={() => setPaymentRecord(e)} label="Add Payment" className="text-blue-600 hover:text-blue-800" />
+                    <IconButton
+                      icon={History}
+                      onClick={() => setHistoryRecord(e)}
+                      label="History"
+                      className="text-slate-500 hover:text-brand-700"
+                    />
+                    <IconButton
+                      icon={CreditCard}
+                      onClick={() => setPaymentRecord(e)}
+                      label="Add Payment"
+                      className="text-blue-600 hover:text-blue-800"
+                    />
                     <IconButton icon={Edit} onClick={() => openEdit(e)} label="Edit" />
-                    <IconButton icon={Trash2} onClick={() => void remove(e)} label="Delete" className="text-red-500 hover:text-red-700" />
+                    <IconButton
+                      icon={Trash2}
+                      onClick={() => void remove(e)}
+                      label="Delete"
+                      className="text-red-500 hover:text-red-700"
+                    />
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-2 mt-2 bg-slate-50/80 p-2.5 rounded-xl border border-line">
+
+                <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-line bg-slate-50/80 p-2.5">
                   <div>
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Principal</div>
+                    <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                      Principal
+                    </div>
                     <div className="font-display font-bold text-indigo-950">{rs(toNum(e.principal))}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Receive Loan In</div>
-                    <div className="text-xs font-semibold mt-0.5">
-                      {(!e.depositAccount || e.depositAccount === 'cash') ? (
-                        <span className="text-emerald-700 flex items-center gap-1 font-semibold">
+                    <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                      Receive Loan In
+                    </div>
+                    <div className="mt-0.5 text-xs font-semibold">
+                      {!e.depositAccount || e.depositAccount === 'cash' ? (
+                        <span className="flex items-center gap-1 font-semibold text-emerald-700">
                           <Banknote className="size-3.5" /> Cash in Hand
                         </span>
                       ) : (
-                        <span className="text-blue-700 flex items-center gap-1 font-semibold">
-                          <Building2 className="size-3.5" /> {bankMap[e.depositAccount]?.accountName || 'Bank Account'}
+                        <span className="flex items-center gap-1 font-semibold text-blue-700">
+                          <Building2 className="size-3.5" />{' '}
+                          {bankMap[e.depositAccount]?.accountName || 'Bank Account'}
                         </span>
                       )}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Accrued Interest</div>
-                    <div className="font-display font-bold text-amber-700">{rs(stats.totalInterestAccrued)}</div>
+                    <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                      Accrued Interest
+                    </div>
+                    <div className="font-display font-bold text-amber-700">
+                      {rs(stats.totalInterestAccrued)}
+                    </div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Total Paid</div>
+                    <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                      Total Paid
+                    </div>
                     <div className="font-display font-bold text-blue-700">{rs(stats.totalPaid)}</div>
                   </div>
-                  <div className="col-span-2 border-t border-slate-200/60 pt-1.5 mt-0.5">
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Balance Payable</div>
-                    <div className="font-display font-black text-emerald-800 text-base">{rs(stats.balancePayable)}</div>
+                  <div className="col-span-2 mt-0.5 border-t border-slate-200/60 pt-1.5">
+                    <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                      Balance Payable
+                    </div>
+                    <div className="font-display text-base font-black text-emerald-800">
+                      {rs(stats.balancePayable)}
+                    </div>
                   </div>
                 </div>
                 {stats.isOverdue && (
-                   <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 px-2.5 py-1.5 rounded-md border border-red-100">
-                     <AlertCircle className="size-4" />
-                     Overdue: {rs(stats.overdueAmount)}
-                   </div>
+                  <div className="mt-1 flex items-center gap-1.5 rounded-md border border-red-100 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600">
+                    <AlertCircle className="size-4" />
+                    Overdue: {rs(stats.overdueAmount)}
+                  </div>
                 )}
-                
-                <div className="mt-2 bg-white rounded-lg p-2 border border-line shadow-sm">
-                  <div className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 tracking-wider">Interest Payment Progress</div>
+
+                <div className="mt-2 rounded-lg border border-line bg-white p-2 shadow-sm">
+                  <div className="mb-1.5 text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                    Interest Payment Progress
+                  </div>
                   {renderProgress(stats, e)}
                 </div>
               </div>
@@ -396,7 +501,7 @@ export default function FinanceRecordsPage() {
               message={
                 settledCount > 0
                   ? `All current loans are settled! You have ${settledCount} settled record${settledCount > 1 ? 's' : ''}.`
-                  : "Borrowings will show up here. Add a new record to get started."
+                  : 'Borrowings will show up here. Add a new record to get started.'
               }
               action={
                 settledCount > 0 ? (
@@ -425,30 +530,30 @@ export default function FinanceRecordsPage() {
       {/* Top navigation tabs */}
       <FinanceNavTabs />
       <KpiRow cols={4}>
-
-
         <InkStat icon={Landmark} label="Total Principal" value={rs(totals.principal)} />
         <InkStat icon={Sigma} label="Total Interest" value={rs(totals.interest)} tint="amber" />
         <InkStat icon={CreditCard} label="Total Paid" value={rs(totals.paid)} tint="blue" />
         <InkStat icon={Sigma} label="Balance Payable" value={rs(totals.balance)} tint="emerald" />
       </KpiRow>
-      
+
       {totals.overdue > 0 && (
-         <div className="mb-5 flex items-center justify-between rounded-xl bg-red-50 p-4 border border-red-200">
-           <div className="flex items-center gap-3">
-             <div className="flex size-10 items-center justify-center rounded-full bg-red-100 text-red-600">
-                <AlertCircle className="size-6" />
-             </div>
-             <div>
-               <h3 className="text-sm font-bold text-red-900">Overdue Payments Detected</h3>
-               <p className="text-xs font-medium text-red-700 mt-0.5">Some of your interest payments are past due.</p>
-             </div>
-           </div>
-           <div className="text-right">
-             <div className="text-xs uppercase font-bold text-red-500 tracking-wider">Total Overdue</div>
-             <div className="text-lg font-display font-extrabold text-red-600">{rs(totals.overdue)}</div>
-           </div>
-         </div>
+        <div className="mb-5 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-full bg-red-100 text-red-600">
+              <AlertCircle className="size-6" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-red-900">Overdue Payments Detected</h3>
+              <p className="mt-0.5 text-xs font-medium text-red-700">
+                Some of your interest payments are past due.
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs font-bold tracking-wider text-red-500 uppercase">Total Overdue</div>
+            <div className="font-display text-lg font-extrabold text-red-600">{rs(totals.overdue)}</div>
+          </div>
+        </div>
       )}
       <FilterBar
         date={calcDate}
@@ -479,7 +584,7 @@ export default function FinanceRecordsPage() {
           await reload();
         }}
       />
-      <FinancePaymentHistoryModal 
+      <FinancePaymentHistoryModal
         record={historyRecord}
         onClose={() => setHistoryRecord(null)}
         onUpdate={async (updatedRecord) => {

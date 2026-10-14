@@ -62,9 +62,10 @@ export function ReturnItemEditor({ index, item, products, returnedQty, onChange,
 
       {selected ? (
         <div className="flex flex-wrap items-center justify-between gap-1 rounded-xl border border-gold-200 bg-gold-50/70 px-2.5 py-1.5 text-xs text-brand-900">
-          <span className="font-semibold truncate max-w-full">{selected.description}</span>
+          <span className="max-w-full truncate font-semibold">{selected.description}</span>
           <span className="text-slate-600">
-            Available: <strong className="font-bold text-brand-900">{cleanQty(selected.qty)}</strong> · Rate: <strong className="font-bold text-brand-900">{rs(selected.rate)}</strong>
+            Available: <strong className="font-bold text-brand-900">{cleanQty(selected.qty)}</strong> · Rate:{' '}
+            <strong className="font-bold text-brand-900">{rs(selected.rate)}</strong>
           </span>
         </div>
       ) : null}
@@ -79,8 +80,18 @@ export function ReturnItemEditor({ index, item, products, returnedQty, onChange,
       ) : null}
 
       <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-        <NumberField label="Qty" value={item.qty} onChange={(qty) => onChange({ ...item, qty })} className="min-w-0" />
-        <NumberField label="Rate (₹)" value={item.rate} onChange={(rate) => onChange({ ...item, rate })} className="min-w-0" />
+        <NumberField
+          label="Qty"
+          value={item.qty}
+          onChange={(qty) => onChange({ ...item, qty })}
+          className="min-w-0"
+        />
+        <NumberField
+          label="Rate (₹)"
+          value={item.rate}
+          onChange={(rate) => onChange({ ...item, rate })}
+          className="min-w-0"
+        />
         <NumberField
           label="Amount (₹)"
           value={returnItemAmount(item).toFixed(2)}

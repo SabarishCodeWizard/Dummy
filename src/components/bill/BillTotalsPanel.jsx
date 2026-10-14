@@ -94,7 +94,7 @@ export function BillTotalsPanel({ title, form, totals, onChange, balanceLabel, n
         <div
           className={cn(
             'flex items-center justify-between gap-3 rounded-xl p-3.5 ring-1 transition-colors',
-            'bg-red-50 ring-red-200'
+            'bg-red-50 ring-red-200',
           )}
         >
           <div className="min-w-0">
@@ -106,7 +106,7 @@ export function BillTotalsPanel({ title, form, totals, onChange, balanceLabel, n
           <div
             className={cn(
               'text-right font-display text-xl font-extrabold [overflow-wrap:anywhere] tabular-nums sm:text-2xl',
-              'text-red-600'
+              'text-red-600',
             )}
           >
             {rupees(totals.balanceDue)}

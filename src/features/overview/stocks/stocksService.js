@@ -2,15 +2,23 @@ import { db } from '@/core/db';
 import { computeStocks } from './stocksLogic';
 /** Loads purchases, sales and opening stocks and derives the stock rows + financial summary. */
 export async function loadStocks() {
-  const [purchaseBills, salesInvoices, openingStocks, productMetadata, salesReturns, purchaseReturns] =
-    await Promise.all([
-      db.getAllPurchaseBills().catch(() => []),
-      db.getAllInvoices().catch(() => []),
-      db.getAllOpeningStocks().catch(() => []),
-      db.getAllProductMetadata().catch(() => []),
-      db.getAllReturns().catch(() => []),
-      db.getAllPurchaseReturns().catch(() => []),
-    ]);
+  const [
+    purchaseBills,
+    salesInvoices,
+    openingStocks,
+    productMetadata,
+    salesReturns,
+    purchaseReturns,
+    dyeingBatches,
+  ] = await Promise.all([
+    db.getAllPurchaseBills().catch(() => []),
+    db.getAllInvoices().catch(() => []),
+    db.getAllOpeningStocks().catch(() => []),
+    db.getAllProductMetadata().catch(() => []),
+    db.getAllReturns().catch(() => []),
+    db.getAllPurchaseReturns().catch(() => []),
+    db.getAllDyeingBatches ? db.getAllDyeingBatches().catch(() => []) : Promise.resolve([]),
+  ]);
   return computeStocks(
     purchaseBills || [],
     salesInvoices || [],
@@ -18,6 +26,7 @@ export async function loadStocks() {
     productMetadata || [],
     salesReturns || [],
     purchaseReturns || [],
+    dyeingBatches || [],
   );
 }
 

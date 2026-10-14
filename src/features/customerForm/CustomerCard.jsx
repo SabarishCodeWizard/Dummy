@@ -27,12 +27,14 @@ export const CustomerCard = memo(function CustomerCard({ customer, onEdit, onDel
       <div className="mt-3 space-y-1.5 rounded-xl bg-slate-50/70 p-3">
         <InfoRow icon={Phone} text={customer.phone || 'N/A'} />
         <InfoRow icon={MapPin} text={customer.address || 'N/A'} />
-        <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-200/60 text-xs">
+        <div className="mt-1 flex items-center justify-between border-t border-slate-200/60 pt-2 text-xs">
           <span className="flex items-center gap-1.5 font-medium text-slate-600">
             <Wallet className="size-3.5 text-gold-600" aria-hidden />
             Opening Balance:
           </span>
-          <span className={`font-bold tabular-nums text-sm ${openingBal > 0 ? 'text-amber-800' : 'text-slate-700'}`}>
+          <span
+            className={`text-sm font-bold tabular-nums ${openingBal > 0 ? 'text-amber-800' : 'text-slate-700'}`}
+          >
             ₹{openingBal.toFixed(2)}
           </span>
         </div>

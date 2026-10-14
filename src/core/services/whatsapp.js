@@ -86,7 +86,9 @@ export async function shareStatementOnWhatsApp(invoiceNo) {
   let totalPaid = invoice.amountPaid || 0;
 
   if (rawPayments.length > 0) {
-    let cash = 0, upi = 0, account = 0;
+    let cash = 0,
+      upi = 0,
+      account = 0;
     rawPayments.forEach((p) => {
       const m = (p.paymentMethod || 'cash').toLowerCase();
       if (m === 'cash') cash += p.amount || 0;

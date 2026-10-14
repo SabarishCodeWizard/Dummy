@@ -12,11 +12,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { formatCurrency, toNum } from '@/core/format';
-import {
-  format,
-  eachDayOfInterval,
-  eachMonthOfInterval,
-} from 'date-fns';
+import { format, eachDayOfInterval, eachMonthOfInterval } from 'date-fns';
 import { dateRanges, isWithinRange, parseAnyDate } from '../dashboardAnalytics';
 
 const rupees = (n) => {
@@ -46,18 +42,16 @@ const RANGE_LABELS = {
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-lg">
-        <p className="font-bold text-slate-800 mb-2 text-xs sm:text-sm">{label}</p>
+      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+        <p className="mb-2 text-xs font-bold text-slate-800 sm:text-sm">{label}</p>
         <div className="space-y-1">
           {payload.map((entry, index) => (
             <div key={index} className="flex items-center justify-between gap-4 text-xs font-semibold">
               <span className="flex items-center gap-1.5" style={{ color: entry.color }}>
-                <span className="size-2 rounded-full inline-block" style={{ backgroundColor: entry.color }} />
+                <span className="inline-block size-2 rounded-full" style={{ backgroundColor: entry.color }} />
                 {entry.name}:
               </span>
-              <span className="text-slate-900 font-bold tabular-nums">
-                {rupees(entry.value)}
-              </span>
+              <span className="font-bold text-slate-900 tabular-nums">{rupees(entry.value)}</span>
             </div>
           ))}
         </div>
@@ -201,17 +195,15 @@ export function DashboardCharts({ data, rangeKey }) {
   const rangeTitle = RANGE_LABELS[rangeKey] || rangeKey;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Area Chart: Sales vs Purchases vs Profit */}
-      <div className="rounded-xl border border-line bg-surface p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-surface rounded-xl border border-line p-4 shadow-sm sm:p-5">
+        <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">
+            <h3 className="text-base font-bold tracking-tight text-slate-800 sm:text-lg">
               Sales Performance
             </h3>
-            <p className="text-xs text-slate-500">
-              Sales, purchases & gross profit for {rangeTitle}
-            </p>
+            <p className="text-xs text-slate-500">Sales, purchases & gross profit for {rangeTitle}</p>
           </div>
         </div>
         <div className="h-80 w-full">
@@ -219,41 +211,60 @@ export function DashboardCharts({ data, rangeKey }) {
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorPurchases" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickMargin={8} />
               <YAxis stroke="#64748b" fontSize={11} tickFormatter={formatYAxis} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend verticalAlign="top" height={36}/>
-              <Area type="monotone" dataKey="Sales" stroke="#0ea5e9" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" />
-              <Area type="monotone" dataKey="Purchases" stroke="#f59e0b" strokeWidth={2} fillOpacity={1} fill="url(#colorPurchases)" />
-              <Area type="monotone" dataKey="Profit" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorProfit)" />
+              <Legend verticalAlign="top" height={36} />
+              <Area
+                type="monotone"
+                dataKey="Sales"
+                stroke="#0ea5e9"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorSales)"
+              />
+              <Area
+                type="monotone"
+                dataKey="Purchases"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorPurchases)"
+              />
+              <Area
+                type="monotone"
+                dataKey="Profit"
+                stroke="#10b981"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorProfit)"
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Bar Chart: Revenue vs Expenses */}
-      <div className="rounded-xl border border-line bg-surface p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-surface rounded-xl border border-line p-4 shadow-sm sm:p-5">
+        <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">
+            <h3 className="text-base font-bold tracking-tight text-slate-800 sm:text-lg">
               Revenue vs Expenses
             </h3>
-            <p className="text-xs text-slate-500">
-              Operating income, expenses & profit for {rangeTitle}
-            </p>
+            <p className="text-xs text-slate-500">Operating income, expenses & profit for {rangeTitle}</p>
           </div>
         </div>
         <div className="h-80 w-full">
@@ -263,7 +274,7 @@ export function DashboardCharts({ data, rangeKey }) {
               <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickMargin={8} />
               <YAxis stroke="#64748b" fontSize={11} tickFormatter={formatYAxis} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend verticalAlign="top" height={36}/>
+              <Legend verticalAlign="top" height={36} />
               <Bar dataKey="Sales" fill="#0ea5e9" radius={[4, 4, 0, 0]} name="Revenue" />
               <Bar dataKey="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} name="Expenses" />
               <Bar dataKey="Profit" fill="#10b981" radius={[4, 4, 0, 0]} name="Profit" />

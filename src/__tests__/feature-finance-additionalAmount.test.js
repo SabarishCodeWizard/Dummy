@@ -253,4 +253,3 @@ describe('undo and reversal of transactions', () => {
     expect(result.bankAccounts.find((b) => b.id === 'hdfc').currentBalance).toBe(5000);
   });
 });
-

@@ -32,12 +32,7 @@ export async function updateCustomer(original, input) {
   if (phoneChanged && (await db.getCustomer(draft.phone))) {
     return { ok: false, errors: { phone: CUSTOMER_MESSAGES.edit.duplicate } };
   }
-  const args = [
-    original.name ?? '',
-    draft.name,
-    draft.phone,
-    draft.address,
-  ];
+  const args = [original.name ?? '', draft.name, draft.phone, draft.address];
   if (draft.openingBalance !== undefined) {
     args.push(draft.openingBalance);
   }

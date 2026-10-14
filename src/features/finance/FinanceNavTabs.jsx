@@ -29,17 +29,19 @@ export default function FinanceNavTabs({ counts: customCounts }) {
       db.getAllFinanceRecords().catch(() => []),
       db.getAllLenders().catch(() => []),
       db.getAllBankAccounts().catch(() => []),
-    ]).then(([records, lenders, banks]) => {
-      if (!mounted) return;
-      const ongoing = records.filter((r) => !calculateFinanceStats(r).isSettled).length;
-      const settled = records.filter((r) => calculateFinanceStats(r).isSettled).length;
-      setCounts({
-        ongoing: customCounts?.ongoing ?? ongoing,
-        settled: customCounts?.settled ?? settled,
-        lenders: customCounts?.lenders ?? lenders.length,
-        accounts: customCounts?.accounts ?? (banks.length + 1), // banks + cash in hand
-      });
-    }).catch(console.error);
+    ])
+      .then(([records, lenders, banks]) => {
+        if (!mounted) return;
+        const ongoing = records.filter((r) => !calculateFinanceStats(r).isSettled).length;
+        const settled = records.filter((r) => calculateFinanceStats(r).isSettled).length;
+        setCounts({
+          ongoing: customCounts?.ongoing ?? ongoing,
+          settled: customCounts?.settled ?? settled,
+          lenders: customCounts?.lenders ?? lenders.length,
+          accounts: customCounts?.accounts ?? banks.length + 1, // banks + cash in hand
+        });
+      })
+      .catch(console.error);
 
     return () => {
       mounted = false;
@@ -89,9 +91,7 @@ export default function FinanceNavTabs({ counts: customCounts }) {
           to={to}
           className={({ isActive }) =>
             `inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition sm:text-sm ${
-              isActive
-                ? activeClass
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              isActive ? activeClass : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`
           }
         >

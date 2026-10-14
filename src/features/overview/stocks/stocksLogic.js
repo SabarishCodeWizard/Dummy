@@ -33,6 +33,7 @@ export function computeStocks(
   productMetadata = [],
   salesReturns = [],
   purchaseReturns = [],
+  dyeingBatches = [],
 ) {
   const stockMap = new Map();
   const entry = (description) => {
@@ -49,7 +50,7 @@ export function computeStocks(
     if (!description) return;
     entry(description).opening = toNum(stock.qty);
   });
-  
+
   // Seed with metadata
   if (productMetadata) {
     productMetadata.forEach((meta) => {
@@ -144,12 +145,63 @@ export function computeStocks(
     });
   }
 
+  // Account for dyeing batches (Workflow 2: Manufacturing & Processing)
+  if (Array.isArray(dyeingBatches)) {
+    dyeingBatches.forEach((batch) => {
+      if (batch.status === 'CANCELLED') return;
+
+      // 1. Raw Grey Material issued to dyeing (reduces raw grey available stock)
+      if (batch.input?.description) {
+        const desc = String(batch.input.description).trim();
+        const qty = toNum(batch.input.qty);
+        const rate = toNum(batch.input.avgGreyRate || batch.input.rate);
+        const acc = entry(desc);
+        acc.sold += qty;
+        acc.salesHistory.push({
+          date: batch.batchDate || batch.date || '',
+          party: `${batch.processorName || 'Dye House'} (Dyeing Issue)`,
+          qty,
+          rate,
+          invoiceNo: batch.batchId ? `Batch #${batch.batchId}` : 'Batch',
+          rawInvoiceNo: String(batch.batchId || ''),
+          amount: round2(qty * rate),
+          isDyeingIssue: true,
+        });
+      }
+
+      // 2. Finished Colored Rolls produced from dyeing (increases finished available stock at manufactured unit cost)
+      if (batch.status === 'COMPLETED' && Array.isArray(batch.output)) {
+        batch.output.forEach((out) => {
+          if (!out.description) return;
+          const desc = String(out.description).trim();
+          const qty = toNum(out.qty);
+          const unitCost = toNum(out.unitCost);
+          const acc = entry(desc);
+          acc.purchased += qty;
+          acc.purchaseHistory.push({
+            date: batch.completedAt || batch.batchDate || '',
+            party: `${batch.processorName || 'Dye House'} (Finished Receipt)`,
+            qty,
+            rate: unitCost,
+            invoiceNo: batch.batchId ? `Batch #${batch.batchId}` : 'Batch',
+            rawInvoiceNo: String(batch.batchId || ''),
+            amount: round2(qty * unitCost),
+            isDyeingReceipt: true,
+          });
+        });
+      }
+    });
+  }
+
   const rows = Array.from(stockMap, ([description, acc]) => {
     const opening = round3(acc.opening);
     const purchased = round3(acc.purchased);
     const sold = round3(acc.sold);
     const totalPurchaseCost = acc.purchaseHistory.reduce((sum, e) => sum + (e.qty > 0 ? e.amount : 0), 0);
-    const totalPositivePurchasedQty = acc.purchaseHistory.reduce((sum, e) => sum + (e.qty > 0 ? e.qty : 0), 0);
+    const totalPositivePurchasedQty = acc.purchaseHistory.reduce(
+      (sum, e) => sum + (e.qty > 0 ? e.qty : 0),
+      0,
+    );
     const avgPurchaseRate =
       totalPositivePurchasedQty > 0
         ? round2(totalPurchaseCost / totalPositivePurchasedQty)

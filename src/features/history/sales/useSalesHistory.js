@@ -155,7 +155,9 @@ export function useSalesHistory(onDataChanged) {
         }
         const allInvoices = await db.getAllInvoices();
         const customerInvoices = allInvoices.filter(
-          (inv) => inv.customerName && inv.customerName.trim().toLowerCase() === invoice.customerName.trim().toLowerCase(),
+          (inv) =>
+            inv.customerName &&
+            inv.customerName.trim().toLowerCase() === invoice.customerName.trim().toLowerCase(),
         );
         // Combine products from all bills of this customer (unique descriptions with aggregated/total quantities)
         const productMap = new Map();

@@ -74,9 +74,7 @@ export function PaymentMethodsEditor({
               </span>
               <span className="min-w-0 flex-1 leading-tight">
                 <span className="block text-[13px] font-bold tracking-wide text-slate-800">{label}</span>
-                <span className="block truncate text-[11px] text-slate-500">
-                  {defaultHint}
-                </span>
+                <span className="block truncate text-[11px] text-slate-500">{defaultHint}</span>
               </span>
               <NumberField
                 className="w-32 shrink-0 sm:w-36"
@@ -90,21 +88,21 @@ export function PaymentMethodsEditor({
 
             {key === 'cash' && liveBalances && (
               <div
-                className={`mt-1.5 flex items-center justify-between rounded-xl px-3 py-1.5 text-xs transition border ${
+                className={`mt-1.5 flex items-center justify-between rounded-xl border px-3 py-1.5 text-xs transition ${
                   isCashOverdraft
                     ? 'border-amber-300 bg-amber-50 text-amber-900 shadow-xs'
                     : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-900 shadow-xs'
                 }`}
               >
-                <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold">
                   <span
                     className={`size-2 rounded-full ${
-                      isCashOverdraft ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+                      isCashOverdraft ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'
                     }`}
                   />
                   {mode === 'purchase' ? 'Available Cash in Drawer' : 'Current Cash in Drawer'}
                 </span>
-                <span className="font-display font-extrabold text-[13px] tabular-nums">
+                <span className="font-display text-[13px] font-extrabold tabular-nums">
                   ₹{formatCurrency(cashBalance)}
                 </span>
               </div>
@@ -113,9 +111,7 @@ export function PaymentMethodsEditor({
             {key === 'cash' && isCashOverdraft && (
               <div className="mt-1 flex items-center gap-1.5 px-2 text-[11px] font-semibold text-amber-700">
                 <AlertTriangle className="size-3.5 shrink-0" />
-                <span>
-                  Exceeds cash balance by ₹{formatCurrency(cashAmount - cashBalance)}.
-                </span>
+                <span>Exceeds cash balance by ₹{formatCurrency(cashAmount - cashBalance)}.</span>
               </div>
             )}
           </div>
@@ -125,7 +121,9 @@ export function PaymentMethodsEditor({
       {hasBankPayment && bankAccounts.length > 0 && (
         <div className="mt-2.5 space-y-1.5 rounded-xl border border-line bg-brand-50/50 p-2.5">
           <SelectField
-            label={mode === 'purchase' ? 'Deduct payment from Bank Account' : 'Deposit payment to Bank Account'}
+            label={
+              mode === 'purchase' ? 'Deduct payment from Bank Account' : 'Deposit payment to Bank Account'
+            }
             value={selectedBankId}
             onChange={(bankAccountId) => onChange({ ...values, bankAccountId })}
             options={bankAccounts.map((a) => ({
@@ -135,9 +133,9 @@ export function PaymentMethodsEditor({
             readOnly={readOnly}
           />
           {selectedBank && (
-            <div className="flex items-center justify-between rounded-lg bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-600 border border-slate-200/60">
+            <div className="flex items-center justify-between rounded-lg border border-slate-200/60 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-600">
               <span>Account Available:</span>
-              <span className="font-bold font-display text-slate-800 tabular-nums">
+              <span className="font-display font-bold text-slate-800 tabular-nums">
                 ₹{formatCurrency(selectedBank.currentBalance)}
               </span>
             </div>

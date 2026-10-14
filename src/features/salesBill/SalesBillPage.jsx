@@ -10,7 +10,17 @@ import { useEffect } from 'react';
 import { InvoiceHeaderFields, ProductRowsEditor } from '@/components/bill';
 import { formatCurrency } from '@/core/format';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { Button, Card, ErrorState, LoadingState, Modal, Page, RefreshButton, SectionHeader, TwoPane } from '@/ui';
+import {
+  Button,
+  Card,
+  ErrorState,
+  LoadingState,
+  Modal,
+  Page,
+  RefreshButton,
+  SectionHeader,
+  TwoPane,
+} from '@/ui';
 import { BillActionBar } from './BillActionBar';
 import { EditBanner, SaveBadge } from './BillStatusBar';
 import { CalculationSection } from './CalculationSection';
@@ -192,8 +202,8 @@ export default function SalesBillPage() {
           </Button>
         }
       >
-        <div className="flex flex-col items-center text-center p-2">
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 ring-8 ring-amber-50/50 shadow-xs">
+        <div className="flex flex-col items-center p-2 text-center">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 shadow-xs ring-8 ring-amber-50/50">
             <Wallet className="size-7" />
           </div>
           <h3 className="font-display text-lg font-bold text-brand-900">
@@ -205,7 +215,7 @@ export default function SalesBillPage() {
             </p>
           ) : null}
           <div className="mt-4 w-full rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+            <span className="text-xs font-semibold tracking-wider text-amber-700 uppercase">
               Opening Balance Amount
             </span>
             <div className="mt-1 font-display text-3xl font-extrabold text-amber-900 tabular-nums">
@@ -213,7 +223,8 @@ export default function SalesBillPage() {
             </div>
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            This customer has an existing opening balance on record. It will be accounted for in their billing statements.
+            This customer has an existing opening balance on record. It will be accounted for in their billing
+            statements.
           </p>
         </div>
       </Modal>

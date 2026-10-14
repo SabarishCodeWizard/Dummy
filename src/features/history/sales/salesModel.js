@@ -10,7 +10,8 @@ export function toHistoryPayment(p, defaultBankAccountId) {
     amount: p.amount,
     paymentMethod: p.paymentMethod,
     paymentType: p.paymentType,
-    bankAccountId: p.bankAccountId || p.account || p.sourceAccount || p.destinationAccount || defaultBankAccountId,
+    bankAccountId:
+      p.bankAccountId || p.account || p.sourceAccount || p.destinationAccount || defaultBankAccountId,
     note: p.note,
   };
 }

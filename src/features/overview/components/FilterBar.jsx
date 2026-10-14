@@ -26,12 +26,10 @@ export default function FilterBar({
   const isThisMonth = date === thisMonth;
 
   return (
-    <Card className="mb-5 border-line bg-white/80 p-3 sm:p-3.5 space-y-2.5">
+    <Card className="mb-5 space-y-2.5 border-line bg-white/80 p-3 sm:p-3.5">
       <div
         className={`grid gap-2.5 ${
-          hasDate
-            ? 'sm:grid-cols-[11.5rem_minmax(0,1fr)_auto]'
-            : 'sm:grid-cols-[minmax(0,1fr)_auto]'
+          hasDate ? 'sm:grid-cols-[11.5rem_minmax(0,1fr)_auto]' : 'sm:grid-cols-[minmax(0,1fr)_auto]'
         } sm:items-center`}
       >
         {hasDate && (
@@ -60,10 +58,10 @@ export default function FilterBar({
       </div>
 
       {(quickDates || extraFilters) && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-1 text-xs">
           {quickDates && hasDate && (
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-slate-400 font-medium flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="flex items-center gap-1 font-medium text-slate-400">
                 <CalendarDays className="size-3.5" /> Quick:
               </span>
               <button
@@ -101,11 +99,7 @@ export default function FilterBar({
             </div>
           )}
 
-          {extraFilters && (
-            <div className="flex items-center gap-1.5 flex-wrap ml-auto">
-              {extraFilters}
-            </div>
-          )}
+          {extraFilters && <div className="ml-auto flex flex-wrap items-center gap-1.5">{extraFilters}</div>}
         </div>
       )}
     </Card>

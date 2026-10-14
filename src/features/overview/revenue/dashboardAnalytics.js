@@ -1,6 +1,20 @@
 import { db } from '@/core/db';
 import { toNum, parseISODate } from '@/core/format';
-import { isSameDay, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subDays, subMonths } from 'date-fns';
+import {
+  isSameDay,
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  startOfQuarter,
+  endOfQuarter,
+  startOfYear,
+  endOfYear,
+  subDays,
+  subMonths,
+} from 'date-fns';
 import { buildAvgCostLookup, invoiceDiscount } from './revenueLogic';
 
 /**
@@ -27,7 +41,10 @@ export const dateRanges = {
     const yesterday = subDays(new Date(), 1);
     return { start: startOfDay(yesterday), end: endOfDay(yesterday) };
   },
-  thisWeek: () => ({ start: startOfWeek(new Date(), { weekStartsOn: 1 }), end: endOfWeek(new Date(), { weekStartsOn: 1 }) }),
+  thisWeek: () => ({
+    start: startOfWeek(new Date(), { weekStartsOn: 1 }),
+    end: endOfWeek(new Date(), { weekStartsOn: 1 }),
+  }),
   thisMonth: () => ({ start: startOfMonth(new Date()), end: endOfMonth(new Date()) }),
   lastMonth: () => {
     const lastM = subMonths(new Date(), 1);
@@ -112,6 +129,7 @@ export async function fetchDashboardData() {
     suppliers,
     salesReturns,
     purchaseReturns,
+    dyeingBatches,
   ] = await Promise.all([
     db.getAllInvoices(),
     db.getAllPurchaseBills(),
@@ -120,10 +138,12 @@ export async function fetchDashboardData() {
     db.getAllSuppliers(),
     db.getAllReturns(),
     db.getAllPurchaseReturns(),
+    db.getAllDyeingBatches ? db.getAllDyeingBatches() : Promise.resolve([]),
   ]);
 
   const pBills = purchaseBills || [];
-  const avgCostLookup = buildAvgCostLookup(pBills);
+  const batches = dyeingBatches || [];
+  const avgCostLookup = buildAvgCostLookup(pBills, batches);
 
   // Pre-calculate accurate profit for each bill using purchase cost history
   const enrichedSalesBills = (salesBills || []).map((bill) => {
@@ -137,6 +157,7 @@ export async function fetchDashboardData() {
   return {
     salesBills: enrichedSalesBills,
     purchaseBills: pBills,
+    dyeingBatches: batches,
     expenses: expenses || [],
     customers: customers || [],
     suppliers: suppliers || [],
@@ -150,10 +171,12 @@ export function computeAnalytics(data, rangeKey) {
   const range = dateRanges[rangeKey] ? dateRanges[rangeKey]() : null;
   const previousRange = getPreviousPeriod(rangeKey);
   const avgCostLookup = data.avgCostLookup || buildAvgCostLookup(data.purchaseBills || []);
-  
-  const current = range ? aggregatePeriod(data, range, avgCostLookup) : aggregatePeriod(data, { start: new Date(0), end: new Date(2100, 1, 1) }, avgCostLookup);
+
+  const current = range
+    ? aggregatePeriod(data, range, avgCostLookup)
+    : aggregatePeriod(data, { start: new Date(0), end: new Date(2100, 1, 1) }, avgCostLookup);
   const previous = previousRange ? aggregatePeriod(data, previousRange, avgCostLookup) : null;
-  
+
   // Outstanding logic is cumulative, not bound to the date filter.
   // It uses the ledger balances.
   let customerOutstanding = 0;
@@ -173,14 +196,14 @@ export function computeAnalytics(data, rangeKey) {
     custLedger.set(inv.customerName, c);
   }
   for (const r of data.salesReturns) {
-    const inv = data.salesBills.find(i => String(i.invoiceNo) === String(r.invoiceNo));
+    const inv = data.salesBills.find((i) => String(i.invoiceNo) === String(r.invoiceNo));
     if (inv && inv.customerName) {
       const c = custLedger.get(inv.customerName);
       if (c) c.returns += toNum(r.returnAmount);
     }
   }
-  
-  custLedger.forEach(c => {
+
+  custLedger.forEach((c) => {
     const due = c.balance - c.returns;
     if (due > 0) {
       customerOutstanding += due;
@@ -200,14 +223,14 @@ export function computeAnalytics(data, rangeKey) {
     supLedger.set(bill.supplierName, s);
   }
   for (const r of data.purchaseReturns) {
-    const inv = data.purchaseBills.find(i => String(i.invoiceNo) === String(r.invoiceNo));
+    const inv = data.purchaseBills.find((i) => String(i.invoiceNo) === String(r.invoiceNo));
     if (inv && inv.supplierName) {
       const s = supLedger.get(inv.supplierName);
       if (s) s.returns += toNum(r.returnAmount);
     }
   }
 
-  supLedger.forEach(s => {
+  supLedger.forEach((s) => {
     const due = s.balance - s.returns;
     if (due > 0) {
       suppliersOutstanding += due;

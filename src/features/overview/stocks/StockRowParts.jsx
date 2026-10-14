@@ -57,7 +57,13 @@ export function StockActions({ row, onViewHistory, onEditOpening, onDeleteOpenin
   const hasOpening = openingActions(row) === 'edit';
   return (
     <div className="flex items-center gap-2">
-      <Button variant="secondary" size="sm" icon={Eye} onClick={onViewHistory} className="flex-1 max-sm:min-h-11">
+      <Button
+        variant="secondary"
+        size="sm"
+        icon={Eye}
+        onClick={onViewHistory}
+        className="flex-1 max-sm:min-h-11"
+      >
         History
       </Button>
       <IconButton
@@ -85,7 +91,13 @@ export function StockActions({ row, onViewHistory, onEditOpening, onDeleteOpenin
           />
         </>
       ) : (
-        <Button variant="primary" size="sm" icon={Plus} onClick={onEditOpening} className="flex-1 max-sm:min-h-11">
+        <Button
+          variant="primary"
+          size="sm"
+          icon={Plus}
+          onClick={onEditOpening}
+          className="flex-1 max-sm:min-h-11"
+        >
           Add Old Stock
         </Button>
       )}

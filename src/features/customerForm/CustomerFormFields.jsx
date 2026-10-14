@@ -53,7 +53,11 @@ export function CustomerFormFields({ draft, errors, change, onSubmit }) {
         placeholder="0.00"
         allowNegative
         leftIcon={IndianRupee}
-        value={draft.openingBalance !== undefined && draft.openingBalance !== null ? String(draft.openingBalance) : ''}
+        value={
+          draft.openingBalance !== undefined && draft.openingBalance !== null
+            ? String(draft.openingBalance)
+            : ''
+        }
         onChange={change('openingBalance')}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {

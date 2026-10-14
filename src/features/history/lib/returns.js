@@ -90,10 +90,16 @@ export function validateReturnDraft(input) {
     lines.push({ description, qty, rate, returnAmount, reason: item.reason, returnDate });
     total += returnAmount;
   }
-  // If currentBalance is specified and greater than 0, check if return exceeds it (only for balance adjustment); 
+  // If currentBalance is specified and greater than 0, check if return exceeds it (only for balance adjustment);
   // if currentBalance <= 0 or if settling via direct cash/bank refund, allow the return
   const isRefund = input.settlementType === 'refund';
-  if (!isRefund && currentBalance !== undefined && currentBalance !== null && currentBalance > 0 && total > currentBalance) {
+  if (
+    !isRefund &&
+    currentBalance !== undefined &&
+    currentBalance !== null &&
+    currentBalance > 0 &&
+    total > currentBalance
+  ) {
     return {
       ok: false,
       title: 'Error',

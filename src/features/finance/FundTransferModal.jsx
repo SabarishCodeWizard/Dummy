@@ -38,8 +38,8 @@ export default function FundTransferModal({ accounts, onClose, onSave, saving })
         form.fromAccount === 'cash'
           ? 'Deposit to Bank'
           : form.toAccount === 'cash'
-          ? 'Cash Withdrawal'
-          : 'Bank Transfer',
+            ? 'Cash Withdrawal'
+            : 'Bank Transfer',
     });
   };
 

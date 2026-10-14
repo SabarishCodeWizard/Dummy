@@ -85,6 +85,33 @@ describe('computeStocks', () => {
     expect(row('T Shirt')).toMatchObject({ opening: 0, purchased: 3, sold: 1, available: 2 });
     expect(rows).toHaveLength(4);
   });
+  test('integrates dyeing batches: reduces raw grey stock and adds finished colored rolls at unit cost (Workflow 2)', () => {
+    const greyPurchases = [
+      purchase({
+        invoiceNo: 'P-100',
+        supplierName: 'Yarn Mills',
+        products: [line('Cotton 30s Grey', 10, 100)],
+      }),
+    ];
+    const dyeingBatches = [
+      {
+        batchId: 'B-001',
+        status: 'COMPLETED',
+        batchDate: '2026-10-14',
+        processorName: 'Murugan Dyers',
+        input: { description: 'Cotton 30s Grey', qty: 10, avgGreyRate: 100 },
+        output: [{ description: 'Cotton 30s Red', qty: 10, unitCost: 130 }],
+      },
+    ];
+    const out = computeStocks(greyPurchases, [], [], [], [], [], dyeingBatches);
+    const greyRow = out.rows.find((r) => r.description === 'Cotton 30s Grey');
+    const redRow = out.rows.find((r) => r.description === 'Cotton 30s Red');
+
+    // 10 purchased - 10 issued to dyeing = 0 available
+    expect(greyRow).toMatchObject({ purchased: 10, sold: 10, available: 0 });
+    // 10 received from dyeing = 10 available at average purchase rate 130
+    expect(redRow).toMatchObject({ purchased: 10, sold: 0, available: 10, avgPurchaseRate: 130 });
+  });
   test('opening stock with the same trimmed description: last one wins', () => {
     const out = computeStocks(
       [],
@@ -114,18 +141,50 @@ describe('computeStocks', () => {
   });
   test('purchase history: newest first, supplier fallback, amount = qty x rate to 2 decimals', () => {
     expect(row('Cotton Shirt').purchaseHistory).toEqual([
-      { date: '2026-09-15', party: 'Unknown', qty: 2.5, rate: 20, invoiceNo: 'P-002', rawInvoiceNo: 'P-002', amount: 50 },
-      { date: '2026-09-01', party: 'ABC', qty: 10, rate: 100, invoiceNo: 'P-001', rawInvoiceNo: 'P-001', amount: 1000 },
+      {
+        date: '2026-09-15',
+        party: 'Unknown',
+        qty: 2.5,
+        rate: 20,
+        invoiceNo: 'P-002',
+        rawInvoiceNo: 'P-002',
+        amount: 50,
+      },
+      {
+        date: '2026-09-01',
+        party: 'ABC',
+        qty: 10,
+        rate: 100,
+        invoiceNo: 'P-001',
+        rawInvoiceNo: 'P-001',
+        amount: 1000,
+      },
     ]);
     expect(historyTotal(row('Cotton Shirt').purchaseHistory)).toBe(1050);
     expect(row('Cotton Shirt').avgPurchaseRate).toBe(84); // (1000 + 50) / (10 + 2.5) = 1050 / 12.5 = 84
   });
   test('sales history carries the customer; amount is rounded per entry before it is summed', () => {
     expect(row('Cotton Shirt').salesHistory).toEqual([
-      { date: '2026-09-20', party: 'SLN', qty: 4, rate: 150, invoiceNo: '001', rawInvoiceNo: '001', amount: 600 },
+      {
+        date: '2026-09-20',
+        party: 'SLN',
+        qty: 4,
+        rate: 150,
+        invoiceNo: '001',
+        rawInvoiceNo: '001',
+        amount: 600,
+      },
     ]);
     expect(row('T Shirt').salesHistory).toEqual([
-      { date: '2026-09-25', party: 'Unknown', qty: 1, rate: 99.999, invoiceNo: '002', rawInvoiceNo: '002', amount: 100 },
+      {
+        date: '2026-09-25',
+        party: 'Unknown',
+        qty: 1,
+        rate: 99.999,
+        invoiceNo: '002',
+        rawInvoiceNo: '002',
+        amount: 100,
+      },
     ]);
     expect(row('T Shirt').purchaseHistory[0].amount).toBe(151.5);
   });

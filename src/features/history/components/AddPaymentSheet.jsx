@@ -84,9 +84,7 @@ export function AddPaymentSheet({
   };
 
   const defaultTitle =
-    mode === 'purchase'
-      ? `Pay Supplier - Invoice #${invoiceNo}`
-      : `Add Payment - Invoice #${invoiceNo}`;
+    mode === 'purchase' ? `Pay Supplier - Invoice #${invoiceNo}` : `Add Payment - Invoice #${invoiceNo}`;
 
   return (
     <HistorySheet
@@ -172,21 +170,21 @@ export function AddPaymentSheet({
         {/* Live Cash Drawer indicator */}
         {liveBalances && (
           <div
-            className={`flex items-center justify-between rounded-xl px-3 py-1.5 text-xs transition border ${
+            className={`flex items-center justify-between rounded-xl border px-3 py-1.5 text-xs transition ${
               isCashOverdraft
                 ? 'border-amber-300 bg-amber-50 text-amber-900 shadow-xs'
                 : 'border-emerald-200/80 bg-emerald-50/70 text-emerald-900 shadow-xs'
             }`}
           >
-            <span className="flex items-center gap-1.5 font-semibold text-[11px]">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold">
               <span
                 className={`size-2 rounded-full ${
-                  isCashOverdraft ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+                  isCashOverdraft ? 'animate-pulse bg-amber-500' : 'bg-emerald-500'
                 }`}
               />
               {mode === 'purchase' ? 'Available Cash in Drawer' : 'Current Cash in Drawer'}
             </span>
-            <span className="font-display font-extrabold text-[13px] tabular-nums">
+            <span className="font-display text-[13px] font-extrabold tabular-nums">
               ₹{formatCurrency(cashBalance)}
             </span>
           </div>
@@ -195,9 +193,7 @@ export function AddPaymentSheet({
         {isCashOverdraft && (
           <div className="flex items-center gap-1.5 px-2 text-[11px] font-semibold text-amber-700">
             <AlertTriangle className="size-3.5 shrink-0" />
-            <span>
-              Cash payment exceeds drawer balance by ₹{formatCurrency(cashAmount - cashBalance)}.
-            </span>
+            <span>Cash payment exceeds drawer balance by ₹{formatCurrency(cashAmount - cashBalance)}.</span>
           </div>
         )}
 
@@ -218,9 +214,9 @@ export function AddPaymentSheet({
               }))}
             />
             {selectedBank && (
-              <div className="flex items-center justify-between rounded-lg bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-600 border border-slate-200/60">
+              <div className="flex items-center justify-between rounded-lg border border-slate-200/60 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-600">
                 <span>Account Available:</span>
-                <span className="font-bold font-display text-slate-800 tabular-nums">
+                <span className="font-display font-bold text-slate-800 tabular-nums">
                   ₹{formatCurrency(selectedBank.currentBalance)}
                 </span>
               </div>

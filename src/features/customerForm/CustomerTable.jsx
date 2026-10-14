@@ -52,12 +52,7 @@ export function CustomerTable({ customers, emptyText, onEdit, onDelete }) {
               Edit
             </Button>
             {c.phone ? (
-              <Button
-                icon={Trash2}
-                size="sm"
-                variant="outlineDanger"
-                onClick={() => onDelete(c)}
-              >
+              <Button icon={Trash2} size="sm" variant="outlineDanger" onClick={() => onDelete(c)}>
                 Delete
               </Button>
             ) : null}

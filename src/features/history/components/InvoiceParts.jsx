@@ -61,8 +61,8 @@ export function InvoiceSlipBadge({ invoice, className, onClick }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20 shadow-2xs',
-        onClick && 'cursor-pointer hover:bg-emerald-100 transition-colors',
+        'inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 shadow-2xs ring-1 ring-emerald-600/20',
+        onClick && 'cursor-pointer transition-colors hover:bg-emerald-100',
         className,
       )}
       onClick={onClick}
@@ -172,17 +172,13 @@ export function InvoiceSummaryBox({ invoice }) {
         </div>
 
         {hasReturns ? (
-          <Line
-            label="Return Amount:"
-            value={`-${rs(invoice.totalReturns)}`}
-            valueClassName="text-red-600"
-          />
+          <Line label="Return Amount:" value={`-${rs(invoice.totalReturns)}`} valueClassName="text-red-600" />
         ) : null}
       </div>
       <div
         className={cn(
           'flex items-baseline justify-between gap-3 border-t px-3 py-2.5 font-bold',
-          'border-red-200 bg-red-50 text-red-600'
+          'border-red-200 bg-red-50 text-red-600',
         )}
       >
         <span className="text-sm">{hasReturns ? 'Current Adjusted Balance Due:' : 'Balance Due:'}</span>

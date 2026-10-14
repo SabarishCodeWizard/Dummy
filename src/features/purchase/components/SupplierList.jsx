@@ -22,18 +22,20 @@ export const SUPPLIER_COLUMNS = [
   },
   { key: 'phone', header: 'Phone', render: (s) => <RevealablePhone phone={s.phone} /> },
   { key: 'address', header: 'Address', className: 'max-w-xs text-slate-600', value: (s) => s.address || '—' },
-  num('openingBalance', 'Opening Balance', (s) => formatRupees(s.firstBillPreviousBalance + s.totalManualAdjustments)),
+  num('openingBalance', 'Opening Balance', (s) =>
+    formatRupees(s.firstBillPreviousBalance + s.totalManualAdjustments),
+  ),
   {
     key: 'bills',
     header: 'Bills',
     align: 'right',
     className: 'tabular-nums',
     render: (s) => (
-      <TotalInvoicesClickable 
-        count={s.totalBills} 
-        invoiceNumbers={s.allInvoiceNumbers} 
-        entityName={s.name} 
-        module="purchase" 
+      <TotalInvoicesClickable
+        count={s.totalBills}
+        invoiceNumbers={s.allInvoiceNumbers}
+        entityName={s.name}
+        module="purchase"
       />
     ),
   },

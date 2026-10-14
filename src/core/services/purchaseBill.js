@@ -203,8 +203,10 @@ export async function buildAcknowledgementMessage(form) {
       if (totalPaidAmount > 0 || cashPaid > 0 || upiPaid > 0 || accountPaid > 0) {
         message += '\nPayment Summary:\n';
         if (cashPaid > 0) message += `- Cash Paid: ₹${cashPaid.toFixed(2)}\n`;
-        if (upiPaid > 0) message += `- UPI Paid${accountBankName ? ` (${accountBankName})` : ''}: ₹${upiPaid.toFixed(2)}\n`;
-        if (accountPaid > 0) message += `- Account Paid${accountBankName ? ` (${accountBankName})` : ''}: ₹${accountPaid.toFixed(2)}\n`;
+        if (upiPaid > 0)
+          message += `- UPI Paid${accountBankName ? ` (${accountBankName})` : ''}: ₹${upiPaid.toFixed(2)}\n`;
+        if (accountPaid > 0)
+          message += `- Account Paid${accountBankName ? ` (${accountBankName})` : ''}: ₹${accountPaid.toFixed(2)}\n`;
         message += `- Total Amount Paid: ₹${totalPaidAmount.toFixed(2)}\n`;
         message += `- Balance Due: ₹${calcBalanceDue.toFixed(2)}\n`;
       }
@@ -214,10 +216,16 @@ export async function buildAcknowledgementMessage(form) {
         payments.forEach((p) => {
           const date = new Date(p.paymentDate).toLocaleDateString('en-IN');
           const rawMethod = (p.paymentMethod || 'cash').toLowerCase();
-          const pBank = p.bankAccountId ? bankMap.get(p.bankAccountId) : (rawMethod === 'account' ? defaultBank : null);
+          const pBank = p.bankAccountId
+            ? bankMap.get(p.bankAccountId)
+            : rawMethod === 'account'
+              ? defaultBank
+              : null;
           let methodLabel = 'Cash in Hand';
           if (rawMethod === 'account') {
-            methodLabel = pBank ? `Account: ${pBank.accountName}${pBank.bankName ? ` (${pBank.bankName})` : ''}` : 'Bank Account';
+            methodLabel = pBank
+              ? `Account: ${pBank.accountName}${pBank.bankName ? ` (${pBank.bankName})` : ''}`
+              : 'Bank Account';
           } else if (rawMethod === 'upi') {
             methodLabel = pBank ? `UPI (${pBank.accountName})` : 'UPI';
           }
