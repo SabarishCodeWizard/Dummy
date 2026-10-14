@@ -32,7 +32,7 @@ export async function saveSalesReturn(invoiceNo, input, now = new Date()) {
     await db.saveReturn(buildReturnRecord(invoiceNo, invoice.customerName, line, now));
   }
   await updateInvoiceWithReturns(invoiceNo);
-  await updateSubsequentInvoices(invoice.customerName, invoiceNo);
+  await updateSubsequentInvoices(invoice.customerName, invoiceNo, invoice.customerPhone);
   return { ok: true, total: validation.total };
 }
 /** Shared tail of both undo flows: refresh the invoice's return totals, then its customer's later invoices. */
@@ -40,7 +40,7 @@ async function refreshAfterReturnChange(invoiceNo) {
   await updateInvoiceWithReturns(invoiceNo);
   const invoice = await db.getInvoice(invoiceNo);
   if (!invoice) throw userError('Invoice not found!');
-  await updateSubsequentInvoices(invoice.customerName, invoiceNo);
+  await updateSubsequentInvoices(invoice.customerName, invoiceNo, invoice.customerPhone);
 }
 export async function undoSalesReturn(invoiceNo, returnId) {
   await db.deleteReturn(returnId);

@@ -120,7 +120,22 @@ const EMPTY_BALANCE = {
   invoiceCount: 0,
   lastInvoiceNo: null,
 };
-const byInvoiceNoAsc = (a, b) => (parseInt(a.invoiceNo) || 0) - (parseInt(b.invoiceNo) || 0);
+export const parseInvoiceNumber = (no) => {
+  if (no === null || no === undefined) return 0;
+  const str = String(no).trim();
+  const m = str.replace(/^[^\d]*/, '').match(/\d+/);
+  return m ? parseInt(m[0], 10) : (parseInt(str, 10) || 0);
+};
+
+export const byInvoiceNoAsc = (a, b) => {
+  const numA = parseInvoiceNumber(a.invoiceNo);
+  const numB = parseInvoiceNumber(b.invoiceNo);
+  if (numA !== numB) return numA - numB;
+  const dateA = a.invoiceDate ? new Date(a.invoiceDate).getTime() : 0;
+  const dateB = b.invoiceDate ? new Date(b.invoiceDate).getTime() : 0;
+  return dateA - dateB;
+};
+
 export async function calculateTotalReturns(invoiceNo) {
   try {
     const returns = await db.getReturnsByInvoice(invoiceNo);
@@ -174,14 +189,14 @@ export async function calculateCustomerBalance(customerName, currentInvoiceNo = 
   try {
     const invoices = await db.getAllInvoices();
     const customerInvoices = invoices
-      .filter((i) => i.customerName === customerName && i.invoiceNo !== currentInvoiceNo)
+      .filter((i) => i.customerName && customerName && i.customerName.trim().toLowerCase() === customerName.trim().toLowerCase() && i.invoiceNo !== currentInvoiceNo)
       .sort((a, b) => byInvoiceNoAsc(b, a));
     if (customerInvoices.length === 0) return { ...EMPTY_BALANCE };
     const mostRecent = customerInvoices[0];
     const totalReturns = await calculateTotalReturns(mostRecent.invoiceNo);
     return {
       totalPreviousBills: customerInvoices.reduce((sum, i) => sum + i.grandTotal, 0),
-      balanceCarriedForward: mostRecent.balanceDue - totalReturns,
+      balanceCarriedForward: (mostRecent.balanceDue || 0) - totalReturns,
       invoiceCount: customerInvoices.length,
       lastInvoiceNo: mostRecent.invoiceNo,
     };
@@ -194,13 +209,14 @@ export async function calculateSupplierBalance(supplierName, currentInvoiceNo = 
   try {
     const bills = await db.getAllPurchaseBills();
     const supplierBills = bills
-      .filter((b) => b.supplierName === supplierName && b.invoiceNo !== currentInvoiceNo)
+      .filter((b) => b.supplierName && supplierName && b.supplierName.trim().toLowerCase() === supplierName.trim().toLowerCase() && b.invoiceNo !== currentInvoiceNo)
       .sort((a, b) => byInvoiceNoAsc(b, a));
     if (supplierBills.length === 0) return { ...EMPTY_BALANCE };
     const mostRecent = supplierBills[0];
+    const totalReturns = await calculateTotalPurchaseReturns(mostRecent.invoiceNo);
     return {
       totalPreviousBills: supplierBills.reduce((sum, b) => sum + b.grandTotal, 0),
-      balanceCarriedForward: mostRecent.balanceDue || 0,
+      balanceCarriedForward: purchaseBalanceDue(mostRecent) - totalReturns,
       invoiceCount: supplierBills.length,
       lastInvoiceNo: mostRecent.invoiceNo,
     };
@@ -251,7 +267,14 @@ export async function calculatePreviousBalanceAtTime(
     }
     // Existing invoice: balance carried in from the invoice before it.
     const idx = customerInvoices.findIndex((inv) => inv.invoiceNo === currentInvoiceNo);
-    if (idx === 0) return { totalPreviousBills: 0, balanceCarriedForward: 0, invoiceCount: 0 };
+    if (idx === 0) {
+      let initialBal = 0;
+      if (customerPhone) {
+        const cust = await db.getCustomer(customerPhone.trim());
+        if (cust && cust.openingBalance) initialBal = toNum(cust.openingBalance);
+      }
+      return { totalPreviousBills: 0, balanceCarriedForward: initialBal, invoiceCount: 0 };
+    }
     const allReturns = await db.getAllReturns();
     const previous = customerInvoices[idx - 1];
     const totalReturns = allReturns
@@ -268,9 +291,8 @@ export async function calculatePreviousBalanceAtTime(
   }
 }
 /**
- * Supplier equivalent. PARITY NOTE: like the web app this reads the TOP-LEVEL `balanceDue` of a purchase bill.
- * Bills created by the purchase screen store the balance in `payment.balanceDue` (top-level only appears after an
- * edit), so for freshly created bills this yields 0. Preserved intentionally — see docs/MIGRATION_NOTES.md.
+ * Supplier equivalent. Reads the balance due (nested payment.balanceDue or top-level balanceDue) minus any returns.
+ * If no bills exist or for the very first bill, carries forward the supplier's openingBalance if set.
  */
 export async function calculateSupplierPreviousBalanceAtTime(
   supplierName,
@@ -290,22 +312,48 @@ export async function calculateSupplierPreviousBalanceAtTime(
         return false;
       })
       .sort(byInvoiceNoAsc);
-    if (supplierBills.length === 0)
-      return { totalPreviousBills: 0, balanceCarriedForward: 0, invoiceCount: 0 };
+    if (supplierBills.length === 0) {
+      let initialBal = 0;
+      if (supplierPhone) {
+        const supp = await db.getSupplier(supplierPhone.trim());
+        if (supp && supp.openingBalance) initialBal = toNum(supp.openingBalance);
+      }
+      return { totalPreviousBills: 0, balanceCarriedForward: initialBal, invoiceCount: 0 };
+    }
+    let allReturns = [];
+    try {
+      allReturns = (await db.getAllPurchaseReturns()) || [];
+    } catch {
+      allReturns = [];
+    }
+    const returnsTotal = (invoiceNo) =>
+      allReturns
+        .filter((r) => r.invoiceNo === invoiceNo)
+        .reduce((sum, r) => sum + (parseFloat(String(r.returnAmount)) || 0), 0);
+
     if (!currentInvoiceNo || !supplierBills.find((b) => b.invoiceNo === currentInvoiceNo)) {
       const mostRecent = supplierBills[supplierBills.length - 1];
+      const totalReturns = returnsTotal(mostRecent.invoiceNo);
       return {
         totalPreviousBills: supplierBills.reduce((sum, b) => sum + b.grandTotal, 0),
-        balanceCarriedForward: mostRecent.balanceDue || 0,
+        balanceCarriedForward: purchaseBalanceDue(mostRecent) - totalReturns,
         invoiceCount: supplierBills.length,
       };
     }
     const idx = supplierBills.findIndex((b) => b.invoiceNo === currentInvoiceNo);
-    if (idx === 0) return { totalPreviousBills: 0, balanceCarriedForward: 0, invoiceCount: 0 };
+    if (idx === 0) {
+      let initialBal = 0;
+      if (supplierPhone) {
+        const supp = await db.getSupplier(supplierPhone.trim());
+        if (supp && supp.openingBalance) initialBal = toNum(supp.openingBalance);
+      }
+      return { totalPreviousBills: 0, balanceCarriedForward: initialBal, invoiceCount: 0 };
+    }
     const previous = supplierBills[idx - 1];
+    const totalReturns = returnsTotal(previous.invoiceNo);
     return {
       totalPreviousBills: supplierBills.slice(0, idx).reduce((sum, b) => sum + b.grandTotal, 0),
-      balanceCarriedForward: previous.balanceDue || 0,
+      balanceCarriedForward: purchaseBalanceDue(previous) - totalReturns,
       invoiceCount: idx,
     };
   } catch (error) {
@@ -313,9 +361,13 @@ export async function calculateSupplierPreviousBalanceAtTime(
     return { totalPreviousBills: 0, balanceCarriedForward: 0, invoiceCount: 0 };
   }
 }
-/** Re-computes the invoices after `updatedInvoiceNo` (see Database.updateSubsequentInvoices for parity notes). */
-export const updateSubsequentInvoices = (customerName, updatedInvoiceNo) =>
-  db.updateSubsequentInvoices(customerName, updatedInvoiceNo);
+/** Re-computes the invoices after `updatedInvoiceNo` for customer. */
+export const updateSubsequentInvoices = (...args) =>
+  db.updateSubsequentInvoices(...args);
+
+/** Re-computes the purchase bills after `updatedInvoiceNo` for supplier. */
+export const updateSubsequentPurchaseBills = (...args) =>
+  db.updateSubsequentPurchaseBills(...args);
 export async function saveCustomerDetails(name, address, phone) {
   if (!phone) {
     console.error('Phone number is required to save customer');

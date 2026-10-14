@@ -23,6 +23,7 @@ import {
 } from 'firebase/firestore';
 import { getDb } from './firebase';
 import { recordFirestoreOperation } from './services/firestoreUsageTracker';
+import { toNum } from './format';
 
 // Transparent tracking wrappers — preserves exact signatures and behaviors with zero extra network overhead
 const getDoc = async (...args) => {
@@ -164,7 +165,7 @@ export class Database {
     const cached = this._cache.invoices?.find((i) => i.invoiceNo === invoiceNo);
     if (cached) return cached;
     const snap = await getDoc(this.ref('invoices', invoiceNo));
-    return snap.exists() ? snap.data() : null;
+    return snap?.exists?.() ? snap.data() : null;
   }
   /** Delete = move to recycle bin (the web app's later `deleteInvoice` definition overrides the permanent one). */
   async deleteInvoice(invoiceNo) {
@@ -286,8 +287,12 @@ export class Database {
     return customerData.phone;
   }
   async getCustomer(phone) {
-    const snap = await getDoc(this.ref('customers', phone));
-    return snap.exists() ? snap.data() : null;
+    try {
+      const snap = await getDoc(this.ref('customers', phone));
+      return snap?.exists?.() ? snap.data() : null;
+    } catch {
+      return null;
+    }
   }
   async getAllCustomers() {
     return this._load('customers', () => this._all('customers'));
@@ -334,8 +339,12 @@ export class Database {
     return supplierData.phone;
   }
   async getSupplier(phone) {
-    const snap = await getDoc(this.ref('suppliers', phone));
-    return snap.exists() ? snap.data() : null;
+    try {
+      const snap = await getDoc(this.ref('suppliers', phone));
+      return snap?.exists?.() ? snap.data() : null;
+    } catch {
+      return null;
+    }
   }
   async getAllSuppliers() {
     return this._load('suppliers', () => this._all('suppliers'));
@@ -373,7 +382,7 @@ export class Database {
     const cached = this._cache.purchaseInvoices?.find((i) => i.invoiceNo === invoiceNo);
     if (cached) return cached;
     const snap = await getDoc(this.ref('purchase_invoices', invoiceNo));
-    return snap.exists() ? snap.data() : null;
+    return snap?.exists?.() ? snap.data() : null;
   }
   async deletePurchaseBill(invoiceNo) {
     await this.movePurchaseInvoiceToRecycleBin(invoiceNo);
@@ -439,9 +448,7 @@ export class Database {
         bill.payment.balanceDue = bill.balanceDue;
       }
       await this.savePurchaseBill(bill);
-      // NOTE: the web app also called Utils.updateSubsequentInvoices(supplierName, ...) here. That function works on
-      // *sales* invoices keyed by customerName, so for a supplier it was a no-op at best and could touch a sales
-      // customer with the same name at worst. It is deliberately not ported.
+      await this.updateSubsequentPurchaseBills(bill.supplierName, invoiceNo, bill.supplierPhone);
     } catch (error) {
       console.error('Error updating purchase invoice after payment deletion:', error);
     }
@@ -462,10 +469,14 @@ export class Database {
     return returnId;
   }
   async getPurchaseReturnsByInvoice(invoiceNo) {
-    return this._where('purchaseReturns', 'invoiceNo', invoiceNo);
+    try {
+      return await this._where('purchaseReturns', 'invoiceNo', invoiceNo);
+    } catch {
+      return [];
+    }
   }
   async getAllPurchaseReturns() {
-    return this._load('purchaseReturns', () => this._all('purchaseReturns'));
+    return this._load('purchaseReturns', () => this._all('purchaseReturns'), { onError: 'empty' });
   }
   async deletePurchaseReturn(returnId) {
     await deleteDoc(this.ref('purchaseReturns', returnId.toString()));
@@ -585,7 +596,7 @@ export class Database {
     this._cache.invoices = null;
     await this.deletePaymentsByInvoice(invoiceNo);
     await this.deleteReturnsByInvoice(invoiceNo);
-    await this.updateSubsequentInvoices(invoiceData.customerName, invoiceNo);
+    await this.updateSubsequentInvoices(invoiceData.customerName, invoiceNo, invoiceData.customerPhone);
     await this.cleanupOrphanedData();
   }
   async getRecycleBinItems() {
@@ -607,7 +618,7 @@ export class Database {
       await setDoc(this.ref('invoices', item.originalId), item.data);
       for (const payment of item.payments || []) await this.savePayment(payment);
       for (const returnItem of item.returns || []) await this.saveReturn(returnItem);
-      await this.updateSubsequentInvoices(item.data.customerName, item.originalId);
+      await this.updateSubsequentInvoices(item.data.customerName, item.originalId, item.data.customerPhone);
     }
     await deleteDoc(docRef);
     this.invalidate('recycleBin', 'invoices', 'payments', 'returns');
@@ -646,6 +657,7 @@ export class Database {
     await this.deletePurchasePaymentsByInvoice(invoiceNo);
     this._cache.purchaseRecycleBin = null;
     this._cache.purchaseInvoices = null;
+    await this.updateSubsequentPurchaseBills(invoiceData.supplierName, invoiceNo, invoiceData.supplierPhone);
     await this.cleanupOrphanedData();
   }
   async getPurchaseRecycleBinItems() {
@@ -666,6 +678,7 @@ export class Database {
     if (item.type === 'purchase_invoice') {
       await setDoc(this.ref('purchase_invoices', item.originalId), item.data);
       for (const payment of item.payments || []) await this.savePurchasePayment(payment);
+      await this.updateSubsequentPurchaseBills(item.data.supplierName, item.originalId, item.data.supplierPhone);
     }
     await deleteDoc(docRef);
     this.invalidate('purchaseRecycleBin', 'purchaseInvoices');
@@ -688,23 +701,49 @@ export class Database {
   // ------------------------------------------------------------------ Sales ledger maintenance
   /**
    * Re-computes the invoices that come AFTER `updatedInvoiceNo` for the same customer after a payment/return/
-   * deletion changed it. Ported 1:1 from `Utils.updateSubsequentInvoices` so the React app produces the same
-   * numbers as the web app on the shared data.
-   *
-   * PARITY NOTE: this reproduces the web app's arithmetic exactly, including two quirks worth reviewing —
-   * (1) `runningBalance` adds each invoice's `grandTotal` (which already contains the previous balance) so balances
-   * can be double counted when more than one invoice precedes/follows the changed one, and (2) discount and the
-   * manual opening balance are not part of the recomputed `grandTotal`. See __tests__/ledger.test.ts.
+   * deletion/edit changed it. Previous balance, grand total, balance due, and returns are properly synchronized.
    */
-  async updateSubsequentInvoices(customerName, updatedInvoiceNo) {
+  async updateSubsequentInvoices(customerName, updatedInvoiceNo, customerPhone = null) {
     try {
+      this._cache.invoices = null;
       const invoices = await this.getAllInvoices();
+      let targetPhone = customerPhone ? customerPhone.trim() : null;
+      const targetName = customerName ? customerName.trim().toLowerCase() : null;
+      if (!targetPhone && updatedInvoiceNo && targetName) {
+        const found = invoices.find(
+          (i) => i.invoiceNo === updatedInvoiceNo && i.customerName?.trim().toLowerCase() === targetName,
+        );
+        if (found && found.customerPhone && found.customerPhone.trim() !== '') {
+          targetPhone = found.customerPhone.trim();
+        }
+      }
+
       const customerInvoices = invoices
-        .filter((invoice) => invoice.customerName === customerName)
+        .filter((invoice) => {
+          if (targetPhone && invoice.customerPhone && invoice.customerPhone.trim() !== '') {
+            return invoice.customerPhone.trim() === targetPhone;
+          }
+          if (targetName && invoice.customerName) {
+            return invoice.customerName.trim().toLowerCase() === targetName;
+          }
+          return false;
+        })
         .map((i) => ({ ...i }))
-        .sort((a, b) => (parseInt(a.invoiceNo) || 0) - (parseInt(b.invoiceNo) || 0));
-      const updatedIndex = customerInvoices.findIndex((inv) => inv.invoiceNo === updatedInvoiceNo);
-      if (updatedIndex === -1 || updatedIndex === customerInvoices.length - 1) return;
+        .sort((a, b) => {
+          const numA = String(a.invoiceNo || '').match(/\d+/)
+            ? parseInt(String(a.invoiceNo).match(/\d+/)[0], 10)
+            : 0;
+          const numB = String(b.invoiceNo || '').match(/\d+/)
+            ? parseInt(String(b.invoiceNo).match(/\d+/)[0], 10)
+            : 0;
+          if (numA !== numB) return numA - numB;
+          const dateA = a.invoiceDate ? new Date(a.invoiceDate).getTime() : 0;
+          const dateB = b.invoiceDate ? new Date(b.invoiceDate).getTime() : 0;
+          return dateA - dateB;
+        });
+
+      if (customerInvoices.length === 0) return;
+
       const allReturns = await this.getAllReturns();
       const returnsByInvoice = {};
       allReturns.forEach((r) => {
@@ -715,32 +754,194 @@ export class Database {
           (sum, r) => sum + (parseFloat(String(r.returnAmount)) || 0),
           0,
         );
+
+      const updatedIndex = customerInvoices.findIndex((inv) => inv.invoiceNo === updatedInvoiceNo);
+      let startIndex = 0;
       let runningBalance = 0;
-      for (let i = 0; i <= updatedIndex; i++) {
-        const invoice = customerInvoices[i];
-        runningBalance += invoice.grandTotal;
-        runningBalance -= invoice.amountPaid;
-        runningBalance -= returnsTotal(invoice.invoiceNo);
+
+      if (updatedIndex !== -1) {
+        if (updatedIndex === customerInvoices.length - 1) return;
+        startIndex = updatedIndex + 1;
+        const prev = customerInvoices[updatedIndex];
+        runningBalance = (toNum(prev.balanceDue) || 0) - returnsTotal(prev.invoiceNo);
+      } else {
+        const targetNum = String(updatedInvoiceNo || '').match(/\d+/)
+          ? parseInt(String(updatedInvoiceNo).match(/\d+/)[0], 10)
+          : 0;
+        const nextIdx = customerInvoices.findIndex((inv) => {
+          const n = String(inv.invoiceNo || '').match(/\d+/)
+            ? parseInt(String(inv.invoiceNo).match(/\d+/)[0], 10)
+            : 0;
+          return n > targetNum;
+        });
+        if (nextIdx === -1) return;
+        startIndex = nextIdx;
+        if (startIndex > 0) {
+          const prev = customerInvoices[startIndex - 1];
+          runningBalance = (toNum(prev.balanceDue) || 0) - returnsTotal(prev.invoiceNo);
+        } else {
+          if (targetPhone) {
+            const cust = await this.getCustomer(targetPhone);
+            if (cust && cust.openingBalance) runningBalance = toNum(cust.openingBalance);
+          }
+        }
       }
-      for (let i = updatedIndex + 1; i < customerInvoices.length; i++) {
+
+      for (let i = startIndex; i < customerInvoices.length; i++) {
         const invoice = customerInvoices[i];
-        const previousBalance = runningBalance;
-        const subtotal = invoice.products.reduce((sum, product) => sum + product.amount, 0);
-        const totalAmount = subtotal + previousBalance;
+        const previousBalance = Math.round(runningBalance * 100) / 100;
+        const subtotal = Array.isArray(invoice.products)
+          ? invoice.products.reduce((sum, product) => sum + (toNum(product.amount) || 0), 0)
+          : toNum(invoice.subtotal);
+        const manualPrev = toNum(invoice.manualPreviousBalance);
+        const discount = toNum(invoice.discountAmount || invoice.discount);
+        const totalAmount = Math.round((subtotal + previousBalance + manualPrev - discount) * 100) / 100;
         const totalReturns = returnsTotal(invoice.invoiceNo);
-        const balanceDue = totalAmount - invoice.amountPaid - totalReturns;
+        const balanceDue = Math.round((totalAmount - toNum(invoice.amountPaid)) * 100) / 100;
+        const adjustedBalanceDue = Math.round((balanceDue - totalReturns) * 100) / 100;
+
+        invoice.previousBalance = previousBalance;
         invoice.subtotal = subtotal;
         invoice.grandTotal = totalAmount;
         invoice.balanceDue = balanceDue;
         invoice.totalReturns = totalReturns;
-        invoice.adjustedBalanceDue = balanceDue;
+        invoice.adjustedBalanceDue = adjustedBalanceDue;
         await this.saveInvoice(invoice);
-        runningBalance += invoice.grandTotal;
-        runningBalance -= invoice.amountPaid;
-        runningBalance -= totalReturns;
+
+        runningBalance = adjustedBalanceDue;
       }
+      this._cache.invoices = null;
     } catch (error) {
       console.error('Error updating subsequent invoices:', error);
+    }
+  }
+
+  /**
+   * Re-computes the purchase bills that come AFTER `updatedInvoiceNo` for the same supplier after a payment/return/
+   * deletion/edit changed it. Previous balance, grand total, balance due, and returns are properly synchronized.
+   */
+  async updateSubsequentPurchaseBills(supplierName, updatedInvoiceNo, supplierPhone = null) {
+    try {
+      this._cache.purchaseInvoices = null;
+      const bills = await this.getAllPurchaseBills();
+      let targetPhone = supplierPhone ? supplierPhone.trim() : null;
+      const targetName = supplierName ? supplierName.trim().toLowerCase() : null;
+      if (!targetPhone && updatedInvoiceNo && targetName) {
+        const found = bills.find(
+          (b) => b.invoiceNo === updatedInvoiceNo && b.supplierName?.trim().toLowerCase() === targetName,
+        );
+        if (found && found.supplierPhone && found.supplierPhone.trim() !== '') {
+          targetPhone = found.supplierPhone.trim();
+        }
+      }
+
+      const supplierBills = bills
+        .filter((bill) => {
+          if (targetPhone && bill.supplierPhone && bill.supplierPhone.trim() !== '') {
+            return bill.supplierPhone.trim() === targetPhone;
+          }
+          if (targetName && bill.supplierName) {
+            return bill.supplierName.trim().toLowerCase() === targetName;
+          }
+          return false;
+        })
+        .map((b) => ({ ...b }))
+        .sort((a, b) => {
+          const numA = String(a.invoiceNo || '').match(/\d+/)
+            ? parseInt(String(a.invoiceNo).match(/\d+/)[0], 10)
+            : 0;
+          const numB = String(b.invoiceNo || '').match(/\d+/)
+            ? parseInt(String(b.invoiceNo).match(/\d+/)[0], 10)
+            : 0;
+          if (numA !== numB) return numA - numB;
+          const dateA = a.invoiceDate ? new Date(a.invoiceDate).getTime() : 0;
+          const dateB = b.invoiceDate ? new Date(b.invoiceDate).getTime() : 0;
+          return dateA - dateB;
+        });
+
+      if (supplierBills.length === 0) return;
+
+      const allReturns = await this.getAllPurchaseReturns();
+      const returnsByInvoice = {};
+      allReturns.forEach((r) => {
+        (returnsByInvoice[r.invoiceNo] ||= []).push(r);
+      });
+      const returnsTotal = (invoiceNo) =>
+        (returnsByInvoice[invoiceNo] || []).reduce(
+          (sum, r) => sum + (parseFloat(String(r.returnAmount)) || 0),
+          0,
+        );
+
+      const updatedIndex = supplierBills.findIndex((b) => b.invoiceNo === updatedInvoiceNo);
+      let startIndex = 0;
+      let runningBalance = 0;
+
+      const getBillBalanceDue = (b) => {
+        if (b.payment?.balanceDue !== undefined) return toNum(b.payment.balanceDue);
+        return toNum(b.balanceDue);
+      };
+
+      if (updatedIndex !== -1) {
+        if (updatedIndex === supplierBills.length - 1) return;
+        startIndex = updatedIndex + 1;
+        const prev = supplierBills[updatedIndex];
+        runningBalance = getBillBalanceDue(prev) - returnsTotal(prev.invoiceNo);
+      } else {
+        const targetNum = String(updatedInvoiceNo || '').match(/\d+/)
+          ? parseInt(String(updatedInvoiceNo).match(/\d+/)[0], 10)
+          : 0;
+        const nextIdx = supplierBills.findIndex((b) => {
+          const n = String(b.invoiceNo || '').match(/\d+/)
+            ? parseInt(String(b.invoiceNo).match(/\d+/)[0], 10)
+            : 0;
+          return n > targetNum;
+        });
+        if (nextIdx === -1) return;
+        startIndex = nextIdx;
+        if (startIndex > 0) {
+          const prev = supplierBills[startIndex - 1];
+          runningBalance = getBillBalanceDue(prev) - returnsTotal(prev.invoiceNo);
+        } else {
+          if (targetPhone) {
+            const supp = await this.getSupplier(targetPhone);
+            if (supp && supp.openingBalance) runningBalance = toNum(supp.openingBalance);
+          }
+        }
+      }
+
+      for (let i = startIndex; i < supplierBills.length; i++) {
+        const bill = supplierBills[i];
+        const previousBalance = Math.round(runningBalance * 100) / 100;
+        const subtotal = Array.isArray(bill.products)
+          ? bill.products.reduce((sum, product) => sum + (toNum(product.amount) || 0), 0)
+          : toNum(bill.subtotal);
+        const manualPrev = toNum(bill.manualPreviousBalance);
+        const discount = toNum(bill.discount || bill.discountAmount);
+        const rawGrand = subtotal + previousBalance + manualPrev - discount;
+        const grandTotal = Math.max(0, Math.round(rawGrand * 100) / 100);
+        const totalPaid = toNum(bill.payment?.totalPaid || bill.amountPaid);
+        const totalReturns = returnsTotal(bill.invoiceNo);
+        const balanceDue = Math.round((grandTotal - totalPaid) * 100) / 100;
+        const adjustedBalanceDue = Math.round((balanceDue - totalReturns) * 100) / 100;
+
+        bill.previousBalance = previousBalance;
+        bill.subtotal = subtotal;
+        bill.grandTotal = grandTotal;
+        bill.amountPaid = totalPaid;
+        bill.balanceDue = balanceDue;
+        bill.totalReturns = totalReturns;
+        bill.adjustedBalanceDue = adjustedBalanceDue;
+        if (bill.payment) {
+          bill.payment.totalPaid = totalPaid;
+          bill.payment.balanceDue = balanceDue;
+        }
+        await this.savePurchaseBill(bill);
+
+        runningBalance = adjustedBalanceDue;
+      }
+      this._cache.purchaseInvoices = null;
+    } catch (error) {
+      console.error('Error updating subsequent purchase bills:', error);
     }
   }
   // ------------------------------------------------------------------ Finance

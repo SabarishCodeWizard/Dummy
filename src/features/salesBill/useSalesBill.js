@@ -68,6 +68,27 @@ export function useSalesBill() {
     onError: (message) => toast('Error', message, 'error'),
     onCustomerFound: handleCustomerFound,
   });
+
+  const { customerName, customerPhone, invoiceNo } = form;
+  useEffect(() => {
+    if (session.editingNo !== null || session.saved) return;
+    if (!customerName && !customerPhone) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      previousBalanceFor(customerName, customerPhone, invoiceNo)
+        .then((val) => {
+          if (!cancelled) {
+            setSession((s) => withRefreshedPreviousBalance(s, val));
+          }
+        })
+        .catch((e) => console.error('Error calculating previous balance:', e));
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [customerName, customerPhone, invoiceNo, session.editingNo, session.saved]);
+
   /** Remove `?edit=` from this screen's own route (not the focused one, which may have changed by now). */
   const clearEditParam = useCallback(() => {
     setParams({ edit: undefined });

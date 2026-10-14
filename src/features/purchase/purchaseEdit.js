@@ -161,5 +161,6 @@ export async function savePurchaseEdit(form) {
       console.error('Error saving supplier details:', error);
     }
   }
+  await db.updateSubsequentPurchaseBills(bill.supplierName, bill.invoiceNo, bill.supplierPhone);
   return bill;
 }

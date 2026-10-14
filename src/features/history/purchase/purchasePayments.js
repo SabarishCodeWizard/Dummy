@@ -91,6 +91,7 @@ export async function addPurchasePayment(invoiceNo, amounts, dateInput, now = ne
   for (const record of buildAdditionalPaymentRecords(invoiceNo, amounts, paymentTimestamp(dateInput, now))) {
     await db.savePurchasePayment(record);
   }
+  await db.updateSubsequentPurchaseBills(bill.supplierName, invoiceNo, bill.supplierPhone);
 }
 /** viewPaymentHistory(): the bill's payment documents plus the synthetic initial payment of old bills. */
 export async function loadPurchasePaymentHistory(invoiceNo) {
@@ -184,6 +185,7 @@ export async function undoPurchasePayment(invoiceNo, paymentId) {
       invoiceNo,
       applyUndoInitialPayment(bill, initialPaidAmount(bill, documents)),
     );
+    await db.updateSubsequentPurchaseBills(bill.supplierName, invoiceNo, bill.supplierPhone);
     return { initialWithoutDocument: true };
   }
   const documents = await db.getPurchasePaymentsByInvoice(invoiceNo);
@@ -191,6 +193,10 @@ export async function undoPurchasePayment(invoiceNo, paymentId) {
   if (!payment) throw userError('Payment not found!');
   await db.deletePurchasePayment(payment.id);
   if (payment.paymentType === 'initial') await forgetInitialInSplit(invoiceNo, payment);
+  const updatedBill = await db.getPurchaseBill(invoiceNo);
+  if (updatedBill) {
+    await db.updateSubsequentPurchaseBills(updatedBill.supplierName, invoiceNo, updatedBill.supplierPhone);
+  }
   return { initialWithoutDocument: false };
 }
 /**
@@ -210,5 +216,6 @@ export async function undoAllPurchasePayments(invoiceNo) {
   const fresh = await db.getPurchaseBill(invoiceNo);
   if (!fresh) throw userError(PURCHASE_BILL_NOT_FOUND);
   await db.updatePurchaseBillFields(invoiceNo, applyUndoAllPurchasePayments(fresh));
+  await db.updateSubsequentPurchaseBills(fresh.supplierName, invoiceNo, fresh.supplierPhone);
   return { count: untracked.length, total: untracked.reduce((sum, p) => sum + p.amount, 0) };
 }

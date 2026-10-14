@@ -215,7 +215,7 @@ describe('balance carried forward', () => {
     expect(r.lastInvoiceNo).toBe('001');
     expect(r.balanceCarriedForward).toBe(10);
   });
-  test('PARITY: supplier previous balance reads TOP-LEVEL balanceDue (nested payment.balanceDue is ignored)', async () => {
+  test('supplier previous balance reads nested payment.balanceDue or top-level balanceDue', async () => {
     const bills = [
       {
         invoiceNo: '001',
@@ -228,6 +228,6 @@ describe('balance carried forward', () => {
     ];
     jest.spyOn(db, 'getAllPurchaseBills').mockResolvedValue(bills);
     expect((await calculateSupplierPreviousBalanceAtTime('S', '9', null)).balanceCarriedForward).toBe(120);
-    expect((await calculateSupplierPreviousBalanceAtTime('S', '9', '002')).balanceCarriedForward).toBe(0);
+    expect((await calculateSupplierPreviousBalanceAtTime('S', '9', '002')).balanceCarriedForward).toBe(500);
   });
 });

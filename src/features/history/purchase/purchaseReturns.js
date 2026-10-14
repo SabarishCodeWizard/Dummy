@@ -39,17 +39,26 @@ export async function savePurchaseReturnDraft(invoiceNo, input, now = new Date()
     await db.savePurchaseReturn(buildPurchaseReturnRecord(invoiceNo, bill.supplierName, line, now));
   }
   await updatePurchaseBillWithReturns(invoiceNo);
+  await db.updateSubsequentPurchaseBills(bill.supplierName, invoiceNo, bill.supplierPhone);
   return { ok: true, total: validation.total };
 }
 export async function undoPurchaseReturn(invoiceNo, returnId) {
+  const bill = await db.getPurchaseBill(invoiceNo);
   await db.deletePurchaseReturn(returnId);
   await updatePurchaseBillWithReturns(invoiceNo);
+  if (bill) {
+    await db.updateSubsequentPurchaseBills(bill.supplierName, invoiceNo, bill.supplierPhone);
+  }
 }
 /** Returns the number of returns removed, or null when the bill had none. */
 export async function undoAllPurchaseReturns(invoiceNo) {
   const returns = await db.getPurchaseReturnsByInvoice(invoiceNo);
   if (returns.length === 0) return null;
+  const bill = await db.getPurchaseBill(invoiceNo);
   for (const returnItem of returns) await db.deletePurchaseReturn(returnItem.id);
   await updatePurchaseBillWithReturns(invoiceNo);
+  if (bill) {
+    await db.updateSubsequentPurchaseBills(bill.supplierName, invoiceNo, bill.supplierPhone);
+  }
   return returns.length;
 }

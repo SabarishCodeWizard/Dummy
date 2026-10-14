@@ -74,7 +74,7 @@ describe('previousBalanceFor', () => {
       await previousBalanceFor({ supplierName: 'ABC Mills', supplierPhone: '9000000001', invoiceNo: '002' }),
     ).toBe(10);
   });
-  test('PARITY: bills that only have the nested payment object carry no top-level balanceDue, so 0', async () => {
+  test('bills that only have the nested payment object carry forward payment.balanceDue correctly', async () => {
     jest
       .spyOn(db, 'getAllPurchaseBills')
       .mockResolvedValue([
@@ -82,7 +82,7 @@ describe('previousBalanceFor', () => {
       ]);
     expect(
       await previousBalanceFor({ supplierName: 'ABC Mills', supplierPhone: '9000000001', invoiceNo: '002' }),
-    ).toBe(0);
+    ).toBe(1000);
   });
 });
 describe('checkPurchaseBeforeSave', () => {

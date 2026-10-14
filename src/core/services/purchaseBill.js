@@ -141,6 +141,7 @@ export async function savePurchaseBillWithPayments(form) {
     );
   }
   await Promise.all(saves);
+  await db.updateSubsequentPurchaseBills(bill.supplierName, bill.invoiceNo, bill.supplierPhone);
   return bill;
 }
 /** "Share Acknowledgement" text from purchase.js. */

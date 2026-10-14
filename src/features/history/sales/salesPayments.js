@@ -63,7 +63,7 @@ export async function addSalesPayment(invoiceNo, amounts, dateInput, now = new D
   for (const record of buildAdditionalPaymentRecords(invoiceNo, amounts, paymentTimestamp(dateInput, now))) {
     await db.savePayment(record);
   }
-  await updateSubsequentInvoices(invoice.customerName, invoiceNo);
+  await updateSubsequentInvoices(invoice.customerName, invoiceNo, invoice.customerPhone);
 }
 /** Finds a payment by id the way the web did (exact, then without a "payment_" prefix). */
 export function findPayment(payments, paymentId) {
@@ -104,6 +104,6 @@ export async function undoAllSalesPayments(invoiceNo) {
   const total = sumPaymentAmounts(payments);
   for (const payment of payments) await db.deletePayment(payment.id);
   await db.saveInvoice(applyUndoAllPayments(invoice));
-  await updateSubsequentInvoices(invoice.customerName, invoiceNo);
+  await updateSubsequentInvoices(invoice.customerName, invoiceNo, invoice.customerPhone);
   return { count: payments.length, total };
 }
