@@ -34,6 +34,7 @@ import {
   cn,
   useFeedback,
 } from '@/ui';
+import DyeingNavTabs from './DyeingNavTabs';
 import { calcDyerBalanceSummary, emptyDyer, filterDyers, validateDyer } from './dyeingLogic';
 import { deleteDyerRecord, getAllDyersList, saveDyerRecord } from './dyeingService';
 
@@ -196,6 +197,15 @@ export default function DyeingDetailsPage() {
       }
     >
       <div className="space-y-6">
+        {/* Navigation Tabs */}
+        <DyeingNavTabs
+          counts={{
+            ongoing: batches.filter((b) => b.status !== 'COMPLETED').length,
+            settled: batches.filter((b) => b.status === 'COMPLETED').length,
+            dyers: dyers.length,
+          }}
+        />
+
         {/* Dyer Metrics KPI Strip */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard

@@ -495,6 +495,7 @@ export function calcCombingBatchPaymentStats(batch) {
     isPaid,
     isPartial,
     isUnpaid,
+    hasBalanceDue: balanceDue > 0 && totalCharges > 0,
     status,
   };
 }

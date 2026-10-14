@@ -16,7 +16,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 import { formatCurrency, formatDateIN } from '@/core/format';
 import {
@@ -37,6 +37,7 @@ import { AddCombingPaymentModal } from './AddCombingPaymentModal';
 import { CombingBatchModal } from './CombingBatchModal';
 import { CombingChallanModal } from './CombingChallanModal';
 import { CombingCompletionModal } from './CombingCompletionModal';
+import CombingNavTabs from './CombingNavTabs';
 import { CombingPaymentHistoryModal } from './CombingPaymentHistoryModal';
 import { COMBING_STATUS, calcCombingBatchPaymentStats, filterCombingBatches } from './combingLogic';
 import { deleteCombingBatchRecord, loadCombingData, saveCombingBatchRecord } from './combingService';
@@ -117,31 +118,42 @@ export default function CombingPage({ openNew = false }) {
     }
   };
 
+  const ongoingBatches = useMemo(() => {
+    return (data.batches || []).filter((b) => b.status !== COMBING_STATUS.COMPLETED);
+  }, [data.batches]);
+
+  const settledCount = useMemo(() => {
+    return (data.batches || []).filter((b) => b.status === COMBING_STATUS.COMPLETED).length;
+  }, [data.batches]);
+
   const filteredBatches = useMemo(() => {
-    let result = filterCombingBatches(data.batches, searchTerm, statusFilter);
+    let result = ongoingBatches;
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      result = result.filter(
+        (b) =>
+          b.batchId?.toLowerCase().includes(q) ||
+          b.processorName?.toLowerCase().includes(q) ||
+          b.input?.description?.toLowerCase().includes(q) ||
+          (b.output || []).some((o) => o.productName?.toLowerCase().includes(q)),
+      );
+    }
     if (paymentFilter === 'DUE') {
-      result = result.filter((b) => calcCombingBatchPaymentStats(b).balanceDue > 0);
+      result = result.filter((b) => calcCombingBatchPaymentStats(b).hasBalanceDue);
     } else if (paymentFilter === 'PAID') {
       result = result.filter((b) => calcCombingBatchPaymentStats(b).isPaid);
     }
     return result;
-  }, [data.batches, searchTerm, statusFilter, paymentFilter]);
+  }, [ongoingBatches, searchTerm, paymentFilter]);
 
   const kpis = useMemo(() => {
-    let inProcessCount = 0;
-    let completedCount = 0;
     let totalInputQty = 0;
-    let totalOutputQty = 0;
     let totalProcessingCharges = 0;
     let totalPaid = 0;
     let totalBalanceDue = 0;
 
-    data.batches.forEach((b) => {
-      if (b.status === COMBING_STATUS.IN_PROCESS) inProcessCount++;
-      if (b.status === COMBING_STATUS.COMPLETED) completedCount++;
+    ongoingBatches.forEach((b) => {
       totalInputQty += parseFloat(b.input?.qty) || 0;
-      totalOutputQty += parseFloat(b.totalOutputQty) || 0;
-
       const pStats = calcCombingBatchPaymentStats(b);
       totalProcessingCharges += pStats.totalCharges;
       totalPaid += pStats.totalPaid;
@@ -149,15 +161,14 @@ export default function CombingPage({ openNew = false }) {
     });
 
     return {
-      inProcessCount,
-      completedCount,
+      inProcessCount: ongoingBatches.length,
+      settledCount,
       totalInputQty,
-      totalOutputQty,
       totalProcessingCharges,
       totalPaid,
       totalBalanceDue,
     };
-  }, [data.batches]);
+  }, [ongoingBatches, settledCount]);
 
   const handleOpenNew = () => {
     setEditingBatch(null);
@@ -232,50 +243,62 @@ export default function CombingPage({ openNew = false }) {
       }
     >
       <div className="space-y-6">
+        {/* Navigation Tabs */}
+        <CombingNavTabs
+          counts={{
+            ongoing: ongoingBatches.length,
+            settled: settledCount,
+            processors: data.processors?.length || 0,
+          }}
+        />
+
         {/* KPI Strip */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard
-            label="In Process"
+            label="In Process Batches"
             value={kpis.inProcessCount}
             icon={Clock}
             tone="warning"
-            subtext="At combing mill"
-          />
-          <StatCard
-            label="Completed Batches"
-            value={kpis.completedCount}
-            icon={CheckCircle2}
-            tone="success"
-            subtext="Combed stock received"
+            subtext="At combing & processing mill"
           />
           <StatCard
             label="Dyed Fabric Sent"
             value={`${kpis.totalInputQty} Qty`}
             icon={Package}
             tone="brand"
-            subtext="Dispatched for combing"
+            subtext="Undergoing processing"
           />
           <StatCard
-            label="Finished Combed Output"
-            value={`${kpis.totalOutputQty} Qty`}
-            icon={TrendingUp}
-            tone="brand"
-            subtext="Added to live stock"
-          />
-          <StatCard
-            label="Combing Charges"
+            label="Processing Charges"
             value={rupees(kpis.totalProcessingCharges)}
             icon={Banknote}
-            tone="info"
+            tone="default"
             subtext={`Paid: ${rupees(kpis.totalPaid)}`}
           />
           <StatCard
-            label="Processor Balance"
+            label="Processor Balance Due"
             value={rupees(kpis.totalBalanceDue)}
             icon={AlertCircle}
             tone={kpis.totalBalanceDue > 0 ? 'danger' : 'success'}
             subtext={kpis.totalBalanceDue > 0 ? 'Pending payment' : 'All settled'}
           />
+          <Link
+            to="/combing/settled"
+            className="flex flex-col justify-between rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 shadow-2xs transition hover:bg-emerald-100/70 hover:border-emerald-300"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold tracking-wider text-emerald-800 uppercase">
+                Settled Batches
+              </span>
+              <CheckCircle2 className="size-4 text-emerald-600" />
+            </div>
+            <div className="mt-2 font-display text-xl font-bold tracking-tight text-emerald-950 sm:text-2xl">
+              {kpis.settledCount}
+            </div>
+            <div className="mt-1 text-xs font-semibold text-emerald-700 flex items-center gap-1">
+              <span>View Settled Page →</span>
+            </div>
+          </Link>
         </div>
 
         {/* Filter & Search Bar */}
@@ -288,31 +311,13 @@ export default function CombingPage({ openNew = false }) {
             />
           </div>
           <div className="flex flex-wrap items-center gap-1.5 self-start overflow-x-auto pb-1 sm:self-auto sm:pb-0">
-            {['ALL', COMBING_STATUS.IN_PROCESS, COMBING_STATUS.COMPLETED].map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => setStatusFilter(status)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  statusFilter === status
-                    ? 'bg-brand-900 text-white shadow-2xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {status === 'ALL'
-                  ? 'All Batches'
-                  : status === COMBING_STATUS.IN_PROCESS
-                    ? 'In Process'
-                    : 'Completed'}
-              </button>
-            ))}
-
-            <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block" />
-
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+              Payment:
+            </span>
             {[
-              { id: 'ALL', label: 'All Payments' },
-              { id: 'DUE', label: 'Balance Due' },
-              { id: 'PAID', label: 'Paid' },
+              { id: 'ALL', label: `All Ongoing (${ongoingBatches.length})` },
+              { id: 'DUE', label: `Balance Due (${ongoingBatches.filter((b) => calcCombingBatchPaymentStats(b).hasBalanceDue).length})` },
+              { id: 'PAID', label: `Paid (${ongoingBatches.filter((b) => calcCombingBatchPaymentStats(b).isPaid).length})` },
             ].map((p) => (
               <button
                 key={p.id}
@@ -320,7 +325,7 @@ export default function CombingPage({ openNew = false }) {
                 onClick={() => setPaymentFilter(p.id)}
                 className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
                   paymentFilter === p.id
-                    ? 'bg-slate-800 text-white shadow-2xs'
+                    ? 'bg-slate-900 text-white shadow-2xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -339,19 +344,28 @@ export default function CombingPage({ openNew = false }) {
           <EmptyState
             icon={Layers}
             title={
-              searchTerm || statusFilter !== 'ALL'
-                ? 'No matching combing batches found'
-                : 'No combing batches yet'
+              searchTerm || paymentFilter !== 'ALL'
+                ? 'No matching ongoing combing batches found'
+                : 'No ongoing combing batches'
             }
             description={
-              searchTerm || statusFilter !== 'ALL'
-                ? 'Try adjusting your search keywords or filter.'
-                : 'Dispatch your dyed fabric for combing and processing to create finished combed fabric.'
+              searchTerm || paymentFilter !== 'ALL'
+                ? 'Try adjusting your search keywords or payment filter.'
+                : settledCount > 0
+                  ? `All ${settledCount} batches have been completed and settled. View them on the Settled Batches page.`
+                  : 'Dispatch your dyed fabric for combing and processing to create finished combed fabric.'
             }
             action={
-              <Button variant="primary" icon={Plus} onClick={handleOpenNew}>
-                Create First Combing Batch
-              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button variant="primary" icon={Plus} onClick={handleOpenNew}>
+                  Create First Combing Batch
+                </Button>
+                {settledCount > 0 && (
+                  <Button variant="outline" icon={CheckCircle2} onClick={() => navigate('/combing/settled')}>
+                    View Settled Batches ({settledCount})
+                  </Button>
+                )}
+              </div>
             }
           />
         ) : (

@@ -34,6 +34,7 @@ import {
   cn,
   useFeedback,
 } from '@/ui';
+import CombingNavTabs from './CombingNavTabs';
 import { calcProcessorBalanceSummary, emptyProcessor, filterProcessors, validateProcessor } from './combingLogic';
 import { deleteProcessorRecord, getAllProcessorsList, saveProcessorRecord } from './combingService';
 
@@ -197,6 +198,15 @@ export default function CombingDetailsPage() {
       }
     >
       <div className="space-y-6">
+        {/* Navigation Tabs */}
+        <CombingNavTabs
+          counts={{
+            ongoing: batches.filter((b) => b.status !== 'COMPLETED').length,
+            settled: batches.filter((b) => b.status === 'COMPLETED').length,
+            processors: processors.length,
+          }}
+        />
+
         {/* Combating Metrics KPI Strip */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard

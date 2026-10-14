@@ -73,7 +73,8 @@ export const NAV_CATEGORIES = [
     basePath: '/dyeing',
     home: '/dyeing/batches',
     items: [
-      { to: '/dyeing/batches', label: 'Processing Batches', short: 'Batches', icon: Layers },
+      { to: '/dyeing/batches', label: 'Ongoing Batches', short: 'Ongoing', icon: Layers },
+      { to: '/dyeing/settled', label: 'Settled Batches', short: 'Settled', icon: CheckCircle2 },
       { to: '/dyeing/details', label: 'Dyeing Details', short: 'Dyeing Details', icon: Users },
     ],
   },
@@ -84,7 +85,8 @@ export const NAV_CATEGORIES = [
     basePath: '/combing',
     home: '/combing/batches',
     items: [
-      { to: '/combing/batches', label: 'Processing Batches', short: 'Batches', icon: Layers },
+      { to: '/combing/batches', label: 'Ongoing Batches', short: 'Ongoing', icon: Layers },
+      { to: '/combing/settled', label: 'Settled Batches', short: 'Settled', icon: CheckCircle2 },
       { to: '/combing/details', label: 'Combating Details', short: 'Combating Details', icon: Users },
     ],
   },
