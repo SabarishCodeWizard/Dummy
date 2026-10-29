@@ -30,8 +30,8 @@ function SummaryRow({ label, value, tone, bold }) {
       <span className={cn('min-w-0 text-slate-600', bold && 'font-bold text-brand-800')}>{label}</span>
       <span
         className={cn(
-          'tabular-nums shrink-0',
-          bold ? 'font-display text-base sm:text-lg font-extrabold' : 'font-semibold',
+          'shrink-0 tabular-nums',
+          bold ? 'font-display text-base font-extrabold sm:text-lg' : 'font-semibold',
           tone ?? 'text-brand-800',
         )}
       >
@@ -121,6 +121,10 @@ export function ReturnSheet({
       <DateField label="Return Date" value={returnDate} onChange={setReturnDate} className="mb-4 max-w-xs" />
 
       <h3 className="mb-2 font-display text-base font-bold text-brand-800">Return Products</h3>
+      <p className="mb-3 text-xs text-slate-500">
+        Products from this {labels.party.toLowerCase()}'s bills up to this invoice. Each bill rate is shown
+        separately.
+      </p>
       {items.map((item, index) => (
         <ReturnItemEditor
           key={item.key}

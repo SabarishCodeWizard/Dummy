@@ -139,7 +139,7 @@ export const byInvoiceNoAsc = (a, b) => {
 export async function calculateTotalReturns(invoiceNo) {
   try {
     const returns = await db.getReturnsByInvoice(invoiceNo);
-    return returns.reduce((total, r) => total + r.returnAmount, 0);
+    return returns.reduce((total, r) => total + toNum(r.returnAmount), 0);
   } catch (error) {
     console.error('Error calculating returns for invoice:', invoiceNo, error);
     return 0;

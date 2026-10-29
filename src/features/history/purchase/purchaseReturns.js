@@ -1,3 +1,4 @@
+import { loadReturnProducts } from '../lib/returnProducts';
 /**
  * Purchase returns from the history screen: add (saveReturn), undo one, undo all
  * (purchase-history.js saveReturn / undoReturn / undoAllReturns / getAlreadyReturnedQty).
@@ -30,7 +31,7 @@ export async function savePurchaseReturnDraft(invoiceNo, input, now = new Date()
   const validation = validateReturnDraft({
     returnDate: input.returnDate,
     items: input.items,
-    products: bill.products ?? [],
+    products: await loadReturnProducts(bill, 'purchase'),
     existingReturns,
     currentBalance: purchaseBalanceDue(bill) - currentReturns,
   });

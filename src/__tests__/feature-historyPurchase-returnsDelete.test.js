@@ -36,6 +36,11 @@ const stored = (id, returnAmount) => ({
   rate: returnAmount,
   returnAmount,
 });
+beforeEach(() => {
+  jest.spyOn(db, 'getAllPurchaseBills').mockResolvedValue([]);
+  jest.spyOn(db, 'getAllPurchaseReturns').mockImplementation(() => db.getPurchaseReturnsByInvoice('001'));
+  jest.spyOn(db, 'updateSubsequentPurchaseBills').mockResolvedValue();
+});
 afterEach(() => jest.restoreAllMocks());
 describe('savePurchaseReturnDraft', () => {
   test("saves one return document per line (supplierName, not customerName), then refreshes the bill's return totals", async () => {
@@ -64,6 +69,8 @@ describe('savePurchaseReturnDraft', () => {
       reason: 'damaged',
       returnDate: '2026-10-05',
       createdAt: '2026-10-05T10:00:00.000Z',
+      sourceInvoiceNo: '001',
+      sourceRate: 100,
     });
     expect(saveBill).toHaveBeenCalledWith(
       expect.objectContaining({ totalReturns: 200, adjustedBalanceDue: 500 }),

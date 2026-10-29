@@ -210,6 +210,14 @@ function mockStore(inv, initialReturns = []) {
   });
   return { returns, savedInvoices, events };
 }
+beforeEach(() => {
+  jest.spyOn(db, 'getAllInvoices').mockResolvedValue([]);
+  jest
+    .spyOn(db, 'getAllReturns')
+    .mockImplementation(async () =>
+      (await db.getReturnsByInvoice('003')).map((r) => ({ invoiceNo: '003', ...r })),
+    );
+});
 afterEach(() => jest.restoreAllMocks());
 describe('saveSalesReturn', () => {
   test('writes one return document per line, then refreshes the invoice totals and later invoices', async () => {
@@ -224,7 +232,9 @@ describe('saveSalesReturn', () => {
       now,
     );
     expect(result).toEqual({ ok: true, total: 450.5 });
-    expect(store.returns.map(({ id: _id, ...rest }) => rest)).toEqual([
+    expect(
+      store.returns.map(({ id: _id, sourceInvoiceNo: _source, sourceRate: _rate, ...rest }) => rest),
+    ).toEqual([
       {
         invoiceNo: '003',
         customerName: 'SLN TEX',
